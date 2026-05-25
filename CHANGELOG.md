@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2 - 2026-05-25
+
+- Add device workspace left panel with cast mode selector and start/stop cast buttons
+- Reserve middle section for future controls; narrow left column layout
+
 ## 0.4.1 - 2026-05-25
 
 - Add icons to device workspace toolbar buttons (icon left of label)

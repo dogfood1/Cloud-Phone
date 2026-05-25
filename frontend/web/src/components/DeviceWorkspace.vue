@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import AppIcon from "./AppIcon.vue";
+import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
 
@@ -50,7 +51,7 @@ const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
     </header>
 
     <div class="device-workspace__split">
-      <div class="device-workspace__pane device-workspace__pane--left" aria-label="左侧区域" />
+      <DeviceWorkspaceLeftPanel class="device-workspace__pane device-workspace__pane--left" />
       <div class="device-workspace__pane device-workspace__pane--right" aria-label="右侧区域" />
     </div>
   </section>
