@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 - 2026-05-25
+
+- Fix device workspace layout: only left settings panel scrolls, not the whole page
+- Widen left cast settings column (24–28rem)
+
 ## 0.5.0 - 2026-05-25
 
 - Add mirror cast settings form (video, audio, device, screen) in device workspace left panel
