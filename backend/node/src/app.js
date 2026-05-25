@@ -11,6 +11,7 @@ import {
   getSessionCookie,
   loginWithPassword,
 } from "./services/auth-service.js";
+import { handleDeviceCastRoute } from "./routes/device-cast-routes.js";
 import { handleDeviceRoute } from "./routes/device-routes.js";
 import { handleScrcpyRoute } from "./routes/scrcpy-routes.js";
 import { parseCookies } from "./utils/cookies.js";
@@ -172,6 +173,10 @@ export function createApp() {
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
+      return;
+    }
+
+    if (await handleDeviceCastRoute(req, res, method, pathname)) {
       return;
     }
 

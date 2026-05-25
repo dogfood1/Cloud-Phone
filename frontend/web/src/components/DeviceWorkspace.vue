@@ -84,6 +84,7 @@ onBeforeUnmount(stopCast);
         class="device-workspace__pane device-workspace__pane--right"
         :device="device"
         :casting="isCasting"
+        @cast-failed="stopCast"
       />
     </div>
   </section>

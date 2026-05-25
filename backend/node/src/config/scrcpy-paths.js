@@ -46,3 +46,9 @@ export function getScrcpyServerJarPath() {
 export function isScrcpyBinaryReady() {
   return fs.existsSync(getScrcpyBinaryPath());
 }
+
+export function isScrcpyServerReady() {
+  return fs.existsSync(getScrcpyServerJarPath());
+}
+
+export const SCRCPY_SERVER_VERSION = "4.0";

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.4 - 2026-05-25
+
+- Replace ADB screenshot MJPEG cast with scrcpy H.264 WebSocket streaming (ws-scrcpy style)
+- Add device cast API: `POST/DELETE /api/devices/:serial/cast/start|stop`, WebSocket `/cast/ws`
+- Add WebCodecs canvas player in device workspace right panel
+- Add `tools/download-scrcpy.mjs`; `build-scrcpy.mjs` auto-downloads official prebuilt when Meson is missing
+
 ## 0.5.3 - 2026-05-25
 
 - Add default device cast preview in workspace right panel (start/stop buttons wired)

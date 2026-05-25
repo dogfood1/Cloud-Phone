@@ -10,7 +10,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 前端 Vue 3 工程：`frontend/web`（Vite 开发、构建产物 `dist/`）
 - 根目录 `.env` 配置 `BACKEND_PORT`、`FRONTEND_PORT`
 - 左侧 Tab：设备画廊、设置；设备工作区含顶栏控制、镜像投屏完整参数表单与开始/取消按钮
-- 设备工作区默认投屏：右侧实时预览（ADB 截图 MJPEG 流），左侧镜像参数暂未参与启动
+- 设备工作区默认投屏：右侧 scrcpy H.264 WebSocket 实时预览（WebCodecs 解码），左侧镜像参数暂未参与启动
 - 设备画廊展示实时截图及 ADB 实机信息（型号、厂商、IP、系统版本、序列号、产品标识）
 - 设备页汇总在线/离线数量、最近刷新时间与手动刷新
 - 设备列表每 1 秒、截图每 5 秒独立刷新，后台更新时保留上一帧无加载动画
@@ -18,16 +18,17 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 设备截图接口：`GET /api/devices/:serial/screenshot`
 - 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
 - 镜像投屏选项接口：`GET /api/devices/:serial/mirror-options`
-- 设备投屏流接口：`GET /api/devices/:serial/cast/stream`
+- 设备投屏接口：`POST /api/devices/:serial/cast/start`、`DELETE .../cast/stop`、WebSocket `.../cast/ws`
 - scrcpy 源码集成：`backend/source/scrcpy`，后端会话 API `/api/scrcpy/*`（启动/停止/能力查询）
-- 跨平台构建脚本：`tools/build-scrcpy.mjs`、`tools/sync-scrcpy-source.mjs`
+- 跨平台 scrcpy 安装：`tools/build-scrcpy.mjs`（无 Meson 时自动下载官方 v4.0 预编译包）、`tools/download-scrcpy.mjs`
+- 同步源码：`tools/sync-scrcpy-source.mjs`
 - 通过内置 ADB 查询连接设备与设备基础信息
 - 根目录 `npm run dev` 一键启动前后端（先等待后端就绪再启动前端）
 - 开发时 Vite 代理 `/api` 并检测后端连接，失败时给出明确提示
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.5.3`
+- 同步前端与后端版本号到 `0.5.4`
 
 ### 启动方式
 ```powershell
@@ -60,7 +61,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Vue 3 frontend in `frontend/web` (Vite dev server and `dist/` production build)
 - Root `.env` for `BACKEND_PORT` and `FRONTEND_PORT`
 - Left sidebar tabs: Devices gallery and Settings; device workspace with mirror cast settings and toolbar
-- Device workspace default cast: live preview on the right (ADB screencap MJPEG); left mirror options not applied on start yet
+- Device workspace default cast: scrcpy H.264 WebSocket preview on the right (WebCodecs); left mirror options not applied on start yet
 - Device gallery with live screenshots and real ADB metadata (model, manufacturer, IP, OS, serial, product)
 - Device page summary with online/offline counts, last refresh time, and manual refresh
 - Independent refresh: device list every 1s, screenshots every 5s; keeps previous frame without loading animation
@@ -68,16 +69,17 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Device screenshot endpoint: `GET /api/devices/:serial/screenshot`
 - Device list endpoint: `GET /api/devices` (name, IP, model, and more)
 - Mirror cast options: `GET /api/devices/:serial/mirror-options`
-- Device cast stream: `GET /api/devices/:serial/cast/stream`
+- Device cast: `POST /api/devices/:serial/cast/start`, `DELETE .../cast/stop`, WebSocket `.../cast/ws`
 - scrcpy source vendored in `backend/source/scrcpy`; backend session API `/api/scrcpy/*`
-- Cross-platform scrcpy build/sync scripts: `tools/build-scrcpy.mjs`, `tools/sync-scrcpy-source.mjs`
+- scrcpy install: `tools/build-scrcpy.mjs` (downloads official v4.0 prebuilt if Meson is missing), `tools/download-scrcpy.mjs`
+- Sync source: `tools/sync-scrcpy-source.mjs`
 - Query connected devices and basic device properties through the bundled ADB
 - Root `npm run dev` starts backend first, waits for `/health`, then starts the frontend
 - Vite dev proxy for `/api` with backend health check and clearer connection errors
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.5.3`
+- Sync frontend and backend versions to `0.5.4`
 
 ### Getting Started
 ```powershell

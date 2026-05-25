@@ -1,17 +1,8 @@
 import { APP_VERSION } from "../config/version.js";
-import { streamDeviceCast } from "../services/device-cast-stream.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
 import { sendJson } from "../utils/http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname) {
-  const castStreamMatch = pathname.match(/^\/api\/devices\/([^/]+)\/cast\/stream$/);
-
-  if (method === "GET" && castStreamMatch) {
-    const serial = decodeURIComponent(castStreamMatch[1]);
-    streamDeviceCast(req, res, serial);
-    return true;
-  }
-
   const mirrorOptionsMatch = pathname.match(/^\/api\/devices\/([^/]+)\/mirror-options$/);
 
   if (method === "GET" && mirrorOptionsMatch) {

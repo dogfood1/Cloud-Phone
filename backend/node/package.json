@@ -1,6 +1,6 @@
 {
   "name": "cloud-phone-node",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "Node.js backend for Cloud Phone",
   "type": "module",
@@ -8,5 +8,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
   }
 }

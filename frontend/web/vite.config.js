@@ -8,6 +8,7 @@ const { host, backendPort, frontendPort, backendOrigin } = applyProjectEnv();
 const apiProxy = {
   target: backendOrigin,
   changeOrigin: true,
+  ws: true,
   timeout: 120_000,
   proxyTimeout: 120_000,
   configure(proxy) {
