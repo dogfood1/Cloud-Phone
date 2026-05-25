@@ -1,28 +1,11 @@
 import { execFile } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import path from "node:path";
+
+import { resolveAdbPath } from "./adb-path.js";
+import { getDeviceDisplayName } from "./device-display.js";
+import { getDeviceIpAddress } from "./device-ip.js";
 
 const execFileAsync = promisify(execFile);
-const currentFilePath = fileURLToPath(import.meta.url);
-const currentDirPath = path.dirname(currentFilePath);
-const projectRootPath = path.resolve(currentDirPath, "..", "..", "..", "..");
-
-const ADB_EXECUTABLES = {
-  win32: ["backend", "bin", "adb", "platform-tools-latest-windows", "platform-tools", "adb.exe"],
-  linux: ["backend", "bin", "adb", "platform-tools-latest-linux", "platform-tools", "adb"],
-  darwin: ["backend", "bin", "adb", "platform-tools-latest-darwin", "platform-tools", "adb"],
-};
-
-function resolveAdbPath() {
-  const adbSegments = ADB_EXECUTABLES[process.platform];
-
-  if (!adbSegments) {
-    throw new Error(`Unsupported platform: ${process.platform}`);
-  }
-
-  return path.resolve(projectRootPath, ...adbSegments);
-}
 
 function parseDeviceList(stdout) {
   return stdout
@@ -93,6 +76,27 @@ async function getDeviceProperties(adbPath, serial) {
   }
 }
 
+async function enrichConnectedDevice(adbPath, device) {
+  const [properties, ipAddress] = await Promise.all([
+    getDeviceProperties(adbPath, device.serial),
+    getDeviceIpAddress(adbPath, device.serial),
+  ]);
+
+  const enriched = {
+    ...device,
+    manufacturer: properties?.manufacturer ?? null,
+    model: properties?.model ?? device.model,
+    androidVersion: properties?.androidVersion ?? null,
+    sdkVersion: properties?.sdkVersion ?? null,
+    ipAddress,
+  };
+
+  return {
+    ...enriched,
+    displayName: getDeviceDisplayName(enriched),
+  };
+}
+
 export async function listDevices() {
   const adbPath = resolveAdbPath();
   const { stdout } = await execFileAsync(adbPath, ["devices", "-l"], {
@@ -110,18 +114,12 @@ export async function listDevices() {
           manufacturer: null,
           androidVersion: null,
           sdkVersion: null,
+          ipAddress: null,
+          displayName: getDeviceDisplayName(device),
         };
       }
 
-      const properties = await getDeviceProperties(adbPath, device.serial);
-
-      return {
-        ...device,
-        manufacturer: properties?.manufacturer ?? null,
-        model: properties?.model ?? device.model,
-        androidVersion: properties?.androidVersion ?? null,
-        sdkVersion: properties?.sdkVersion ?? null,
-      };
+      return enrichConnectedDevice(adbPath, device);
     }),
   );
 

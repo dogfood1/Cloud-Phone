@@ -17,6 +17,16 @@ export function sendEmpty(res, statusCode, extraHeaders = {}) {
   res.end();
 }
 
+export function sendBuffer(res, statusCode, buffer, contentType, extraHeaders = {}) {
+  res.writeHead(statusCode, {
+    "Content-Type": contentType,
+    "Content-Length": buffer.length,
+    "Cache-Control": "no-store",
+    ...extraHeaders,
+  });
+  res.end(buffer);
+}
+
 export async function readJsonBody(req) {
   const chunks = [];
 

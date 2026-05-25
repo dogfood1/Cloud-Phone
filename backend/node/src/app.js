@@ -3,6 +3,7 @@ import http from "node:http";
 import { AUTH_COOKIE_NAME } from "./config/auth.js";
 import { APP_VERSION } from "./config/version.js";
 import { listDevices } from "./services/adb-service.js";
+import { captureDeviceScreenshot } from "./services/device-screenshot.js";
 import {
   changePassword,
   getAuthStatus,
@@ -11,7 +12,7 @@ import {
   loginWithPassword,
 } from "./services/auth-service.js";
 import { parseCookies } from "./utils/cookies.js";
-import { applyCors, readJsonBody, sendEmpty, sendJson } from "./utils/http.js";
+import { applyCors, readJsonBody, sendBuffer, sendEmpty, sendJson } from "./utils/http.js";
 
 export function createApp() {
   return http.createServer(async (req, res) => {
@@ -166,6 +167,25 @@ export function createApp() {
           success: false,
           version: APP_VERSION,
           error: "Failed to query devices.",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+
+    const screenshotMatch = pathname.match(/^\/api\/devices\/([^/]+)\/screenshot$/);
+
+    if (method === "GET" && screenshotMatch) {
+      const serial = decodeURIComponent(screenshotMatch[1]);
+
+      try {
+        const screenshot = await captureDeviceScreenshot(serial);
+        sendBuffer(res, 200, screenshot, "image/png");
+      } catch (error) {
+        sendJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "Failed to capture screenshot.",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }

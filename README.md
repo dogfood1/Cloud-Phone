@@ -9,12 +9,14 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 初始化 Node.js 后端目录：`backend/node`（仅 `/health`、`/api/*`）
 - 前端独立服务：`frontend/web`（静态页面 + `/api` 代理）
 - 根目录 `.env` 配置 `BACKEND_PORT`、`FRONTEND_PORT`
-- 修复首次改密流程：须先登录默认密码再修改，避免误报当前密码错误
-- 提供设备查询接口：`GET /api/devices`
+- 左侧 Tab 控制台：设备画廊、设置
+- 设备画廊展示实时截图、设备名称与 IP 地址
+- 设置页可配置截图刷新间隔（默认 5 秒）
+- 设备截图接口：`GET /api/devices/:serial/screenshot`
+- 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
 - 通过内置 ADB 查询连接设备与设备基础信息
 - 根目录 `npm run dev:backend` / `npm run dev:frontend` 分别启动前后端
-- 登录与改密弹窗标题顶格左对齐，移除左侧装饰图标
-- 同步前端与后端版本号到 `0.2.4`
+- 同步前端与后端版本号到 `0.2.5`
 
 ### 启动方式
 ```powershell
@@ -34,12 +36,14 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Node.js backend workspace in `backend/node` (`/health` and `/api/*` only)
 - Standalone frontend server in `frontend/web` (static assets + `/api` proxy)
 - Root `.env` for `BACKEND_PORT` and `FRONTEND_PORT`
-- Fix first-time password change flow: login with default password before change
-- Device query endpoint: `GET /api/devices`
+- Left sidebar console with Devices and Settings tabs
+- Device gallery cards with live screenshots, device name, and IP address
+- Configurable screenshot refresh interval in Settings (default 5 seconds)
+- Device screenshot endpoint: `GET /api/devices/:serial/screenshot`
+- Device list endpoint: `GET /api/devices` (name, IP, model, and more)
 - Query connected devices and basic device properties through the bundled ADB
 - Root scripts `npm run dev:backend` and `npm run dev:frontend`
-- Login and password-change modals use flush-left titles without side icons
-- Sync frontend and backend versions to `0.2.4`
+- Sync frontend and backend versions to `0.2.5`
 
 ### Getting Started
 ```powershell

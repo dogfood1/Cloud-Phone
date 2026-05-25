@@ -1,10 +1,15 @@
-const { createApp, computed, onMounted, reactive, ref } = Vue;
+const { createApp, computed, onMounted, onUnmounted, reactive, ref, watch } = Vue;
 
 createApp({
   setup() {
     const loginPasswordVisible = ref(false);
     const newPasswordVisible = ref(false);
     const confirmPasswordVisible = ref(false);
+    const activeTab = ref("devices");
+    const screenshotTick = ref(0);
+    const settingsForm = reactive(loadSettings());
+    const settingsFeedback = ref("");
+
     const state = reactive({
       booting: true,
       authenticated: false,
@@ -21,15 +26,15 @@ createApp({
       changePending: false,
       loginFeedback: "",
       changeFeedback: "",
+      devices: [],
+      devicesLoading: false,
+      devicesError: "",
     });
+
+    let refreshTimer = null;
 
     const passwordStatusText = computed(() =>
       state.passwordConfigured ? "已更新" : "默认密码",
-    );
-    const passwordStatusTip = computed(() =>
-      state.passwordConfigured
-        ? `最近修改：${formatDate(state.passwordUpdatedAt)}`
-        : "首次登录后将强制进入改密流程",
     );
     const showAuthLayer = computed(() => !state.authenticated);
     const showPasswordChangeModal = computed(
@@ -38,8 +43,35 @@ createApp({
     const showLoginModal = computed(
       () => !state.authenticated && !showPasswordChangeModal.value,
     );
+    const refreshIntervalMs = computed(
+      () => settingsForm.screenshotIntervalSeconds * 1000,
+    );
 
-    onMounted(loadSession);
+    onMounted(async () => {
+      await loadSession();
+      restartRefreshLoop();
+    });
+
+    onUnmounted(stopRefreshLoop);
+
+    watch(
+      () => state.authenticated,
+      (authenticated) => {
+        if (authenticated) {
+          restartRefreshLoop();
+          return;
+        }
+
+        stopRefreshLoop();
+        state.devices = [];
+      },
+    );
+
+    watch(refreshIntervalMs, () => {
+      if (state.authenticated) {
+        restartRefreshLoop();
+      }
+    });
 
     async function loadSession() {
       state.booting = true;
@@ -48,6 +80,10 @@ createApp({
         const result = await requestJson("/api/auth/session");
         syncAuthState(result);
         state.sessionStateText = result.authenticated ? "本地会话有效" : "会话缺失或已过期";
+
+        if (result.authenticated) {
+          await refreshDevices();
+        }
       } catch (error) {
         state.sessionStateText = "认证状态读取失败";
         state.loginFeedback = getErrorMessage(error, "暂时无法检查认证状态。");
@@ -81,6 +117,8 @@ createApp({
 
         state.loginPassword = "";
         state.sessionStateText = "已进入控制台";
+        await refreshDevices();
+        restartRefreshLoop();
       } catch (error) {
         state.sessionStateText = "登录失败";
         state.loginFeedback = getErrorMessage(error, "密码验证失败。");
@@ -123,6 +161,8 @@ createApp({
         state.currentPassword = "";
         state.nextPassword = "";
         state.confirmPassword = "";
+        await refreshDevices();
+        restartRefreshLoop();
       } catch (error) {
         state.changeFeedback = getErrorMessage(error, "密码更新失败。");
       } finally {
@@ -138,6 +178,54 @@ createApp({
         state.requiresPasswordChange = false;
         state.sessionExpiresAt = null;
         state.sessionStateText = "会话已退出";
+        stopRefreshLoop();
+        state.devices = [];
+      }
+    }
+
+    async function refreshDevices() {
+      state.devicesLoading = true;
+      state.devicesError = "";
+
+      try {
+        const result = await requestJson("/api/devices");
+        state.devices = result.devices ?? [];
+        screenshotTick.value += 1;
+      } catch (error) {
+        state.devicesError = getErrorMessage(error, "设备列表加载失败。");
+      } finally {
+        state.devicesLoading = false;
+      }
+    }
+
+    function screenshotUrl(serial) {
+      return `/api/devices/${encodeURIComponent(serial)}/screenshot?t=${screenshotTick.value}`;
+    }
+
+    function saveSettingsForm() {
+      const normalized = normalizeScreenshotInterval(settingsForm.screenshotIntervalSeconds);
+      settingsForm.screenshotIntervalSeconds = normalized;
+      saveSettings({ screenshotIntervalSeconds: normalized });
+      settingsFeedback.value = `截图将每 ${normalized} 秒刷新一次。`;
+      restartRefreshLoop();
+    }
+
+    function restartRefreshLoop() {
+      stopRefreshLoop();
+
+      if (!state.authenticated) {
+        return;
+      }
+
+      refreshTimer = window.setInterval(async () => {
+        await refreshDevices();
+      }, refreshIntervalMs.value);
+    }
+
+    function stopRefreshLoop() {
+      if (refreshTimer) {
+        window.clearInterval(refreshTimer);
+        refreshTimer = null;
       }
     }
 
@@ -150,11 +238,15 @@ createApp({
     }
 
     return {
+      activeTab,
       confirmPasswordVisible,
       loginPasswordVisible,
       newPasswordVisible,
       passwordStatusText,
-      passwordStatusTip,
+      saveSettingsForm,
+      screenshotUrl,
+      settingsFeedback,
+      settingsForm,
       showAuthLayer,
       showLoginModal,
       showPasswordChangeModal,
@@ -166,27 +258,6 @@ createApp({
     };
   },
 }).mount("#app");
-
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    method: options.method ?? "GET",
-    credentials: "include",
-    headers: options.body ? { "Content-Type": "application/json" } : {},
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message ?? "Request failed.");
-  }
-
-  return result;
-}
-
-function getErrorMessage(error, fallback) {
-  return error instanceof Error ? error.message : fallback;
-}
 
 function formatDate(value) {
   if (!value) {

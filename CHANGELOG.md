@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 - 2026-05-25
+
+- Redesign frontend with left sidebar tabs for devices and settings
+- Add device gallery cards with live screenshots, device name, and IP address
+- Add configurable screenshot refresh interval in settings (default 5 seconds)
+- Add `GET /api/devices/:serial/screenshot` and device IP enrichment via ADB
+
 ## 0.2.4 - 2026-05-25
 
 - Remove left-side icons from login and forced password change modal headers
