@@ -1,10 +1,12 @@
 .codex/
 projects/
+.npm-cache/
 
 node_modules/
 dist/
 build/
 coverage/
+backend/node/data/
 
 .DS_Store
 Thumbs.db

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Phone Control</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="app-shell" v-cloak>
+        <div class="app-shell__glow app-shell__glow--left"></div>
+        <div class="app-shell__glow app-shell__glow--right"></div>
+        <main class="dashboard-preview" :aria-hidden="showAuthLayer">
+          <section class="hero-panel">
+            <div class="hero-panel__badge"><span class="hero-panel__badge-dot"></span>{{ state.authenticated ? "认证通过" : "安全接入已启用" }}</div>
+            <div class="hero-panel__copy">
+              <p class="eyebrow">Cloud Phone Control</p>
+              <h1>统一入口，收敛设备与权限。</h1>
+              <p class="hero-panel__description">本地 sqlite 保存加密后的密码信息，浏览器会话采用 HttpOnly Cookie。当浏览器首次打开、Cookie 缺失或过期时，系统会回到登录层。</p>
+            </div>
+            <div class="status-grid">
+              <article class="status-card"><p>会话策略</p><strong>12 小时有效</strong><span>到期后自动回到登录层重新验证</span></article>
+              <article class="status-card"><p>认证方式</p><strong>单密码验证</strong><span>当前阶段仅保留本地控制台密码入口</span></article>
+              <article class="status-card"><p>密码状态</p><strong>{{ passwordStatusText }}</strong><span>{{ passwordStatusTip }}</span></article>
+            </div>
+          </section>
+          <section class="device-panel">
+            <header class="device-panel__header">
+              <div><p class="eyebrow">Preview</p><h2>设备接入视图</h2></div>
+              <button v-if="state.authenticated" class="device-panel__chip" type="button" @click="logout">退出当前会话</button>
+              <div v-else class="device-panel__chip">登录后可见完整控制台</div>
+            </header>
+            <div class="device-list">
+              <article class="device-item"><div class="device-item__signal"></div><div class="device-item__body"><strong>Pixel 8 Pro</strong><span>Android 15 · Online</span></div><span class="device-item__tag">主控</span></article>
+              <article class="device-item"><div class="device-item__signal device-item__signal--idle"></div><div class="device-item__body"><strong>Galaxy S24</strong><span>Waiting for session</span></div><span class="device-item__tag">待接管</span></article>
+              <article class="device-item"><div class="device-item__signal device-item__signal--offline"></div><div class="device-item__body"><strong>Xiaomi 14</strong><span>Offline · Need retry</span></div><span class="device-item__tag">异常</span></article>
+            </div>
+            <dl class="session-meta">
+              <div><dt>会话状态</dt><dd>{{ state.sessionStateText }}</dd></div>
+              <div><dt>密码更新时间</dt><dd>{{ formatDate(state.passwordUpdatedAt) }}</dd></div>
+              <div><dt>当前会话到期</dt><dd>{{ formatDate(state.sessionExpiresAt) }}</dd></div>
+            </dl>
+          </section>
+        </main>
+        <div v-if="showAuthLayer" class="modal-layer">
+          <section v-if="!state.requiresPasswordChange" class="auth-modal" role="dialog" aria-modal="true">
+            <div class="auth-modal__header"><div class="auth-icon"></div><div><p class="eyebrow">身份验证</p><h2>登录 Cloud Phone</h2></div></div>
+            <p class="auth-modal__intro">当前浏览器没有有效会话，请输入密码继续。系统仅使用单密码登录，不需要用户名。</p>
+            <form class="auth-form" @submit.prevent="submitLogin">
+              <label class="field"><span>登录密码</span><div class="field__control"><input v-model.trim="state.loginPassword" :type="loginPasswordVisible ? 'text' : 'password'" placeholder="请输入密码" autocomplete="current-password" required /><button type="button" class="field__toggle" @click="loginPasswordVisible = !loginPasswordVisible">{{ loginPasswordVisible ? "隐藏" : "显示" }}</button></div></label>
+              <div class="form-meta"><span>默认初始密码：admin</span><span class="form-meta__state">{{ state.booting ? "检查中" : state.sessionStateText }}</span></div>
+              <p class="feedback">{{ state.loginFeedback }}</p>
+              <button class="primary-button" type="submit" :disabled="state.loginPending">{{ state.loginPending ? "验证中..." : "进入控制台" }}</button>
+            </form>
+          </section>
+          <section v-else class="auth-modal" role="dialog" aria-modal="true">
+            <div class="auth-modal__header"><div class="auth-icon auth-icon--warning"></div><div><p class="eyebrow">强制改密</p><h2>默认密码不可继续使用</h2></div></div>
+            <p class="auth-modal__intro">检测到当前密码仍为默认值 <code>admin</code>。为了继续使用控制台，请先设置新的登录密码。</p>
+            <form class="auth-form" @submit.prevent="submitPasswordChange">
+              <label class="field"><span>新密码</span><div class="field__control"><input v-model.trim="state.nextPassword" :type="newPasswordVisible ? 'text' : 'password'" placeholder="至少 6 位" autocomplete="new-password" required /><button type="button" class="field__toggle" @click="newPasswordVisible = !newPasswordVisible">{{ newPasswordVisible ? "隐藏" : "显示" }}</button></div></label>
+              <label class="field"><span>确认新密码</span><div class="field__control"><input v-model.trim="state.confirmPassword" :type="confirmPasswordVisible ? 'text' : 'password'" placeholder="再次输入新密码" autocomplete="new-password" required /><button type="button" class="field__toggle" @click="confirmPasswordVisible = !confirmPasswordVisible">{{ confirmPasswordVisible ? "隐藏" : "显示" }}</button></div></label>
+              <p class="feedback">{{ state.changeFeedback }}</p>
+              <button class="primary-button" type="submit" :disabled="state.changePending">{{ state.changePending ? "更新中..." : "更新密码并登录" }}</button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script src="/node_modules/vue/dist/vue.global.prod.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,10 +1,12 @@
 {
   "name": "cloud-phone-web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Frontend app for Cloud Phone",
   "scripts": {
-    "dev": "echo \"Frontend app is not initialized yet\"",
-    "build": "echo \"Frontend app is not initialized yet\""
+    "dev": "echo \"Frontend is served by backend/node\""
+  },
+  "dependencies": {
+    "vue": "^3.5.34"
   }
 }
