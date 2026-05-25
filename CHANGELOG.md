@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2 - 2026-05-25
+
+- Add new-display toggle on mirror cast screen settings; disable existing display picker when enabled
+
 ## 0.5.1 - 2026-05-25
 
 - Fix device workspace layout: only left settings panel scrolls, not the whole page

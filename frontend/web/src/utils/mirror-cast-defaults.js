@@ -24,6 +24,7 @@ export function createDefaultMirrorSettings() {
     },
     screen: {
       displayId: "",
+      useNewDisplay: false,
       newDisplayWidth: 1920,
       newDisplayHeight: 1080,
       newDisplayDpi: 420,

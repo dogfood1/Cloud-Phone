@@ -25,7 +25,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.5.1`
+- 同步前端与后端版本号到 `0.5.2`
 
 ### 启动方式
 ```powershell
@@ -73,7 +73,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.5.1`
+- Sync frontend and backend versions to `0.5.2`
 
 ### Getting Started
 ```powershell

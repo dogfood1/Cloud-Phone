@@ -799,8 +799,54 @@ h2 {
   line-height: 1.45;
 }
 
-.mirror-settings__details {
+.mirror-settings__field--disabled > span {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.mirror-settings__field--disabled select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: var(--bg-muted);
+  color: var(--muted);
+}
+
+.mirror-settings__field-hint {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.mirror-settings__new-display-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: start;
   margin-top: 0.55rem;
+}
+
+.mirror-settings__new-display-row .mirror-settings__details {
+  margin-top: 0;
+}
+
+.mirror-settings__new-display-toggle {
+  margin-top: 0.45rem;
+  padding: 0.35rem;
+}
+
+.mirror-settings__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mirror-settings__details {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--bg-input);
