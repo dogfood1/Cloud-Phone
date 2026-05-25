@@ -40,7 +40,10 @@ const emit = defineEmits(["logout", "save-settings"]);
         :devices="deviceStore.devices"
         :loading="deviceStore.loading"
         :error="deviceStore.error"
+        :last-refreshed-at="deviceStore.lastRefreshedAt"
+        :adb-path="deviceStore.adbPath"
         :screenshot-url="deviceStore.screenshotUrl"
+        @refresh="deviceStore.refresh"
       />
       <SettingsPanel
         v-else

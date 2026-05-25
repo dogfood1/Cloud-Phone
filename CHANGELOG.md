@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4 - 2026-05-25
+
+- Enrich device gallery with real ADB fields (manufacturer, Android/SDK, serial, product)
+- Add device summary toolbar, manual refresh, last sync time, and online/offline counts
+- Sort devices with connected units first; improve screenshot error and offline placeholders
+
 ## 0.3.3 - 2026-05-25
 
 - Remove console overview page; default to devices tab

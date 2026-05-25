@@ -10,7 +10,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 前端 Vue 3 工程：`frontend/web`（Vite 开发、构建产物 `dist/`）
 - 根目录 `.env` 配置 `BACKEND_PORT`、`FRONTEND_PORT`
 - 左侧 Tab：设备画廊、设置
-- 设备画廊展示实时截图、设备名称与 IP 地址
+- 设备画廊展示实时截图及 ADB 实机信息（型号、厂商、IP、系统版本、序列号、产品标识）
+- 设备页汇总在线/离线数量、最近刷新时间与手动刷新
 - 设置页可配置截图刷新间隔（默认 5 秒）
 - 设备截图接口：`GET /api/devices/:serial/screenshot`
 - 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
@@ -19,7 +20,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.3.3`
+- 同步前端与后端版本号到 `0.3.4`
 
 ### 启动方式
 ```powershell
@@ -52,7 +53,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Vue 3 frontend in `frontend/web` (Vite dev server and `dist/` production build)
 - Root `.env` for `BACKEND_PORT` and `FRONTEND_PORT`
 - Left sidebar tabs: Devices gallery and Settings
-- Device gallery cards with live screenshots, device name, and IP address
+- Device gallery with live screenshots and real ADB metadata (model, manufacturer, IP, OS, serial, product)
+- Device page summary with online/offline counts, last refresh time, and manual refresh
 - Configurable screenshot refresh interval in Settings (default 5 seconds)
 - Device screenshot endpoint: `GET /api/devices/:serial/screenshot`
 - Device list endpoint: `GET /api/devices` (name, IP, model, and more)
@@ -61,7 +63,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.3.3`
+- Sync frontend and backend versions to `0.3.4`
 
 ### Getting Started
 ```powershell

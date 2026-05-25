@@ -1,7 +1,10 @@
 <script setup>
-import DeviceCard from "./DeviceCard.vue";
+import { computed } from "vue";
 
-defineProps({
+import DeviceCard from "./DeviceCard.vue";
+import { formatRefreshTime, summarizeDevices } from "../utils/device-format.js";
+
+const props = defineProps({
   devices: {
     type: Array,
     required: true,
@@ -14,10 +17,34 @@ defineProps({
     type: String,
     required: true,
   },
+  lastRefreshedAt: {
+    type: String,
+    default: null,
+  },
+  adbPath: {
+    type: String,
+    default: "",
+  },
   screenshotUrl: {
     type: Function,
     required: true,
   },
+});
+
+const emit = defineEmits(["refresh"]);
+
+const summary = computed(() => summarizeDevices(props.devices));
+const refreshLabel = computed(() => formatRefreshTime(props.lastRefreshedAt));
+const statusText = computed(() => {
+  if (props.loading) {
+    return "正在同步设备…";
+  }
+
+  if (!props.devices.length) {
+    return "暂无设备";
+  }
+
+  return `${summary.value.online} 在线 / ${summary.value.total} 台`;
 });
 </script>
 
@@ -27,18 +54,34 @@ defineProps({
       <div>
         <p class="eyebrow">设备</p>
         <h2>设备画廊</h2>
-        <p class="panel-header__desc">实时预览已连接设备画面，自动同步名称与 IP。</p>
+        <p class="panel-header__desc">展示 ADB 实机信息：型号、IP、系统版本、序列号与实时截图。</p>
       </div>
-      <span class="status-pill" :class="{ 'status-pill--loading': loading }">
-        {{ loading ? "刷新中" : `共 ${devices.length} 台` }}
-      </span>
+      <div class="panel-header__actions">
+        <span class="status-pill" :class="{ 'status-pill--loading': loading }">{{ statusText }}</span>
+        <button type="button" class="ghost-button" :disabled="loading" @click="emit('refresh')">
+          {{ loading ? "刷新中…" : "立即刷新" }}
+        </button>
+      </div>
     </header>
 
-    <p v-if="error" class="feedback panel-feedback">{{ error }}</p>
+    <div class="devices-toolbar">
+      <p class="devices-toolbar__meta">
+        <span>最近更新：{{ refreshLabel }}</span>
+        <span v-if="adbPath" class="devices-toolbar__adb" :title="adbPath">ADB 已就绪</span>
+      </p>
+      <p v-if="summary.offline > 0" class="devices-toolbar__hint">
+        {{ summary.offline }} 台设备离线或未授权，仅在线设备可获取截图与完整属性。
+      </p>
+    </div>
 
-    <div v-if="!devices.length && !loading" class="empty-state">
+    <p v-if="error" class="feedback panel-feedback">
+      {{ error }}
+      <button type="button" class="feedback__retry" @click="emit('refresh')">重试</button>
+    </p>
+
+    <div v-if="!devices.length && !loading && !error" class="empty-state">
       <p>未检测到已连接设备</p>
-      <span>请确认 USB 调试或网络 ADB 已连接后刷新。</span>
+      <span>请用 USB 或 `adb connect` 连接后点击「立即刷新」。</span>
     </div>
 
     <div v-else class="device-gallery" :class="{ 'device-gallery--loading': loading }">
