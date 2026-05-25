@@ -1,46 +1,50 @@
 <script setup>
+import AppIcon from "./AppIcon.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 
 const activeTab = defineModel("activeTab", { type: String, required: true });
 
 defineEmits(["logout"]);
+
+const tabs = [
+  { id: "console", label: "控制台", icon: "console" },
+  { id: "devices", label: "设备", icon: "devices" },
+  { id: "settings", label: "设置", icon: "settings" },
+];
 </script>
 
 <template>
   <aside class="sidebar">
     <div class="sidebar__brand">
-      <p class="eyebrow">Cloud Phone</p>
-      <strong>控制台</strong>
+      <div class="sidebar__logo" aria-hidden="true">
+        <AppIcon name="phone" />
+      </div>
+      <div>
+        <p class="eyebrow">Cloud Phone</p>
+        <strong>设备控制台</strong>
+      </div>
     </div>
-    <nav class="sidebar__tabs">
+
+    <nav class="sidebar__tabs" aria-label="主导航">
       <button
+        v-for="tab in tabs"
+        :key="tab.id"
         type="button"
         class="sidebar__tab"
-        :class="{ 'sidebar__tab--active': activeTab === 'console' }"
-        @click="activeTab = 'console'"
+        :class="{ 'sidebar__tab--active': activeTab === tab.id }"
+        @click="activeTab = tab.id"
       >
-        控制台
-      </button>
-      <button
-        type="button"
-        class="sidebar__tab"
-        :class="{ 'sidebar__tab--active': activeTab === 'devices' }"
-        @click="activeTab = 'devices'"
-      >
-        设备
-      </button>
-      <button
-        type="button"
-        class="sidebar__tab"
-        :class="{ 'sidebar__tab--active': activeTab === 'settings' }"
-        @click="activeTab = 'settings'"
-      >
-        设置
+        <AppIcon :name="tab.icon" />
+        <span>{{ tab.label }}</span>
       </button>
     </nav>
+
     <div class="sidebar__footer">
       <ThemeToggle />
-      <button type="button" class="sidebar__logout" @click="$emit('logout')">退出登录</button>
+      <button type="button" class="sidebar__logout" @click="$emit('logout')">
+        <AppIcon name="logout" />
+        <span>退出登录</span>
+      </button>
     </div>
   </aside>
 </template>

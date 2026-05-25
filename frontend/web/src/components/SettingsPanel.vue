@@ -29,9 +29,10 @@ defineEmits(["save"]);
       <div>
         <p class="eyebrow">设置</p>
         <h2>显示与刷新</h2>
+        <p class="panel-header__desc">配置画廊截图刷新频率，并查看当前会话信息。</p>
       </div>
     </header>
-    <form class="settings-form" @submit.prevent="$emit('save')">
+    <form class="settings-form settings-card" @submit.prevent="$emit('save')">
       <label class="field">
         <span>截图刷新间隔（秒）</span>
         <div class="field__control">

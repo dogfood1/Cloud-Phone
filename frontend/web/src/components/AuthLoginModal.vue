@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from "vue";
 
+import AppIcon from "./AppIcon.vue";
+
 defineProps({
   state: {
     type: Object,
@@ -14,6 +16,9 @@ const passwordVisible = ref(false);
 
 <template>
   <section class="auth-modal" role="dialog" aria-modal="true">
+    <div class="auth-modal__brand" aria-hidden="true">
+      <AppIcon name="phone" />
+    </div>
     <div class="auth-modal__header auth-modal__header--plain">
       <p class="eyebrow">身份验证</p>
       <h2>登录 Cloud Phone</h2>

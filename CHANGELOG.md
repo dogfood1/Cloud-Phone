@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 - 2026-05-25
+
+- Redesign UI with ui-ux-pro-max design system (Space Grotesk, DM Sans, glass cards)
+- Add SVG icon set, improved sidebar, device cards, and auth modals
+- Refine light/dark theme contrast, hover states, and accessibility focus styles
+
 ## 0.3.1 - 2026-05-25
 
 - Add light/dark theme toggle in the bottom-left sidebar and login screen

@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from "vue";
 
+import AppIcon from "./AppIcon.vue";
+
 defineProps({
   state: {
     type: Object,
@@ -15,6 +17,9 @@ const confirmPasswordVisible = ref(false);
 
 <template>
   <section class="auth-modal" role="dialog" aria-modal="true">
+    <div class="auth-modal__brand" aria-hidden="true">
+      <AppIcon name="shield" />
+    </div>
     <div class="auth-modal__header auth-modal__header--plain">
       <p class="eyebrow">强制改密</p>
       <h2>默认密码不可继续使用</h2>

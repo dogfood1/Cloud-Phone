@@ -1,4 +1,5 @@
 <script setup>
+import AppIcon from "./AppIcon.vue";
 import { useTheme } from "../composables/useTheme.js";
 
 const { theme, setTheme } = useTheme();
@@ -12,7 +13,8 @@ const { theme, setTheme } = useTheme();
       :class="{ 'theme-toggle__option--active': theme === 'light' }"
       @click="setTheme('light')"
     >
-      浅色
+      <AppIcon name="sun" />
+      <span>浅色</span>
     </button>
     <button
       type="button"
@@ -20,7 +22,8 @@ const { theme, setTheme } = useTheme();
       :class="{ 'theme-toggle__option--active': theme === 'dark' }"
       @click="setTheme('dark')"
     >
-      深色
+      <AppIcon name="moon" />
+      <span>深色</span>
     </button>
   </div>
 </template>
