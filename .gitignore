@@ -12,6 +12,11 @@ dist/
 build/
 coverage/
 backend/node/data/
+backend/source/scrcpy/build/
+backend/source/scrcpy/.gradle/
+backend/bin/scrcpy/**/*
+!backend/bin/scrcpy/**/
+!backend/bin/scrcpy/**/.gitkeep
 
 .DS_Store
 Thumbs.db

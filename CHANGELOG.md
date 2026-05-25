@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.6 - 2026-05-25
+
+- Vendor scrcpy source under `backend/source/scrcpy` with Cloud Phone config/capabilities hooks
+- Add backend scrcpy service, session API (`/api/scrcpy/*`), and cross-platform build/sync scripts
+- Document scrcpy/ws-scrcpy network streaming and capability mapping for programmatic control
+
 ## 0.3.5 - 2026-05-25
 
 - Fix device panel props by unwrapping `useDevices` refs at App root (fixes Vue prop warnings)
