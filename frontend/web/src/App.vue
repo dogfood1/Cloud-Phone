@@ -26,6 +26,7 @@ const {
 } = useAuth();
 
 const activeTab = ref("devices");
+const selectedDevice = ref(null);
 const settingsForm = reactive(loadSettings());
 const settingsFeedback = ref("");
 
@@ -115,6 +116,7 @@ function saveSettingsForm() {
     <ConsoleLayout
       v-else
       v-model:active-tab="activeTab"
+      v-model:selected-device="selectedDevice"
       :devices="devices"
       :device-loading="deviceLoading"
       :device-error="deviceError"

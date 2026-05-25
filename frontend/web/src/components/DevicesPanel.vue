@@ -31,7 +31,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["refresh"]);
+const emit = defineEmits(["refresh", "open-device"]);
 
 const summary = computed(() => summarizeDevices(props.devices));
 const refreshLabel = computed(() => formatRefreshTime(props.lastRefreshedAt));
@@ -91,6 +91,7 @@ const statusText = computed(() => {
         :key="device.serial"
         :device="device"
         :screenshot-url="screenshotUrl(device.serial)"
+        @open="emit('open-device', $event)"
       />
     </div>
   </section>

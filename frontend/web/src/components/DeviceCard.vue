@@ -19,6 +19,19 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(["open"]);
+
+function handleOpen() {
+  emit("open", props.device);
+}
+
+function handleKeydown(event) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    handleOpen();
+  }
+}
+
 const displaySrc = ref("");
 const screenshotFailed = ref(false);
 
@@ -80,7 +93,14 @@ watch(
 </script>
 
 <template>
-  <article class="device-card" :class="{ 'device-card--offline': !device.connected }">
+  <article
+    class="device-card device-card--clickable"
+    :class="{ 'device-card--offline': !device.connected }"
+    role="button"
+    tabindex="0"
+    @click="handleOpen"
+    @keydown="handleKeydown"
+  >
     <div class="device-card__preview">
       <img
         v-if="device.connected && displaySrc && !screenshotFailed"

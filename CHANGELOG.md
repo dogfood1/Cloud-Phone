@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 - 2026-05-25
+
+- Add device workspace view opened from gallery cards
+- Top toolbar with Android control action buttons (UI only); left/right panes reserved for future content
+
 ## 0.3.7 - 2026-05-25
 
 - Split device list (1s) and screenshot (5s) refresh timers

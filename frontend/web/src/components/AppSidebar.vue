@@ -2,7 +2,14 @@
 import AppIcon from "./AppIcon.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 
-const activeTab = defineModel("activeTab", { type: String, required: true });
+const props = defineProps({
+  activeTab: {
+    type: String,
+    required: true,
+  },
+});
+
+const emit = defineEmits(["update:activeTab", "logout"]);
 
 defineEmits(["logout"]);
 
@@ -30,8 +37,8 @@ const tabs = [
         :key="tab.id"
         type="button"
         class="sidebar__tab"
-        :class="{ 'sidebar__tab--active': activeTab === tab.id }"
-        @click="activeTab = tab.id"
+        :class="{ 'sidebar__tab--active': props.activeTab === tab.id }"
+        @click="emit('update:activeTab', tab.id)"
       >
         <AppIcon :name="tab.icon" />
         <span>{{ tab.label }}</span>
