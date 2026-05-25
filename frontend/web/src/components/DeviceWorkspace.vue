@@ -51,7 +51,10 @@ const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
     </header>
 
     <div class="device-workspace__split">
-      <DeviceWorkspaceLeftPanel class="device-workspace__pane device-workspace__pane--left" />
+      <DeviceWorkspaceLeftPanel
+        class="device-workspace__pane device-workspace__pane--left"
+        :device="device"
+      />
       <div class="device-workspace__pane device-workspace__pane--right" aria-label="右侧区域" />
     </div>
   </section>

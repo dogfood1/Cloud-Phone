@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-05-25
+
+- Add mirror cast settings form (video, audio, device, screen) in device workspace left panel
+- Add `GET /api/devices/:serial/mirror-options` for displays, apps, encoders, and audio sources
+- Fix duplicate `defineEmits()` in AppSidebar
+
 ## 0.4.2 - 2026-05-25
 
 - Add device workspace left panel with cast mode selector and start/stop cast buttons

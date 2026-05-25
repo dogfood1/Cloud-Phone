@@ -11,8 +11,6 @@ const props = defineProps({
 
 const emit = defineEmits(["update:activeTab", "logout"]);
 
-defineEmits(["logout"]);
-
 const tabs = [
   { id: "devices", label: "设备", icon: "devices" },
   { id: "settings", label: "设置", icon: "settings" },
@@ -47,7 +45,7 @@ const tabs = [
 
     <div class="sidebar__footer">
       <ThemeToggle />
-      <button type="button" class="sidebar__logout" @click="$emit('logout')">
+      <button type="button" class="sidebar__logout" @click="emit('logout')">
         <AppIcon name="logout" />
         <span>退出登录</span>
       </button>

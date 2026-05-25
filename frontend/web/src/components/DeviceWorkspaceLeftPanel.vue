@@ -1,7 +1,15 @@
 <script setup>
 import { ref } from "vue";
 
+import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
+
+defineProps({
+  device: {
+    type: Object,
+    required: true,
+  },
+});
 
 const castMode = ref(DEFAULT_CAST_MODE);
 const modes = DEVICE_CAST_MODES;
@@ -18,7 +26,10 @@ const modes = DEVICE_CAST_MODES;
       </select>
     </div>
 
-    <div class="workspace-left__section workspace-left__middle" aria-hidden="true" />
+    <div class="workspace-left__section workspace-left__middle">
+      <MirrorCastSettings v-if="castMode === 'mirror'" :serial="device.serial" />
+      <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
+    </div>
 
     <div class="workspace-left__section workspace-left__bottom">
       <button type="button" class="workspace-left__btn workspace-left__btn--ghost">取消投屏</button>
