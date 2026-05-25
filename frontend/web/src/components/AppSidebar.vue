@@ -1,4 +1,6 @@
 <script setup>
+import ThemeToggle from "./ThemeToggle.vue";
+
 const activeTab = defineModel("activeTab", { type: String, required: true });
 
 defineEmits(["logout"]);
@@ -36,6 +38,9 @@ defineEmits(["logout"]);
         设置
       </button>
     </nav>
-    <button type="button" class="sidebar__logout" @click="$emit('logout')">退出登录</button>
+    <div class="sidebar__footer">
+      <ThemeToggle />
+      <button type="button" class="sidebar__logout" @click="$emit('logout')">退出登录</button>
+    </div>
   </aside>
 </template>

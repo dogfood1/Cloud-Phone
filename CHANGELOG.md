@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-05-25
+
+- Add light/dark theme toggle in the bottom-left sidebar and login screen
+- Persist theme preference in localStorage with CSS variable-based styling
+
 ## 0.3.0 - 2026-05-25
 
 - Migrate frontend to Vite + Vue 3 SFC with composables and components

@@ -3,6 +3,7 @@ import { onMounted, reactive, ref, watch } from "vue";
 
 import AuthLayer from "./components/AuthLayer.vue";
 import ConsoleLayout from "./components/ConsoleLayout.vue";
+import ThemeToggle from "./components/ThemeToggle.vue";
 import { useAuth } from "./composables/useAuth.js";
 import { useDevices } from "./composables/useDevices.js";
 import {
@@ -83,6 +84,7 @@ function saveSettingsForm() {
 
 <template>
   <div class="app-shell">
+    <ThemeToggle v-if="showAuthLayer" class="theme-toggle--dock" />
     <AuthLayer
       v-if="showAuthLayer"
       :show-login-modal="showLoginModal"

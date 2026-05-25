@@ -16,7 +16,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
 - 通过内置 ADB 查询连接设备与设备基础信息
 - 根目录 `npm run dev` 一键启动前后端
-- 同步前端与后端版本号到 `0.3.0`
+- 左下角浅色/深色主题切换，偏好本地保存
+- 同步前端与后端版本号到 `0.3.1`
 
 ### 启动方式
 ```powershell
@@ -55,7 +56,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Device list endpoint: `GET /api/devices` (name, IP, model, and more)
 - Query connected devices and basic device properties through the bundled ADB
 - Root `npm run dev` starts backend and frontend together
-- Sync frontend and backend versions to `0.3.0`
+- Light/dark theme toggle at bottom-left with persisted preference
+- Sync frontend and backend versions to `0.3.1`
 
 ### Getting Started
 ```powershell
