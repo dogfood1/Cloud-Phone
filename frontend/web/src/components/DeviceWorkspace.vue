@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 
 import AppIcon from "./AppIcon.vue";
+import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
@@ -13,17 +14,38 @@ const props = defineProps({
   },
 });
 
-defineEmits(["close"]);
+const emit = defineEmits(["close"]);
 
 const actions = DEVICE_WORKSPACE_ACTIONS;
+const isCasting = ref(false);
+
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
+
+function startCast() {
+  if (!props.device.connected) {
+    return;
+  }
+
+  isCasting.value = true;
+}
+
+function stopCast() {
+  isCasting.value = false;
+}
+
+function handleClose() {
+  stopCast();
+  emit("close");
+}
+
+onBeforeUnmount(stopCast);
 </script>
 
 <template>
   <section class="device-workspace">
     <header class="device-workspace__header">
       <div class="device-workspace__intro">
-        <button type="button" class="device-workspace__back" @click="$emit('close')">
+        <button type="button" class="device-workspace__back" @click="handleClose">
           <AppIcon name="arrow-left" />
           <span>返回设备列表</span>
         </button>
@@ -54,8 +76,15 @@ const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
       <DeviceWorkspaceLeftPanel
         class="device-workspace__pane device-workspace__pane--left"
         :device="device"
+        :casting="isCasting"
+        @start-cast="startCast"
+        @stop-cast="stopCast"
       />
-      <div class="device-workspace__pane device-workspace__pane--right" aria-label="右侧区域" />
+      <DeviceCastViewport
+        class="device-workspace__pane device-workspace__pane--right"
+        :device="device"
+        :casting="isCasting"
+      />
     </div>
   </section>
 </template>

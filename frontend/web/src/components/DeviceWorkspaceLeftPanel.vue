@@ -9,7 +9,13 @@ defineProps({
     type: Object,
     required: true,
   },
+  casting: {
+    type: Boolean,
+    required: true,
+  },
 });
+
+const emit = defineEmits(["start-cast", "stop-cast"]);
 
 const castMode = ref(DEFAULT_CAST_MODE);
 const modes = DEVICE_CAST_MODES;
@@ -32,8 +38,22 @@ const modes = DEVICE_CAST_MODES;
     </div>
 
     <div class="workspace-left__section workspace-left__bottom">
-      <button type="button" class="workspace-left__btn workspace-left__btn--ghost">取消投屏</button>
-      <button type="button" class="workspace-left__btn workspace-left__btn--primary">开始投屏</button>
+      <button
+        type="button"
+        class="workspace-left__btn workspace-left__btn--ghost"
+        :disabled="!casting"
+        @click="emit('stop-cast')"
+      >
+        取消投屏
+      </button>
+      <button
+        type="button"
+        class="workspace-left__btn workspace-left__btn--primary"
+        :disabled="!device.connected || casting"
+        @click="emit('start-cast')"
+      >
+        开始投屏
+      </button>
     </div>
   </aside>
 </template>

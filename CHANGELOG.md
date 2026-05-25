@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 - 2026-05-25
+
+- Add default device cast preview in workspace right panel (start/stop buttons wired)
+- Add `GET /api/devices/:serial/cast/stream` MJPEG stream via ADB screencap; left mirror settings not applied yet
+
 ## 0.5.2 - 2026-05-25
 
 - Add new-display toggle on mirror cast screen settings; disable existing display picker when enabled
