@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 
+import AppIcon from "./AppIcon.vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
 
@@ -22,7 +23,8 @@ const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
     <header class="device-workspace__header">
       <div class="device-workspace__intro">
         <button type="button" class="device-workspace__back" @click="$emit('close')">
-          返回设备列表
+          <AppIcon name="arrow-left" />
+          <span>返回设备列表</span>
         </button>
         <div class="device-workspace__meta">
           <h2>{{ device.displayName }}</h2>
@@ -41,7 +43,8 @@ const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
           type="button"
           class="device-workspace__action"
         >
-          {{ action.label }}
+          <AppIcon :name="action.icon" />
+          <span>{{ action.label }}</span>
         </button>
       </div>
     </header>

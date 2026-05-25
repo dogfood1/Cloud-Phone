@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 - 2026-05-25
+
+- Add icons to device workspace toolbar buttons (icon left of label)
+
 ## 0.4.0 - 2026-05-25
 
 - Add device workspace view opened from gallery cards
