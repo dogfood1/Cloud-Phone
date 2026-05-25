@@ -1,9 +1,6 @@
 import http from "node:http";
-import path from "node:path";
-import fs from "node:fs/promises";
 
 import { AUTH_COOKIE_NAME } from "./config/auth.js";
-import { FRONTEND_WEB_ROOT_PATH } from "./config/paths.js";
 import { APP_VERSION } from "./config/version.js";
 import { listDevices } from "./services/adb-service.js";
 import {
@@ -14,7 +11,7 @@ import {
   loginWithPassword,
 } from "./services/auth-service.js";
 import { parseCookies } from "./utils/cookies.js";
-import { applyCors, readJsonBody, sendEmpty, sendFile, sendJson } from "./utils/http.js";
+import { applyCors, readJsonBody, sendEmpty, sendJson } from "./utils/http.js";
 
 export function createApp() {
   return http.createServer(async (req, res) => {
@@ -36,29 +33,6 @@ export function createApp() {
         service: "cloud-phone-node",
         version: APP_VERSION,
       });
-      return;
-    }
-
-    if (method === "GET" && (pathname === "/" || pathname.startsWith("/node_modules/") || pathname === "/app.js" || pathname === "/styles.css")) {
-      const requestPath = pathname === "/" ? "/index.html" : pathname;
-
-      try {
-        const normalizedPath = path.resolve(FRONTEND_WEB_ROOT_PATH, `.${requestPath}`);
-
-        if (!normalizedPath.startsWith(FRONTEND_WEB_ROOT_PATH)) {
-          sendJson(res, 403, {
-            error: "Forbidden",
-          });
-          return;
-        }
-
-        await fs.access(normalizedPath);
-        await sendFile(res, normalizedPath);
-      } catch {
-        sendJson(res, 404, {
-          error: "Not Found",
-        });
-      }
       return;
     }
 

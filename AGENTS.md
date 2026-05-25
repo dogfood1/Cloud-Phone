@@ -1,3 +1,8 @@
+---
+description: 
+alwaysApply: true
+---
+
 每完成一个小任务停一下，问我是否要提交git，我说提交了你再提交，git提交需要携带版本号
 使用tools\version_manager.py修改版本号
 每次都需要提交changelog文件，并且将功能分中英文放到README中

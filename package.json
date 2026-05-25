@@ -1,0 +1,12 @@
+{
+  "name": "cloud-phone",
+  "private": true,
+  "type": "module",
+  "description": "Cloud Phone monorepo scripts",
+  "scripts": {
+    "dev:backend": "npm --prefix backend/node run dev",
+    "dev:frontend": "npm --prefix frontend/web run dev",
+    "start:backend": "npm --prefix backend/node run start",
+    "start:frontend": "npm --prefix frontend/web run start"
+  }
+}

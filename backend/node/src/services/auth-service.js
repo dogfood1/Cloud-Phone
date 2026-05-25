@@ -17,7 +17,8 @@ export async function getAuthStatus(sessionToken) {
   return {
     authenticated: Boolean(session),
     passwordConfigured: Boolean(passwordRecord),
-    requiresPasswordChange: !passwordRecord,
+    // Only prompt for password change after the default password was verified via login.
+    requiresPasswordChange: !passwordRecord && Boolean(session),
     sessionExpiresAt: session?.expiresAt ?? null,
     passwordUpdatedAt: passwordRecord?.updatedAt ?? null,
   };

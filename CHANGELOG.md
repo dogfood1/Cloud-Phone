@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 - 2026-05-25
+
+- Fix forced password change flow skipping login and reporting incorrect current password
+- Add root `.env` configuration for separate backend and frontend ports
+- Split frontend and backend into independent dev servers with API proxy
+- Add root npm scripts `dev:backend` and `dev:frontend`
+
 ## 0.2.0 - 2026-05-25
 
 - Add `GET /api/devices` backend endpoint for device discovery

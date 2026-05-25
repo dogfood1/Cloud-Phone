@@ -1,10 +1,11 @@
 {
   "name": "cloud-phone-web",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "private": true,
   "description": "Frontend app for Cloud Phone",
   "scripts": {
-    "dev": "echo \"Frontend is served by backend/node\""
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs"
   },
   "dependencies": {
     "vue": "^3.5.34"

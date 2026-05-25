@@ -2,6 +2,8 @@
 projects/
 .npm-cache/
 
+.env
+
 node_modules/
 dist/
 build/

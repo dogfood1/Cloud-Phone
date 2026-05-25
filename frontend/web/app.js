@@ -32,6 +32,12 @@ createApp({
         : "首次登录后将强制进入改密流程",
     );
     const showAuthLayer = computed(() => !state.authenticated);
+    const showPasswordChangeModal = computed(
+      () => state.requiresPasswordChange && Boolean(state.currentPassword),
+    );
+    const showLoginModal = computed(
+      () => !state.authenticated && !showPasswordChangeModal.value,
+    );
 
     onMounted(loadSession);
 
@@ -84,6 +90,11 @@ createApp({
     }
 
     async function submitPasswordChange() {
+      if (!state.currentPassword) {
+        state.changeFeedback = "请先使用默认密码登录后再修改。";
+        return;
+      }
+
       if (state.nextPassword.length < 6) {
         state.changeFeedback = "新密码至少需要 6 位。";
         return;
@@ -145,6 +156,8 @@ createApp({
       passwordStatusText,
       passwordStatusTip,
       showAuthLayer,
+      showLoginModal,
+      showPasswordChangeModal,
       state,
       submitLogin,
       submitPasswordChange,

@@ -1,10 +1,11 @@
+import { serverConfig } from "./config/env.js";
 import { createApp } from "./app.js";
 
-const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || "0.0.0.0";
+const { host, backendPort } = serverConfig;
 
 const app = createApp();
 
-app.listen(port, host, () => {
-  console.log(`Cloud Phone backend listening on http://${host}:${port}`);
+app.listen(backendPort, host, () => {
+  console.log(`Cloud Phone backend API: http://127.0.0.1:${backendPort}`);
+  console.log("Start frontend: cd frontend/web && npm run dev");
 });

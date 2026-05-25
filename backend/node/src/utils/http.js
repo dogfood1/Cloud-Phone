@@ -1,15 +1,7 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import { serverConfig } from "../config/env.js";
 
 const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
-};
-
-const CONTENT_TYPES = {
-  ".css": "text/css; charset=utf-8",
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
 };
 
 export function sendJson(res, statusCode, payload, extraHeaders = {}) {
@@ -55,20 +47,12 @@ export function applyCors(req, res) {
 }
 
 function isAllowedOrigin(origin) {
-  return (
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:") ||
-    origin.startsWith("http://[::1]:")
-  );
-}
+  const allowedOrigins = new Set([
+    serverConfig.frontendOrigin,
+    `http://localhost:${serverConfig.frontendPort}`,
+    `http://127.0.0.1:${serverConfig.frontendPort}`,
+    `http://[::1]:${serverConfig.frontendPort}`,
+  ]);
 
-export async function sendFile(res, filePath) {
-  const extension = path.extname(filePath).toLowerCase();
-  const contentType = CONTENT_TYPES[extension] ?? "application/octet-stream";
-  const content = await fs.readFile(filePath);
-
-  res.writeHead(200, {
-    "Content-Type": contentType,
-  });
-  res.end(content);
+  return allowedOrigins.has(origin);
 }
