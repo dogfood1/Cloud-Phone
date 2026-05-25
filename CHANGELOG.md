@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 - 2026-05-25
+
+- Fix device panel props by unwrapping `useDevices` refs at App root (fixes Vue prop warnings)
+- Wait for backend `/health` before starting Vite in `npm run dev`
+- Improve Vite API proxy timeout, startup health check, and backend connection error messages
+
 ## 0.3.4 - 2026-05-25
 
 - Enrich device gallery with real ADB fields (manufacturer, Android/SDK, serial, product)

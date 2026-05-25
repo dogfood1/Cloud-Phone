@@ -16,5 +16,9 @@ export async function requestJson(url, options = {}) {
 }
 
 export function getErrorMessage(error, fallback) {
+  if (error instanceof TypeError) {
+    return "无法连接后端 API，请先启动后端（根目录 npm run dev 或 npm run dev:backend）。";
+  }
+
   return error instanceof Error ? error.message : fallback;
 }

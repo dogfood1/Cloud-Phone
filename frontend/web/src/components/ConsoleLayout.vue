@@ -4,8 +4,28 @@ import DevicesPanel from "./DevicesPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 
 defineProps({
-  deviceStore: {
-    type: Object,
+  devices: {
+    type: Array,
+    required: true,
+  },
+  deviceLoading: {
+    type: Boolean,
+    required: true,
+  },
+  deviceError: {
+    type: String,
+    required: true,
+  },
+  lastRefreshedAt: {
+    type: String,
+    default: null,
+  },
+  adbPath: {
+    type: String,
+    default: "",
+  },
+  screenshotUrl: {
+    type: Function,
     required: true,
   },
   settingsForm: {
@@ -28,7 +48,7 @@ defineProps({
 
 const activeTab = defineModel("activeTab", { type: String, required: true });
 
-const emit = defineEmits(["logout", "save-settings"]);
+const emit = defineEmits(["logout", "save-settings", "refresh-devices"]);
 </script>
 
 <template>
@@ -37,13 +57,13 @@ const emit = defineEmits(["logout", "save-settings"]);
     <main class="main-panel">
       <DevicesPanel
         v-if="activeTab === 'devices'"
-        :devices="deviceStore.devices"
-        :loading="deviceStore.loading"
-        :error="deviceStore.error"
-        :last-refreshed-at="deviceStore.lastRefreshedAt"
-        :adb-path="deviceStore.adbPath"
-        :screenshot-url="deviceStore.screenshotUrl"
-        @refresh="deviceStore.refresh"
+        :devices="devices"
+        :loading="deviceLoading"
+        :error="deviceError"
+        :last-refreshed-at="lastRefreshedAt"
+        :adb-path="adbPath"
+        :screenshot-url="screenshotUrl"
+        @refresh="emit('refresh-devices')"
       />
       <SettingsPanel
         v-else

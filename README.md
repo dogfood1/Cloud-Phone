@@ -16,11 +16,12 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 设备截图接口：`GET /api/devices/:serial/screenshot`
 - 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
 - 通过内置 ADB 查询连接设备与设备基础信息
-- 根目录 `npm run dev` 一键启动前后端
+- 根目录 `npm run dev` 一键启动前后端（先等待后端就绪再启动前端）
+- 开发时 Vite 代理 `/api` 并检测后端连接，失败时给出明确提示
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.3.4`
+- 同步前端与后端版本号到 `0.3.5`
 
 ### 启动方式
 ```powershell
@@ -59,11 +60,12 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Device screenshot endpoint: `GET /api/devices/:serial/screenshot`
 - Device list endpoint: `GET /api/devices` (name, IP, model, and more)
 - Query connected devices and basic device properties through the bundled ADB
-- Root `npm run dev` starts backend and frontend together
+- Root `npm run dev` starts backend first, waits for `/health`, then starts the frontend
+- Vite dev proxy for `/api` with backend health check and clearer connection errors
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.3.4`
+- Sync frontend and backend versions to `0.3.5`
 
 ### Getting Started
 ```powershell

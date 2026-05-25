@@ -28,7 +28,17 @@ const activeTab = ref("devices");
 const settingsForm = reactive(loadSettings());
 const settingsFeedback = ref("");
 
-const deviceStore = useDevices(
+const {
+  devices,
+  loading: deviceLoading,
+  error: deviceError,
+  lastRefreshedAt,
+  adbPath,
+  refresh: refreshDevices,
+  screenshotUrl,
+  start: startDevices,
+  stop: stopDevices,
+} = useDevices(
   () => settingsForm.screenshotIntervalSeconds,
   () => authState.authenticated,
 );
@@ -37,7 +47,7 @@ onMounted(async () => {
   const authenticated = await loadSession();
 
   if (authenticated) {
-    deviceStore.start();
+    startDevices();
   }
 });
 
@@ -45,29 +55,29 @@ watch(
   () => authState.authenticated,
   (authenticated) => {
     if (authenticated) {
-      deviceStore.start();
+      startDevices();
       return;
     }
 
-    deviceStore.stop();
+    stopDevices();
   },
 );
 
 async function handleLogin() {
   if (await submitLogin()) {
-    deviceStore.start();
+    startDevices();
   }
 }
 
 async function handlePasswordChange() {
   if (await submitPasswordChange()) {
-    deviceStore.start();
+    startDevices();
   }
 }
 
 async function handleLogout() {
   await logout();
-  deviceStore.stop();
+  stopDevices();
 }
 
 function saveSettingsForm() {
@@ -77,7 +87,7 @@ function saveSettingsForm() {
   settingsFeedback.value = `截图将每 ${normalized} 秒刷新一次。`;
 
   if (authState.authenticated) {
-    deviceStore.start();
+    startDevices();
   }
 }
 </script>
@@ -96,13 +106,19 @@ function saveSettingsForm() {
     <ConsoleLayout
       v-else
       v-model:active-tab="activeTab"
-      :device-store="deviceStore"
+      :devices="devices"
+      :device-loading="deviceLoading"
+      :device-error="deviceError"
+      :last-refreshed-at="lastRefreshedAt"
+      :adb-path="adbPath"
+      :screenshot-url="screenshotUrl"
       :settings-form="settingsForm"
       :settings-feedback="settingsFeedback"
       :password-status-text="passwordStatusText"
       :session-expires-at="authState.sessionExpiresAt"
       @logout="handleLogout"
       @save-settings="saveSettingsForm"
+      @refresh-devices="refreshDevices"
     />
   </div>
 </template>
