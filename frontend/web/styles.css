@@ -299,15 +299,8 @@ h1 {
   padding: 1.6rem;
 }
 
-.auth-icon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.95rem;
-  background: linear-gradient(180deg, rgba(14, 165, 233, 0.22), rgba(14, 165, 233, 0.08));
-}
-
-.auth-icon--warning {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.08));
+.auth-modal__header--plain {
+  display: block;
 }
 
 .field {

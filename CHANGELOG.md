@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4 - 2026-05-25
+
+- Remove left-side icons from login and forced password change modal headers
+- Align auth modal titles flush left with `auth-modal__header--plain`
+
 ## 0.2.3 - 2026-05-25
 
 - Fix forced password change flow skipping login and reporting incorrect current password
