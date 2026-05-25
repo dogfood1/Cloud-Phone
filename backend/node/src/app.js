@@ -1,44 +1,57 @@
 import http from "node:http";
 
-export function createApp() {
-  return http.createServer((req, res) => {
-    const { method, url } = req;
+import { APP_VERSION } from "./config/version.js";
+import { listDevices } from "./services/adb-service.js";
+import { sendJson } from "./utils/http.js";
 
-    if (method === "GET" && url === "/health") {
-      const body = JSON.stringify({
+export function createApp() {
+  return http.createServer(async (req, res) => {
+    const { method, url } = req;
+    const requestUrl = new URL(url ?? "/", "http://127.0.0.1");
+    const { pathname } = requestUrl;
+
+    if (method === "GET" && pathname === "/health") {
+      sendJson(res, 200, {
         status: "ok",
         service: "cloud-phone-node",
-        version: "0.1.0",
+        version: APP_VERSION,
       });
-
-      res.writeHead(200, {
-        "Content-Type": "application/json; charset=utf-8",
-      });
-      res.end(body);
       return;
     }
 
-    if (method === "GET" && url === "/") {
-      const body = JSON.stringify({
+    if (method === "GET" && pathname === "/") {
+      sendJson(res, 200, {
         name: "cloud-phone-node",
-        version: "0.1.0",
+        version: APP_VERSION,
         message: "Cloud Phone backend is ready.",
       });
-
-      res.writeHead(200, {
-        "Content-Type": "application/json; charset=utf-8",
-      });
-      res.end(body);
       return;
     }
 
-    const body = JSON.stringify({
+    if (method === "GET" && pathname === "/api/devices") {
+      try {
+        const { adbPath, devices } = await listDevices();
+
+        sendJson(res, 200, {
+          success: true,
+          version: APP_VERSION,
+          adbPath,
+          total: devices.length,
+          devices,
+        });
+      } catch (error) {
+        sendJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "Failed to query devices.",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+
+    sendJson(res, 404, {
       error: "Not Found",
     });
-
-    res.writeHead(404, {
-      "Content-Type": "application/json; charset=utf-8",
-    });
-    res.end(body);
   });
 }

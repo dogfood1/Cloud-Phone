@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 - 2026-05-25
+
+- Add `GET /api/devices` backend endpoint for device discovery
+- Query connected Android devices through the bundled ADB binary
+- Return device serial, state, model, manufacturer, Android version, and SDK version
+- Add `tools/version_manager.py` to keep frontend and backend versions aligned
+
 ## 0.1.0 - 2026-05-25
 
 - Initialize Node.js backend workspace in `backend/node`
