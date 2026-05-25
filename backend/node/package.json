@@ -1,10 +1,12 @@
 {
   "name": "cloud-phone-node",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
-  "description": "Backend app for Cloud Phone",
+  "description": "Node.js backend for Cloud Phone",
+  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "echo \"Backend app is not initialized yet\"",
-    "start": "echo \"Backend app is not initialized yet\""
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
   }
 }

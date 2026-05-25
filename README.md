@@ -3,21 +3,21 @@
 ## 中文
 
 ### 项目简介
-Cloud Phone 仓库初始化完成，当前包含前端与后端的基础目录和统一版本号配置。
+Cloud Phone 是一个前后端分离的云手机项目仓库。当前已完成后端 Node.js 工程初始化，并统一前后端版本号。
 
 ### 当前功能
-- 初始化 Git 仓库基础文件
-- 初始化前端版本号：`0.0.1`
-- 初始化后端版本号：`0.0.1`
-- 添加基础忽略规则
+- 初始化 Node.js 后端目录：`backend/node`
+- 提供基础 HTTP 服务与健康检查接口
+- 提供统一的 npm 启动脚本
+- 同步前端与后端版本号到 `0.1.0`
 
 ## English
 
 ### Overview
-The Cloud Phone repository has been initialized with a basic frontend/backend structure and synchronized version metadata.
+Cloud Phone is a separated frontend/backend repository for a cloud phone project. The backend Node.js workspace has been initialized and the frontend/backend versions are aligned.
 
 ### Current Features
-- Initialize core Git repository files
-- Initialize frontend version: `0.0.1`
-- Initialize backend version: `0.0.1`
-- Add baseline ignore rules
+- Initialize Node.js backend workspace in `backend/node`
+- Provide a basic HTTP server and health check endpoint
+- Provide unified npm scripts
+- Sync frontend and backend versions to `0.1.0`
