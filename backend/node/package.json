@@ -1,0 +1,10 @@
+{
+  "name": "cloud-phone-node",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Backend app for Cloud Phone",
+  "scripts": {
+    "dev": "echo \"Backend app is not initialized yet\"",
+    "start": "echo \"Backend app is not initialized yet\""
+  }
+}
