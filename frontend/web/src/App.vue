@@ -24,7 +24,7 @@ const {
   logout,
 } = useAuth();
 
-const activeTab = ref("console");
+const activeTab = ref("devices");
 const settingsForm = reactive(loadSettings());
 const settingsFeedback = ref("");
 
@@ -101,7 +101,6 @@ function saveSettingsForm() {
       :settings-feedback="settingsFeedback"
       :password-status-text="passwordStatusText"
       :session-expires-at="authState.sessionExpiresAt"
-      :session-state-text="authState.sessionStateText"
       @logout="handleLogout"
       @save-settings="saveSettingsForm"
     />

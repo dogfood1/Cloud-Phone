@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-05-25
+
+- Remove console overview page; default to devices tab
+- Tune sidebar tab height for balanced compact layout
+- Add `.cursor/skills/ui-ux-pro-max` for Cursor UI/UX design skill
+
 ## 0.3.2 - 2026-05-25
 
 - Redesign UI with ui-ux-pro-max design system (Space Grotesk, DM Sans, glass cards)

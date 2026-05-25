@@ -7,7 +7,6 @@ const activeTab = defineModel("activeTab", { type: String, required: true });
 defineEmits(["logout"]);
 
 const tabs = [
-  { id: "console", label: "控制台", icon: "console" },
   { id: "devices", label: "设备", icon: "devices" },
   { id: "settings", label: "设置", icon: "settings" },
 ];
