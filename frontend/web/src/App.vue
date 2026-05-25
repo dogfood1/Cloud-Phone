@@ -8,6 +8,7 @@ import { useAuth } from "./composables/useAuth.js";
 import { useDevices } from "./composables/useDevices.js";
 import {
   loadSettings,
+  normalizeDeviceInterval,
   normalizeScreenshotInterval,
   saveSettings,
 } from "./utils/settings-store.js";
@@ -39,6 +40,7 @@ const {
   start: startDevices,
   stop: stopDevices,
 } = useDevices(
+  () => settingsForm.deviceListIntervalSeconds,
   () => settingsForm.screenshotIntervalSeconds,
   () => authState.authenticated,
 );
@@ -81,10 +83,17 @@ async function handleLogout() {
 }
 
 function saveSettingsForm() {
-  const normalized = normalizeScreenshotInterval(settingsForm.screenshotIntervalSeconds);
-  settingsForm.screenshotIntervalSeconds = normalized;
-  saveSettings({ screenshotIntervalSeconds: normalized });
-  settingsFeedback.value = `截图将每 ${normalized} 秒刷新一次。`;
+  settingsForm.deviceListIntervalSeconds = normalizeDeviceInterval(
+    settingsForm.deviceListIntervalSeconds,
+  );
+  settingsForm.screenshotIntervalSeconds = normalizeScreenshotInterval(
+    settingsForm.screenshotIntervalSeconds,
+  );
+  saveSettings({
+    deviceListIntervalSeconds: settingsForm.deviceListIntervalSeconds,
+    screenshotIntervalSeconds: settingsForm.screenshotIntervalSeconds,
+  });
+  settingsFeedback.value = `设备列表每 ${settingsForm.deviceListIntervalSeconds} 秒、截图每 ${settingsForm.screenshotIntervalSeconds} 秒刷新。`;
 
   if (authState.authenticated) {
     startDevices();

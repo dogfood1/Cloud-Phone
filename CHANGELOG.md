@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.7 - 2026-05-25
+
+- Split device list (1s) and screenshot (5s) refresh timers
+- Keep previous gallery and screenshot visible during background updates without loading animation
+
 ## 0.3.6 - 2026-05-25
 
 - Vendor scrcpy source under `backend/source/scrcpy` with Cloud Phone config/capabilities hooks

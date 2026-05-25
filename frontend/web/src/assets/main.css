@@ -317,10 +317,6 @@ h2 {
   white-space: nowrap;
 }
 
-.status-pill--loading {
-  color: var(--accent);
-}
-
 .settings-card {
   margin-top: 1rem;
   padding: 1rem 1.15rem;
@@ -395,10 +391,6 @@ h2 {
   gap: 1.15rem;
 }
 
-.device-gallery--loading {
-  opacity: 0.72;
-}
-
 .device-card {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -429,6 +421,7 @@ h2 {
   height: 100%;
   object-fit: contain;
   background: var(--bg-image);
+  transition: none;
 }
 
 .device-card__placeholder {

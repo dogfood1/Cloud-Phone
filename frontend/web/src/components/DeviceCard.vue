@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 import AppIcon from "./AppIcon.vue";
 import {
@@ -19,30 +19,85 @@ const props = defineProps({
   },
 });
 
+const displaySrc = ref("");
 const screenshotFailed = ref(false);
 
 const manufacturerLine = formatManufacturerLine(props.device);
 const androidLine = formatAndroidVersion(props.device);
 const stateLabel = getDeviceStateLabel(props.device.state);
 
-function handleScreenshotError() {
-  screenshotFailed.value = true;
+function preloadScreenshot(url) {
+  if (!url || !props.device.connected) {
+    displaySrc.value = "";
+    return;
+  }
+
+  screenshotFailed.value = false;
+
+  if (!displaySrc.value) {
+    displaySrc.value = url;
+    return;
+  }
+
+  if (displaySrc.value === url) {
+    return;
+  }
+
+  const image = new Image();
+  image.onload = () => {
+    displaySrc.value = url;
+  };
+  image.onerror = () => {
+    if (displaySrc.value) {
+      return;
+    }
+
+    screenshotFailed.value = true;
+  };
+  image.src = url;
 }
+
+watch(
+  () => props.screenshotUrl,
+  (url) => {
+    preloadScreenshot(url);
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.device.connected,
+  (connected) => {
+    if (!connected) {
+      displaySrc.value = "";
+      screenshotFailed.value = false;
+      return;
+    }
+
+    preloadScreenshot(props.screenshotUrl);
+  },
+);
 </script>
 
 <template>
   <article class="device-card" :class="{ 'device-card--offline': !device.connected }">
     <div class="device-card__preview">
       <img
-        v-if="device.connected && !screenshotFailed"
-        :src="screenshotUrl"
+        v-if="device.connected && displaySrc && !screenshotFailed"
+        :src="displaySrc"
         :alt="`${device.displayName} 截图`"
-        loading="lazy"
-        @error="handleScreenshotError"
+        decoding="async"
       />
+      <div
+        v-else-if="device.connected && screenshotFailed && !displaySrc"
+        class="device-card__placeholder"
+      >
+        <AppIcon name="phone" />
+        <span>截图加载失败</span>
+      </div>
       <div v-else class="device-card__placeholder">
         <AppIcon name="phone" />
-        <span>{{ device.connected ? "截图加载失败" : "设备未在线" }}</span>
+        <span>{{ device.connected ? "等待截图" : "设备未在线" }}</span>
       </div>
       <span
         class="device-card__status"

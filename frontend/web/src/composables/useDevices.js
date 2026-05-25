@@ -3,32 +3,51 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import { getErrorMessage, requestJson } from "../utils/api.js";
 import { sortDevices } from "../utils/device-format.js";
 
-export function useDevices(getIntervalSeconds, getAuthenticated) {
+export function useDevices(
+  getDeviceIntervalSeconds,
+  getScreenshotIntervalSeconds,
+  getAuthenticated,
+) {
   const devices = ref([]);
-  const loading = ref(false);
+  const initialLoading = ref(false);
   const error = ref("");
   const screenshotTick = ref(0);
   const lastRefreshedAt = ref(null);
   const adbPath = ref("");
-  let refreshTimer = null;
+  let deviceTimer = null;
+  let screenshotTimer = null;
 
   const sortedDevices = computed(() => sortDevices(devices.value));
 
-  async function refresh() {
-    loading.value = true;
-    error.value = "";
+  async function refreshDevices({ showInitialLoading = false } = {}) {
+    const isFirstLoad = devices.value.length === 0;
+
+    if (showInitialLoading || isFirstLoad) {
+      initialLoading.value = true;
+    }
 
     try {
       const result = await requestJson("/api/devices");
       devices.value = result.devices ?? [];
       adbPath.value = result.adbPath ?? "";
       lastRefreshedAt.value = new Date().toISOString();
-      screenshotTick.value += 1;
+      error.value = "";
     } catch (requestError) {
-      error.value = getErrorMessage(requestError, "设备列表加载失败。");
+      if (devices.value.length === 0) {
+        error.value = getErrorMessage(requestError, "设备列表加载失败。");
+      }
     } finally {
-      loading.value = false;
+      initialLoading.value = false;
     }
+  }
+
+  function refreshScreenshots() {
+    screenshotTick.value += 1;
+  }
+
+  async function refresh() {
+    await refreshDevices({ showInitialLoading: devices.value.length === 0 });
+    refreshScreenshots();
   }
 
   function screenshotUrl(serial) {
@@ -42,22 +61,38 @@ export function useDevices(getIntervalSeconds, getAuthenticated) {
       return;
     }
 
-    refresh();
-    refreshTimer = window.setInterval(refresh, getIntervalSeconds() * 1000);
+    const deviceIntervalMs = getDeviceIntervalSeconds() * 1000;
+    const screenshotIntervalMs = getScreenshotIntervalSeconds() * 1000;
+
+    refreshDevices({ showInitialLoading: true });
+    refreshScreenshots();
+
+    deviceTimer = window.setInterval(() => {
+      refreshDevices();
+    }, deviceIntervalMs);
+
+    screenshotTimer = window.setInterval(refreshScreenshots, screenshotIntervalMs);
   }
 
   function stop() {
-    if (refreshTimer) {
-      window.clearInterval(refreshTimer);
-      refreshTimer = null;
+    if (deviceTimer) {
+      window.clearInterval(deviceTimer);
+      deviceTimer = null;
+    }
+
+    if (screenshotTimer) {
+      window.clearInterval(screenshotTimer);
+      screenshotTimer = null;
     }
 
     devices.value = [];
     lastRefreshedAt.value = null;
     adbPath.value = "";
+    initialLoading.value = false;
+    error.value = "";
   }
 
-  watch(getIntervalSeconds, () => {
+  watch([getDeviceIntervalSeconds, getScreenshotIntervalSeconds], () => {
     if (getAuthenticated()) {
       start();
     }
@@ -67,7 +102,7 @@ export function useDevices(getIntervalSeconds, getAuthenticated) {
 
   return {
     devices: sortedDevices,
-    loading,
+    loading: initialLoading,
     error,
     lastRefreshedAt,
     adbPath,

@@ -35,9 +35,12 @@ const emit = defineEmits(["refresh"]);
 
 const summary = computed(() => summarizeDevices(props.devices));
 const refreshLabel = computed(() => formatRefreshTime(props.lastRefreshedAt));
+const showEmptyState = computed(
+  () => !props.devices.length && !props.loading && !props.error,
+);
 const statusText = computed(() => {
-  if (props.loading) {
-    return "正在同步设备…";
+  if (props.loading && !props.devices.length) {
+    return "正在加载设备…";
   }
 
   if (!props.devices.length) {
@@ -57,10 +60,8 @@ const statusText = computed(() => {
         <p class="panel-header__desc">展示 ADB 实机信息：型号、IP、系统版本、序列号与实时截图。</p>
       </div>
       <div class="panel-header__actions">
-        <span class="status-pill" :class="{ 'status-pill--loading': loading }">{{ statusText }}</span>
-        <button type="button" class="ghost-button" :disabled="loading" @click="emit('refresh')">
-          {{ loading ? "刷新中…" : "立即刷新" }}
-        </button>
+        <span class="status-pill">{{ statusText }}</span>
+        <button type="button" class="ghost-button" @click="emit('refresh')">立即刷新</button>
       </div>
     </header>
 
@@ -79,12 +80,12 @@ const statusText = computed(() => {
       <button type="button" class="feedback__retry" @click="emit('refresh')">重试</button>
     </p>
 
-    <div v-if="!devices.length && !loading && !error" class="empty-state">
+    <div v-if="showEmptyState" class="empty-state">
       <p>未检测到已连接设备</p>
       <span>请用 USB 或 `adb connect` 连接后点击「立即刷新」。</span>
     </div>
 
-    <div v-else class="device-gallery" :class="{ 'device-gallery--loading': loading }">
+    <div v-else-if="devices.length" class="device-gallery">
       <DeviceCard
         v-for="device in devices"
         :key="device.serial"

@@ -12,7 +12,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 左侧 Tab：设备画廊、设置
 - 设备画廊展示实时截图及 ADB 实机信息（型号、厂商、IP、系统版本、序列号、产品标识）
 - 设备页汇总在线/离线数量、最近刷新时间与手动刷新
-- 设置页可配置截图刷新间隔（默认 5 秒）
+- 设备列表每 1 秒、截图每 5 秒独立刷新，后台更新时保留上一帧无加载动画
+- 设置页可配置设备列表与截图刷新间隔（默认 1 秒 / 5 秒）
 - 设备截图接口：`GET /api/devices/:serial/screenshot`
 - 设备列表接口：`GET /api/devices`（含名称、IP、型号等）
 - scrcpy 源码集成：`backend/source/scrcpy`，后端会话 API `/api/scrcpy/*`（启动/停止/能力查询）
@@ -23,7 +24,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.3.6`
+- 同步前端与后端版本号到 `0.3.7`
 
 ### 启动方式
 ```powershell
@@ -58,7 +59,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Left sidebar tabs: Devices gallery and Settings
 - Device gallery with live screenshots and real ADB metadata (model, manufacturer, IP, OS, serial, product)
 - Device page summary with online/offline counts, last refresh time, and manual refresh
-- Configurable screenshot refresh interval in Settings (default 5 seconds)
+- Independent refresh: device list every 1s, screenshots every 5s; keeps previous frame without loading animation
+- Configurable device list and screenshot intervals in Settings (default 1s / 5s)
 - Device screenshot endpoint: `GET /api/devices/:serial/screenshot`
 - Device list endpoint: `GET /api/devices` (name, IP, model, and more)
 - scrcpy source vendored in `backend/source/scrcpy`; backend session API `/api/scrcpy/*`
@@ -69,7 +71,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.3.6`
+- Sync frontend and backend versions to `0.3.7`
 
 ### Getting Started
 ```powershell
