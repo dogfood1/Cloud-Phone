@@ -17,10 +17,6 @@
   box-sizing: border-box;
 }
 
-[v-cloak] {
-  display: none;
-}
-
 html,
 body,
 #app {
@@ -135,6 +131,42 @@ h2 {
   margin: 0;
   line-height: 1.1;
   font-size: 1.6rem;
+}
+
+.console-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.console-stat {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--bg-elevated);
+}
+
+.console-stat p,
+.console-stat span,
+.console-view__hint {
+  color: var(--muted);
+}
+
+.console-stat p,
+.console-stat span {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.console-stat strong {
+  font-size: 1.5rem;
+}
+
+.console-view__hint {
+  margin: 1.25rem 0 0;
+  line-height: 1.7;
 }
 
 .device-gallery {
@@ -323,6 +355,10 @@ h2 {
 }
 
 @media (max-width: 900px) {
+  .console-stats {
+    grid-template-columns: 1fr;
+  }
+
   .console-layout {
     grid-template-columns: 1fr;
   }

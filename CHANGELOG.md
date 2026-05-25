@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-05-25
+
+- Migrate frontend to Vite + Vue 3 SFC with composables and components
+- Add console overview tab and fix post-login UI not switching from auth layer
+- Add root `npm run dev` to start backend and frontend together
+- Serve production frontend from `dist/` via `npm run build` + `npm run start`
+
 ## 0.2.5 - 2026-05-25
 
 - Redesign frontend with left sidebar tabs for devices and settings

@@ -1,4 +1,4 @@
-async function requestJson(url, options = {}) {
+export async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     method: options.method ?? "GET",
     credentials: "include",
@@ -15,6 +15,6 @@ async function requestJson(url, options = {}) {
   return result;
 }
 
-function getErrorMessage(error, fallback) {
+export function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback;
 }

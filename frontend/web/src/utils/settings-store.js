@@ -3,7 +3,7 @@ const DEFAULT_SCREENSHOT_INTERVAL_SECONDS = 5;
 const MIN_SCREENSHOT_INTERVAL_SECONDS = 1;
 const MAX_SCREENSHOT_INTERVAL_SECONDS = 120;
 
-function loadSettings() {
+export function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
@@ -19,7 +19,7 @@ function loadSettings() {
   }
 }
 
-function saveSettings(settings) {
+export function saveSettings(settings) {
   localStorage.setItem(
     SETTINGS_STORAGE_KEY,
     JSON.stringify({
@@ -30,7 +30,7 @@ function saveSettings(settings) {
   );
 }
 
-function normalizeScreenshotInterval(value) {
+export function normalizeScreenshotInterval(value) {
   if (!Number.isFinite(value)) {
     return DEFAULT_SCREENSHOT_INTERVAL_SECONDS;
   }
