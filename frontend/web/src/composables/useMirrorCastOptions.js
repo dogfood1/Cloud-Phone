@@ -19,25 +19,52 @@ export function useMirrorCastOptions(getSerial) {
   const apps = ref([]);
 
   let loadGeneration = 0;
+  let encoderLoadGeneration = 0;
 
   async function loadVideoEncoders(serial) {
+    const generation = ++encoderLoadGeneration;
     encodersLoading.value = true;
     encodersError.value = "";
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25_000);
 
     try {
       const result = await requestJson(
         `/api/devices/${encodeURIComponent(serial)}/video-encoders`,
+        { signal: controller.signal },
       );
+
+      if (generation !== encoderLoadGeneration) {
+        return;
+      }
 
       videoEncoders.value = result.videoEncoders?.length
         ? result.videoEncoders
         : [...FALLBACK_VIDEO_ENCODERS];
+
+      if (result.warning) {
+        encodersError.value = String(result.warning);
+      }
     } catch (requestError) {
-      encodersError.value =
-        requestError instanceof Error ? requestError.message : "加载视频编码器失败。";
+      if (generation !== encoderLoadGeneration) {
+        return;
+      }
+
+      if (requestError instanceof Error && requestError.name === "AbortError") {
+        encodersError.value = "加载视频编码器超时（25 秒），请确认设备已连接并重试。";
+      } else {
+        encodersError.value =
+          requestError instanceof Error ? requestError.message : "加载视频编码器失败。";
+      }
+
       videoEncoders.value = [...FALLBACK_VIDEO_ENCODERS];
     } finally {
-      encodersLoading.value = false;
+      clearTimeout(timeoutId);
+
+      if (generation === encoderLoadGeneration) {
+        encodersLoading.value = false;
+      }
     }
   }
 

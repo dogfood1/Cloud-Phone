@@ -1,7 +1,11 @@
 <script setup>
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 
-import { suggestDpi } from "../../utils/mirror-cast-constants.js";
+import {
+  DISPLAY_IME_POLICIES,
+  NEW_DISPLAY_PRESETS,
+  suggestDpi,
+} from "../../utils/mirror-cast-constants.js";
 
 const props = defineProps({
   screen: {
@@ -31,6 +35,27 @@ const filteredApps = computed(() => {
     const label = `${app.label} ${app.packageName ?? app.value}`.toLowerCase();
     return label.includes(keyword);
   });
+});
+
+const presetValue = ref("");
+
+function applyPreset(value) {
+  const preset = NEW_DISPLAY_PRESETS.find((item) => item.value === value);
+
+  if (!preset) {
+    return;
+  }
+
+  props.screen.newDisplayWidth = preset.width;
+  props.screen.newDisplayHeight = preset.height;
+  props.screen.newDisplayDpi = preset.dpi;
+  props.screen.newDisplayDpiManual = true;
+}
+
+watch(presetValue, (value) => {
+  if (value) {
+    applyPreset(value);
+  }
 });
 
 function applySuggestedDpi() {
@@ -84,6 +109,20 @@ watch(
         <summary>新建显示屏</summary>
 
         <div class="mirror-settings__details-body">
+          <label class="mirror-settings__field">
+            <span>预设（escrcpy / scrcpy）</span>
+            <select v-model="presetValue">
+              <option value="">自定义</option>
+              <option
+                v-for="item in NEW_DISPLAY_PRESETS"
+                :key="item.value"
+                :value="item.value"
+              >
+                {{ item.label }}
+              </option>
+            </select>
+          </label>
+
           <div class="mirror-settings__field mirror-settings__field--inline">
             <span>分辨率</span>
             <div class="mirror-settings__resolution">
@@ -149,5 +188,24 @@ watch(
         <span class="mirror-settings__sr-only">启用新建显示屏</span>
       </label>
     </div>
+
+    <label class="mirror-settings__check">
+      <input v-model="screen.flexDisplay" type="checkbox" :disabled="!screen.useNewDisplay" />
+      <span>弹性虚拟屏（--flex-display）</span>
+    </label>
+
+    <label class="mirror-settings__check">
+      <input v-model="screen.noVdDestroyContent" type="checkbox" :disabled="!screen.useNewDisplay" />
+      <span>关闭不销毁内容（--no-vd-destroy-content）</span>
+    </label>
+
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': !screen.useNewDisplay }">
+      <span>IME 策略</span>
+      <select v-model="screen.displayImePolicy" :disabled="!screen.useNewDisplay">
+        <option v-for="item in DISPLAY_IME_POLICIES" :key="item.value" :value="item.value">
+          {{ item.label }}
+        </option>
+      </select>
+    </label>
   </fieldset>
 </template>

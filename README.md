@@ -10,7 +10,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 前端 Vue 3 工程：`frontend/web`（Vite 开发、构建产物 `dist/`）
 - 根目录 `.env` 配置 `BACKEND_PORT`、`FRONTEND_PORT`
 - 左侧 Tab：设备画廊、设置；设备工作区含顶栏控制、镜像投屏完整参数表单与开始/取消按钮
-- 设备工作区默认投屏：右侧 scrcpy H.264 WebSocket 实时预览（WebCodecs、ws-scrcpy 协议）；设备端自编译 server（`4.0`），缺失时后端自动 Gradle 编译；启动前自动清理残留进程避免 8886 端口占用；视频参数（分辨率长边、码率、fps、编码器、采集方向）经 WebSocket 下发，投屏中可热更新；镜像设置从设备拉取真实 MediaCodec 编码器列表（`H264 - 名称` 格式）
+- 设备工作区默认投屏：右侧 scrcpy H.264 WebSocket 实时预览（WebCodecs、ws-scrcpy 协议）；设备端自编译 server（`4.0`），缺失时后端自动 Gradle 编译；启动前自动清理残留进程避免 8886 端口占用；视频/设备/屏幕参数（裁剪、虚拟屏预设、keep-active、IME 策略等，对齐 escrcpy）经 WebSocket type 101 下发，投屏中可热更新；编码器列表用 `adb exec-out` 查询，投屏中不阻塞、超时回退通用列表
 - 设备画廊展示实时截图及 ADB 实机信息（型号、厂商、IP、系统版本、序列号、产品标识）
 - 设备页汇总在线/离线数量、最近刷新时间与手动刷新
 - 设备列表每 1 秒、截图每 5 秒独立刷新，后台更新时保留上一帧无加载动画
@@ -28,7 +28,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 左下角浅色/深色主题切换，偏好本地保存
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
-- 同步前端与后端版本号到 `0.6.4`
+- 同步前端与后端版本号到 `0.6.5`
 
 ### 启动方式
 ```powershell
@@ -61,7 +61,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Vue 3 frontend in `frontend/web` (Vite dev server and `dist/` production build)
 - Root `.env` for `BACKEND_PORT` and `FRONTEND_PORT`
 - Left sidebar tabs: Devices gallery and Settings; device workspace with mirror cast settings and toolbar
-- Device workspace default cast: scrcpy H.264 WebSocket preview (WebCodecs, ws-scrcpy protocol); custom `4.0` server (auto-built when missing); video params over WebSocket with hot-reload; mirror settings load real device MediaCodec encoders (`H264 - name` labels)
+- Device workspace default cast: scrcpy H.264 WebSocket preview (WebCodecs, ws-scrcpy protocol); custom `4.0` server (auto-built when missing); mirror params (crop, virtual display presets, keep-active, IME policy, escrcpy-aligned) over WebSocket type 101 with hot-reload; encoder list via `adb exec-out` with timeout/fallback during active cast
 - Device gallery with live screenshots and real ADB metadata (model, manufacturer, IP, OS, serial, product)
 - Device page summary with online/offline counts, last refresh time, and manual refresh
 - Independent refresh: device list every 1s, screenshots every 5s; keeps previous frame without loading animation
@@ -79,7 +79,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Light/dark theme toggle at bottom-left with persisted preference
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
-- Sync frontend and backend versions to `0.6.4`
+- Sync frontend and backend versions to `0.6.5`
 
 ### Getting Started
 ```powershell

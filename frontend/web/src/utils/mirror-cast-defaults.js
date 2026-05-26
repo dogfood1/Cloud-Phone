@@ -10,10 +10,12 @@ export function createDefaultMirrorSettings() {
       maxFps: 60,
       iFrameInterval: 10,
       resolution: "1080p",
+      crop: "",
     },
     audio: {
-      disabled: false,
+      disabled: true,
       keepOnDevice: true,
+      audioDup: false,
       source: "output",
       bitRateKbps: 128,
       encoder: "",
@@ -23,6 +25,9 @@ export function createDefaultMirrorSettings() {
       stayAwake: false,
       turnScreenOff: false,
       powerOn: true,
+      noPowerOn: false,
+      keepActive: false,
+      screenOffTimeout: 0,
     },
     screen: {
       displayId: "",
@@ -32,6 +37,9 @@ export function createDefaultMirrorSettings() {
       newDisplayDpi: 420,
       newDisplayDpiManual: false,
       newDisplayApp: "",
+      flexDisplay: false,
+      noVdDestroyContent: false,
+      displayImePolicy: "",
     },
   };
 }

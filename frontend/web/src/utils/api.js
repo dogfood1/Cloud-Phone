@@ -2,6 +2,7 @@ export async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     method: options.method ?? "GET",
     credentials: "include",
+    signal: options.signal,
     headers: options.body ? { "Content-Type": "application/json" } : {},
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

@@ -106,3 +106,13 @@ export function spawnAdbShell(serial, command) {
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
+
+/**
+ * One-shot remote command; avoids blocking behind a long-lived `adb shell` (e.g. web cast).
+ * @param {string} serial
+ * @param {string} remoteCommand
+ * @param {object} [options]
+ */
+export async function adbExecOut(serial, remoteCommand, options = {}) {
+  return runAdb(["-s", serial, "exec-out", remoteCommand], options);
+}

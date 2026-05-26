@@ -388,16 +388,71 @@ public class Options {
 
         for (String part : extras.split(",")) {
             String token = part.trim();
-            if (!token.startsWith("capture_orientation=")) {
+            int eq = token.indexOf('=');
+            if (eq <= 0) {
                 continue;
             }
-            String value = token.substring("capture_orientation=".length());
-            if (value.isEmpty()) {
-                continue;
+            String key = token.substring(0, eq).trim();
+            String value = token.substring(eq + 1).trim();
+            try {
+                applyStreamExtraPair(copy, key, value);
+            } catch (Exception e) {
+                Ln.w("Ignoring invalid stream extra " + key + "=" + value + ": " + e.getMessage());
             }
-            Pair<Orientation.Lock, Orientation> pair = parseCaptureOrientation(value);
-            copy.captureOrientationLock = pair.first;
-            copy.captureOrientation = pair.second;
+        }
+    }
+
+    private static void applyStreamExtraPair(Options copy, String key, String value) {
+        switch (key) {
+            case "capture_orientation":
+                if (value.isEmpty()) {
+                    return;
+                }
+                Pair<Orientation.Lock, Orientation> orientationPair = parseCaptureOrientation(value);
+                copy.captureOrientationLock = orientationPair.first;
+                copy.captureOrientation = orientationPair.second;
+                break;
+            case "crop":
+                if (!value.isEmpty()) {
+                    copy.crop = parseCrop(value);
+                }
+                break;
+            case "new_display":
+                if (!value.isEmpty()) {
+                    copy.newDisplay = parseNewDisplay(value);
+                    copy.displayId = Device.DISPLAY_ID_NONE;
+                }
+                break;
+            case "display_id":
+                copy.displayId = Integer.parseInt(value);
+                break;
+            case "show_touches":
+                copy.showTouches = Boolean.parseBoolean(value);
+                break;
+            case "stay_awake":
+                copy.stayAwake = Boolean.parseBoolean(value);
+                break;
+            case "power_on":
+                copy.powerOn = Boolean.parseBoolean(value);
+                break;
+            case "keep_active":
+                copy.keepActive = Boolean.parseBoolean(value);
+                break;
+            case "screen_off_timeout":
+                copy.screenOffTimeout = Integer.parseInt(value);
+                break;
+            case "flex_display":
+                copy.flexDisplay = Boolean.parseBoolean(value);
+                break;
+            case "vd_destroy_content":
+                copy.vdDestroyContent = Boolean.parseBoolean(value);
+                break;
+            case "display_ime_policy":
+                copy.displayImePolicy = parseDisplayImePolicy(value);
+                break;
+            default:
+                Ln.w("Unknown stream extra: " + key);
+                break;
         }
     }
 

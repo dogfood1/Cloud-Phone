@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.5 - 2026-05-26
+
+- Fix video encoder list stuck loading during cast: use `adb exec-out` for `list_encoders`, drop global adb lock, add timeouts, logcat fallback, and generic encoder fallback
+- Frontend: 25s fetch timeout for `/video-encoders`; show warning when fallback list is used
+- Expand mirror cast settings aligned with escrcpy/scrcpy 4.0 (crop, display orientation, virtual display presets, keep-active, screen-off-timeout, IME policy) via WebSocket type 101 `codecOptions` extras
+- Server: parse stream extras (`crop`, `new_display`, `show_touches`, `keep_active`, etc.) in `Options.copyForWebStream`
+
 ## 0.6.4 - 2026-05-26
 
 - List real device video encoders (`GET /video-encoders`) with `H264 - name` / `H265 - name` labels; first item is default (no separate “auto” entry)

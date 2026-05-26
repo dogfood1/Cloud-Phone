@@ -20,6 +20,14 @@ const AUDIO_SOURCES = [
   { value: "mic-camcorder", label: "麦克风（摄像机）" },
   { value: "mic-voice-recognition", label: "语音识别" },
   { value: "mic-voice-communication", label: "语音通话" },
+  { value: "voice-call", label: "通话" },
+  { value: "voice-call-uplink", label: "通话上行" },
+  { value: "voice-call-downlink", label: "通话下行" },
+  { value: "voice-performance", label: "语音性能" },
+  { value: "voice-communication", label: "VoIP 通信" },
+  { value: "camcorder", label: "摄像机" },
+  { value: "voice-recognition", label: "语音识别（系统）" },
+  { value: "remote-submix", label: "远程混音" },
 ];
 
 async function runAdbShell(adbPath, serial, args, timeout = 8000) {

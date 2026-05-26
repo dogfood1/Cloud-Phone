@@ -4,6 +4,7 @@ import {
   resolveVideoEncoderName,
   sortVideoEncoders,
 } from "./mirror-encoder-utils.js";
+import { buildStreamExtrasFromMirror } from "./mirror-stream-extras.js";
 
 const RESOLUTION_MAX_SIZE = Object.fromEntries(
   MIRROR_RESOLUTIONS.map((item) => [item.value, item.maxSize]),
@@ -41,16 +42,10 @@ export function captureOrientationServerValue(captureOrientation) {
 
 /**
  * Extra stream options passed via ws-scrcpy codecOptions (parsed on device).
- * @param {{ captureOrientation?: string }} video
+ * @param {Record<string, any>} mirror
  */
-export function buildVideoStreamCodecOptions(video = {}) {
-  const capture = captureOrientationServerValue(video.captureOrientation);
-
-  if (!capture) {
-    return "";
-  }
-
-  return `capture_orientation=${capture}`;
+export function buildVideoStreamCodecOptions(mirror = {}) {
+  return buildStreamExtrasFromMirror(mirror);
 }
 
 /**
@@ -82,7 +77,7 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
     displayId,
     lockedVideoOrientation: -1,
     sendFrameMeta: false,
-    codecOptions: buildVideoStreamCodecOptions(video),
+    codecOptions: buildVideoStreamCodecOptions(mirror),
     encoderName,
     videoCodec: String(matched?.codec ?? video.codec ?? DEFAULT_VIDEO_CODEC).toLowerCase(),
   };

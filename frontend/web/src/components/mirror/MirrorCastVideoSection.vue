@@ -56,7 +56,7 @@ const resolutionHint = computed(() => {
         </option>
       </select>
       <span v-if="encodersLoading" class="mirror-settings__field-hint">
-        正在从设备加载编码器列表（约 10–20 秒）…
+        正在从设备加载编码器列表（最多约 15 秒）…
       </span>
       <span v-else-if="encodersError" class="mirror-settings__field-hint mirror-settings__field-hint--error">
         {{ encodersError }}
@@ -90,7 +90,18 @@ const resolutionHint = computed(() => {
     </label>
 
     <label class="mirror-settings__field">
-      <span>采集方向</span>
+      <span>裁剪区域</span>
+      <input
+        v-model="video.crop"
+        type="text"
+        placeholder="宽:高:x:y，例如 1080:1920:0:0"
+        spellcheck="false"
+      />
+      <span class="mirror-settings__field-hint">对应 scrcpy --crop，通过 WebSocket 下发到设备</span>
+    </label>
+
+    <label class="mirror-settings__field">
+      <span>显示方向</span>
       <select v-model="video.captureOrientation">
         <option
           v-for="item in MIRROR_CAPTURE_ORIENTATIONS"

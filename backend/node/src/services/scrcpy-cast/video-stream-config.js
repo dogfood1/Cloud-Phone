@@ -1,3 +1,5 @@
+import { buildStreamExtrasFromMirror } from "./mirror-stream-extras.js";
+
 const CODEC_LIKE_ENCODER_NAMES = new Set(["h264", "h265", "hevc", "av1", "opus", "aac", "flac"]);
 
 function normalizeVideoEncoderName(encoder) {
@@ -12,11 +14,11 @@ function normalizeVideoEncoderName(encoder) {
 
 const RESOLUTION_MAX_SIZE = {
   original: 0,
+  "4k": 2160,
+  "1440p": 1440,
   "1080p": 1920,
   "720p": 1280,
   "540p": 960,
-  "1440p": 1440,
-  "4k": 2160,
 };
 
 export const DEFAULT_VIDEO_BITRATE_MBPS = 5;
@@ -44,17 +46,8 @@ export function captureOrientationServerValue(captureOrientation) {
   return `@${value}`;
 }
 
-/**
- * @param {{ captureOrientation?: string }} video
- */
-export function buildVideoStreamCodecOptions(video = {}) {
-  const capture = captureOrientationServerValue(video.captureOrientation);
-
-  if (!capture) {
-    return "";
-  }
-
-  return `capture_orientation=${capture}`;
+export function buildVideoStreamCodecOptions(mirror = {}) {
+  return buildStreamExtrasFromMirror(mirror);
 }
 
 /**
@@ -74,7 +67,7 @@ export function resolveVideoStreamSummary(input = {}) {
     videoEncoder: normalizeVideoEncoderName(video.encoder) || undefined,
     videoCodec: String(video.codec ?? "h264").toLowerCase(),
     captureOrientation: String(video.captureOrientation ?? "0"),
-    videoStreamCodecOptions: buildVideoStreamCodecOptions(video),
+    videoStreamCodecOptions: buildVideoStreamCodecOptions(mirror),
     videoDisabled: video.disabled === true || input.video === false,
   };
 }
