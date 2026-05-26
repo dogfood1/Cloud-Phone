@@ -9,11 +9,17 @@ import {
   serializeInjectScroll,
   serializeInjectTouch,
   KEY_ACTION,
+  serializeDisplayWakeActions,
   serializeNavigationActions,
   serializeNavigationPress,
+  serializeResetVideo,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
+import {
+  applyStagePreviewRotation,
+  mapTouchToDevicePoint,
+} from "../utils/canvas-rotation.js";
 
 function isAudioOnlyCast(castOptions) {
   return castOptions?.mirror?.video?.disabled === true;
@@ -69,7 +75,7 @@ function parseInitialInfoScreenSize(bytes) {
   return { width, height };
 }
 
-export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
+export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef) {
   const status = ref("idle");
   const errorMessage = ref("");
   const player = shallowRef(null);
@@ -340,14 +346,11 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   }
 
   function applyPreviewRotation(degrees) {
-    const canvas = canvasRef.value;
-    if (!canvas) {
-      return;
-    }
-
-    const deg = Number(degrees) || 0;
-    canvas.style.transform = deg ? `rotate(${deg}deg)` : "";
-    canvas.style.transformOrigin = "center center";
+    applyStagePreviewRotation(
+      rotatorRef?.value ?? null,
+      degrees,
+      viewportRef?.value ?? null,
+    );
   }
 
   function bindCanvas(canvas) {
@@ -356,17 +359,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     }
 
     const mapPoint = (event) => {
-      const rect = canvas.getBoundingClientRect();
       const size =
         screenSize.value.width > 0
           ? screenSize.value
           : { width: 1080, height: 1920 };
-      const scaleX = size.width / rect.width;
-      const scaleY = size.height / rect.height;
-      return {
-        x: Math.round((event.clientX - rect.left) * scaleX),
-        y: Math.round((event.clientY - rect.top) * scaleY),
-      };
+      const rotationDeg = unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0;
+      return mapTouchToDevicePoint(event, canvas, size, rotationDeg);
     };
 
     const onPointerDown = (event) => {
@@ -500,10 +498,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
         displayScreenOn.value = turnOn;
 
         if (turnOn) {
-          // Server falls back to POWER on setDisplayPower failure; avoid extra POWER here (would toggle off again).
-          for (const buffer of serializeNavigationActions("screen-on")) {
+          for (const buffer of serializeDisplayWakeActions()) {
             sendControl(buffer);
           }
+          window.setTimeout(() => {
+            sendControl(serializeResetVideo());
+          }, 450);
         } else {
           for (const buffer of serializeNavigationActions("screen-off")) {
             sendControl(buffer);
@@ -518,5 +518,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       }
     },
     displayScreenOn,
+    applyPreviewRotation,
   };
 }

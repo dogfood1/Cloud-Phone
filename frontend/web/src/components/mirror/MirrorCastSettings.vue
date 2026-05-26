@@ -4,6 +4,7 @@ import { NAlert, NCollapse, NSpin, NText } from "naive-ui";
 
 import { useMirrorCastOptions } from "../../composables/useMirrorCastOptions.js";
 import { createDefaultMirrorSettings } from "../../utils/mirror-cast-defaults.js";
+import { nextPreviewRotationDeg } from "../../utils/canvas-rotation.js";
 import {
   applyAudioCodeSelection,
   ensureDefaultAudioCode,
@@ -134,7 +135,13 @@ function getSettings() {
   return settings;
 }
 
-defineExpose({ getSettings });
+/** Toolbar「旋转」: same field as「预览旋转 (°)」. */
+function stepPreviewRotationDeg() {
+  settings.video.rotationDeg = nextPreviewRotationDeg(settings.video.rotationDeg);
+  return settings.video.rotationDeg;
+}
+
+defineExpose({ getSettings, stepPreviewRotationDeg });
 </script>
 
 <template>

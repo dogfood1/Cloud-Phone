@@ -27,6 +27,7 @@ const castBusy = ref(false);
 const castHint = ref("");
 const castOptions = ref(buildCastPayloadFromMirrorSettings(createDefaultMirrorSettings()));
 const castViewportRef = ref(null);
+const leftPanelRef = ref(null);
 
 const {
   actions,
@@ -41,6 +42,8 @@ const {
   device: props.device,
   isCasting,
   castViewportRef,
+  castOptions,
+  mirrorSettingsRef: leftPanelRef,
   onHint: (message) => {
     castHint.value = message;
   },
@@ -185,6 +188,7 @@ onBeforeUnmount(() => {
 
     <div class="device-workspace__split">
       <DeviceWorkspaceLeftPanel
+        ref="leftPanelRef"
         class="device-workspace__pane device-workspace__pane--left"
         :device="device"
         :casting="isCasting"

@@ -205,10 +205,9 @@ public final class Device {
         boolean accelerometerRotation = !wm.isRotationFrozen(displayId);
 
         int currentRotation = getCurrentRotation(displayId);
-        int newRotation = (currentRotation & 1) ^ 1; // 0->1, 1->0, 2->1, 3->0
-        String newRotationString = newRotation == 0 ? "portrait" : "landscape";
+        int newRotation = (currentRotation + 1) % 4; // clockwise 90°: 0→1→2→3→0
 
-        Ln.i("Device rotation requested: " + newRotationString);
+        Ln.i("Device rotation requested: " + currentRotation + " -> " + newRotation + " (clockwise 90°)");
         wm.freezeRotation(displayId, newRotation);
 
         // restore auto-rotate if necessary

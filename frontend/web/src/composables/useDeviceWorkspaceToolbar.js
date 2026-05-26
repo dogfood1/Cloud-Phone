@@ -4,6 +4,7 @@ import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { downloadDeviceScreenshot } from "../utils/device-screenshot-download.js";
 import { getErrorMessage } from "../utils/api.js";
 import { readExposedBoolean } from "../utils/read-exposed-ref.js";
+import { nextPreviewRotationDeg, normalizeRotationDeg } from "../utils/canvas-rotation.js";
 
 function resolvePressActionId(actionId, shiftKey) {
   if (actionId === "volume") {
@@ -17,6 +18,8 @@ export function useDeviceWorkspaceToolbar({
   device,
   isCasting,
   castViewportRef,
+  castOptions,
+  mirrorSettingsRef,
   onHint,
 }) {
   const screenshotBusy = ref(false);
@@ -52,7 +55,15 @@ export function useDeviceWorkspaceToolbar({
     }
 
     if (action.kind === "cast-navigation") {
-      return !isCasting.value;
+      if (!isCasting.value) {
+        return true;
+      }
+
+      if (action.id === "rotate") {
+        return castOptions?.value?.mirror?.video?.disabled === true;
+      }
+
+      return false;
     }
 
     return true;
@@ -146,7 +157,39 @@ export function useDeviceWorkspaceToolbar({
       return;
     }
 
+    if (actionId === "rotate") {
+      handlePreviewRotate();
+      return;
+    }
+
     viewport?.sendNavigation?.(actionId);
+  }
+
+  function handlePreviewRotate() {
+    const settingsVideo = mirrorSettingsRef?.value?.stepPreviewRotationDeg?.();
+
+    let rotationDeg;
+
+    if (settingsVideo !== undefined) {
+      rotationDeg = settingsVideo;
+    } else {
+      const mirror = castOptions?.value?.mirror;
+
+      if (!mirror?.video || mirror.video.disabled) {
+        return;
+      }
+
+      rotationDeg = nextPreviewRotationDeg(mirror.video.rotationDeg);
+      mirror.video.rotationDeg = rotationDeg;
+    }
+
+    rotationDeg = normalizeRotationDeg(rotationDeg);
+
+    if (castOptions?.value?.mirror?.video) {
+      castOptions.value.mirror.video.rotationDeg = rotationDeg;
+    }
+
+    castViewportRef.value?.applyPreviewRotation?.(rotationDeg);
   }
 
   function onToolbarPointerDown(action, event) {

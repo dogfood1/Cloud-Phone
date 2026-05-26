@@ -8,6 +8,7 @@ const CONTROL_MSG_TYPE = {
   SET_SCREEN_POWER_MODE: 10,
   ROTATE_DEVICE: 11,
   START_APP: 16,
+  RESET_VIDEO: 17,
 };
 
 const MOTION_ACTION = {
@@ -28,6 +29,7 @@ const ANDROID_KEYCODE = {
   VOLUME_UP: 24,
   VOLUME_DOWN: 25,
   APP_SWITCH: 187,
+  WAKEUP: 224,
 };
 
 function writeU32BE(view, offset, value) {
@@ -98,12 +100,21 @@ export function serializeBackOrScreenOn(action = KEY_ACTION.DOWN) {
   return new Uint8Array([CONTROL_MSG_TYPE.BACK_OR_SCREEN_ON, action]);
 }
 
+/** scrcpy type 10: boolean `on` in 4.x; legacy ws-scrcpy uses POWER_MODE_OFF=0 / POWER_MODE_NORMAL=2. */
+const POWER_MODE_OFF = 0;
+const POWER_MODE_NORMAL = 2;
+
 export function serializeSetScreenPowerMode(on) {
-  return new Uint8Array([CONTROL_MSG_TYPE.SET_SCREEN_POWER_MODE, on ? 1 : 0]);
+  const mode = on ? POWER_MODE_NORMAL : POWER_MODE_OFF;
+  return new Uint8Array([CONTROL_MSG_TYPE.SET_SCREEN_POWER_MODE, mode]);
 }
 
 export function serializeRotateDevice() {
   return new Uint8Array([CONTROL_MSG_TYPE.ROTATE_DEVICE]);
+}
+
+export function serializeResetVideo() {
+  return new Uint8Array([CONTROL_MSG_TYPE.RESET_VIDEO]);
 }
 
 /** scrcpy control message: 1-byte tiny length + UTF-8 app name (package or ?name). */
@@ -161,6 +172,16 @@ function serializeKeyTap(keycode) {
   return [
     serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode }),
     serializeInjectKeycode({ action: KEY_ACTION.UP, keycode }),
+  ];
+}
+
+/** After display power on: nudge System UI + refresh capture (avoids black mirror). */
+export function serializeDisplayWakeActions() {
+  return [
+    serializeSetScreenPowerMode(true),
+    ...serializeKeyTap(ANDROID_KEYCODE.WAKEUP),
+    ...serializeKeyTap(ANDROID_KEYCODE.HOME),
+    serializeResetVideo(),
   ];
 }
 

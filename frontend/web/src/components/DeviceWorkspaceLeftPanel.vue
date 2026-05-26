@@ -52,6 +52,12 @@ function handleStopClick() {
 function handleSettingsChange() {
   // Settings are locked while casting; options apply on next start.
 }
+
+function stepPreviewRotationDeg() {
+  return mirrorSettingsRef.value?.stepPreviewRotationDeg?.();
+}
+
+defineExpose({ stepPreviewRotationDeg });
 </script>
 
 <template>

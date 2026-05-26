@@ -5,7 +5,14 @@ export const DEVICE_WORKSPACE_ACTIONS = [
   { id: "back", label: "返回", icon: "arrow-left", kind: "cast-navigation", pressHold: true },
   { id: "screen-off", label: "关闭屏幕", icon: "screen-off", kind: "cast-navigation", pressHold: false },
   { id: "power", label: "电源", icon: "power", kind: "cast-navigation", pressHold: true },
-  { id: "rotate", label: "旋转", icon: "rotate", kind: "cast-navigation", pressHold: false },
+  {
+    id: "rotate",
+    label: "旋转",
+    icon: "rotate",
+    kind: "cast-navigation",
+    pressHold: false,
+    title: "顺时针旋转预览 90°（同步左侧「预览旋转」）",
+  },
   {
     id: "volume",
     label: "音量",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.6 - 2026-05-26
+
+- Toolbar rotate updates left-panel「预览旋转」(°) (+90° clockwise); CSS rotator wrapper with touch remap
+- Screen on: WAKEUP+HOME+RESET_VIDEO wake sequence; server `completeDisplayWake` after SET_DISPLAY_POWER; display power uses POWER_MODE_NORMAL(2)
+- Device rotateDevice clockwise 90° per click (server)
+
 ## 0.7.5 - 2026-05-26
 
 - Fix mirror toolbar「点亮屏幕」after turn-off: read exposed `displayScreenOn` with `unref` (`.value ?? true` always treated screen as on)

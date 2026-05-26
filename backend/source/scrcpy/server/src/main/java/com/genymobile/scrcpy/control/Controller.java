@@ -106,6 +106,8 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
     private final MotionEvent.PointerCoords[] pointerCoords = new MotionEvent.PointerCoords[PointersState.MAX_POINTERS];
 
     private boolean keepDisplayPowerOff;
+    /** True after client turned display off via SET_DISPLAY_POWER; cleared after a successful wake. */
+    private boolean clientRequestedDisplayOff;
 
     // Used for resetting video encoding on RESET_VIDEO message or for sending camera controls
     private SurfaceCapture surfaceCapture;
@@ -863,22 +865,71 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
     private void setDisplayPower(boolean on) {
         // Change the power of the main display when mirroring a virtual display
         int targetDisplayId = displayId != Device.DISPLAY_ID_NONE ? displayId : 0;
-        boolean setDisplayPowerOk = Device.setDisplayPower(targetDisplayId, on);
-        if (setDisplayPowerOk) {
-            // Do not keep display power off for virtual displays: MOD+p must wake up the physical device
-            keepDisplayPowerOff = displayId != Device.DISPLAY_ID_NONE && !on;
-            Ln.i("Device display turned " + (on ? "on" : "off"));
-            if (cleanUp != null) {
-                boolean mustRestoreOnExit = !on;
-                cleanUp.setRestoreDisplayPower(mustRestoreOnExit);
+
+        if (!on) {
+            clientRequestedDisplayOff = true;
+            if (setDisplayPowerInternal(targetDisplayId, false)) {
+                keepDisplayPowerOff = displayId != Device.DISPLAY_ID_NONE;
             }
             return;
         }
 
-        if (on && supportsInputEvents) {
+        // Turning display on (ws-scrcpy: POWER_MODE_NORMAL=2; 4.x: boolean on via readBoolean).
+        keepDisplayPowerOff = false;
+        boolean wasClientOff = clientRequestedDisplayOff;
+        clientRequestedDisplayOff = false;
+
+        boolean setDisplayPowerOk = setDisplayPowerInternal(targetDisplayId, true);
+        if (!setDisplayPowerOk && supportsInputEvents) {
             Ln.i("setDisplayPower failed, trying POWER key wake");
             pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
         }
+
+        completeDisplayWake(targetDisplayId, wasClientOff);
+    }
+
+    private boolean setDisplayPowerInternal(int targetDisplayId, boolean on) {
+        boolean setDisplayPowerOk = Device.setDisplayPower(targetDisplayId, on);
+        if (setDisplayPowerOk) {
+            keepDisplayPowerOff = displayId != Device.DISPLAY_ID_NONE && !on;
+            Ln.i("Device display turned " + (on ? "on" : "off"));
+            if (cleanUp != null) {
+                cleanUp.setRestoreDisplayPower(!on);
+            }
+        }
+        return setDisplayPowerOk;
+    }
+
+    /**
+     * After turning the panel on, refresh capture and nudge System UI.
+     * setDisplayPowerMode alone can leave a black framebuffer until an app redraws (touch still works).
+     */
+    private void completeDisplayWake(int targetDisplayId, boolean afterClientTurnedOff) {
+        Device.keepActive(targetDisplayId);
+        resetVideo();
+
+        EXECUTOR.schedule(() -> {
+            resetVideo();
+
+            if (!supportsInputEvents) {
+                return;
+            }
+
+            if (!Device.isScreenOn(targetDisplayId)) {
+                Ln.i("Display still off after wake, trying POWER key");
+                pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
+                EXECUTOR.schedule(this::resetVideo, 500, TimeUnit.MILLISECONDS);
+                return;
+            }
+
+            if (afterClientTurnedOff) {
+                // Match legacy ws-scrcpy turnScreenOn(): wake + show a visible surface (launcher).
+                Ln.i("Refreshing System UI after client display wake");
+                pressReleaseKeycode(KeyEvent.KEYCODE_WAKEUP, Device.INJECT_MODE_ASYNC);
+                pressReleaseKeycode(KeyEvent.KEYCODE_HOME, Device.INJECT_MODE_ASYNC);
+                EXECUTOR.schedule(this::resetVideo, 500, TimeUnit.MILLISECONDS);
+            }
+        }, 250, TimeUnit.MILLISECONDS);
     }
 
     /** Reset video capture/encoder after live stream parameter changes (web cast). */

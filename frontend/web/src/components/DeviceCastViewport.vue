@@ -17,17 +17,29 @@ const props = defineProps({
 const emit = defineEmits(["cast-failed"]);
 
 const canvasRef = ref(null);
+const rotatorRef = ref(null);
+const viewportRef = ref(null);
 const castOptionsRef = defineModel("castOptions", {
   type: Object,
   default: () => ({ maxSize: 1024 }),
 });
 
 const serialRef = toRef(() => props.device.serial);
-const { status, errorMessage, beginCast, stopCast, sendNavigation, sendNavigationPress, displayScreenOn } =
-  useDeviceScrcpyCast(
+const {
+  status,
+  errorMessage,
+  beginCast,
+  stopCast,
+  sendNavigation,
+  sendNavigationPress,
+  displayScreenOn,
+  applyPreviewRotation,
+} = useDeviceScrcpyCast(
   serialRef,
   canvasRef,
   castOptionsRef,
+  rotatorRef,
+  viewportRef,
 );
 
 const isStreaming = computed(() => status.value === "streaming");
@@ -46,23 +58,26 @@ defineExpose({
   sendNavigation,
   sendNavigationPress,
   displayScreenOn,
+  applyPreviewRotation,
   status,
   errorMessage,
 });
 </script>
 
 <template>
-  <div class="device-cast-viewport">
+  <div ref="viewportRef" class="device-cast-viewport">
     <div
       v-show="isStreaming || isStarting"
       class="device-cast-viewport__stage"
       aria-hidden="true"
     >
-      <canvas
-        ref="canvasRef"
-        class="device-cast-viewport__canvas device-cast-viewport__canvas--interactive"
-        :aria-label="`${device.displayName} 投屏`"
-      />
+      <div ref="rotatorRef" class="device-cast-viewport__rotator">
+        <canvas
+          ref="canvasRef"
+          class="device-cast-viewport__canvas device-cast-viewport__canvas--interactive"
+          :aria-label="`${device.displayName} 投屏`"
+        />
+      </div>
     </div>
     <div v-if="!casting || !device.connected" class="device-cast-viewport__placeholder">
       <p v-if="!device.connected">设备未在线，无法投屏。</p>

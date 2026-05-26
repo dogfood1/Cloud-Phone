@@ -117,8 +117,11 @@ export function serializeBackOrScreenOn(action = KEY_ACTION.DOWN) {
   return Buffer.from([CONTROL_MSG_TYPE.BACK_OR_SCREEN_ON, action]);
 }
 
+const POWER_MODE_OFF = 0;
+const POWER_MODE_NORMAL = 2;
+
 export function serializeSetDisplayPower(on) {
-  return Buffer.from([CONTROL_MSG_TYPE.SET_DISPLAY_POWER, on ? 1 : 0]);
+  return Buffer.from([CONTROL_MSG_TYPE.SET_DISPLAY_POWER, on ? POWER_MODE_NORMAL : POWER_MODE_OFF]);
 }
 
 export function serializeRotateDevice() {
