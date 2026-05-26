@@ -69,6 +69,15 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
   if (resolved.audio) {
     params.push(`audio_source=${resolved.audioSource}`);
     params.push(`audio_bit_rate=${resolved.audioBitRate}`);
+    params.push(`audio_codec=${resolved.audioCodec}`);
+
+    if (resolved.audioDup) {
+      params.push("audio_dup=true");
+    }
+
+    if (resolved.audioEncoder) {
+      params.push(`audio_encoder=${resolved.audioEncoder}`);
+    }
   }
 
   if (resolved.displayId !== undefined && !Number.isNaN(resolved.displayId)) {

@@ -46,7 +46,7 @@ const resolutionHint = computed(() => {
       <input v-model="video.disabled" type="checkbox" />
       <span>禁用视频（仅音频）</span>
       <span class="mirror-settings__field-hint">
-        开启后画布显示音频波纹；需 Android 11+。音频编码/源设置仍在完善中。
+        开启后画布显示音频波纹；需 Android 11+。音频源/编码等见下方「音频」分组。
       </span>
     </label>
 

@@ -1,3 +1,5 @@
+import { MIRROR_AUDIO_SOURCES } from "./mirror-audio-constants.js";
+
 export const MIRROR_CAPTURE_ORIENTATIONS = [
   { value: "0", label: "0°" },
   { value: "90", label: "90°" },
@@ -34,18 +36,12 @@ export const DISPLAY_IME_POLICIES = [
   { value: "hide", label: "hide（隐藏 IME）" },
 ];
 
-export const FALLBACK_AUDIO_SOURCES = [
-  { value: "output", label: "设备输出（默认）" },
-  { value: "mic", label: "麦克风" },
-  { value: "playback", label: "播放捕获" },
-];
+export const FALLBACK_AUDIO_SOURCES = MIRROR_AUDIO_SOURCES;
 
 export const FALLBACK_VIDEO_ENCODERS = [
   { codec: "h264", value: "c2.android.avc.encoder", label: "c2.android.avc.encoder" },
   { codec: "h264", value: "OMX.google.h264.encoder", label: "OMX.google.h264.encoder" },
 ];
-
-export const FALLBACK_AUDIO_ENCODERS = [{ value: "", label: "默认（自动）" }];
 
 export function suggestDpi(width, height) {
   const w = Number(width) || 1920;

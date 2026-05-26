@@ -1,6 +1,6 @@
 import { APP_VERSION } from "../config/version.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
-import { listDeviceVideoEncoders } from "../services/device-video-encoders.js";
+import { listDeviceEncoders } from "../services/device-video-encoders.js";
 import { sendJson } from "../utils/http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname) {
@@ -11,7 +11,7 @@ export async function handleDeviceRoute(req, res, method, pathname) {
     const serial = decodeURIComponent(videoEncodersMatch[1]);
 
     try {
-      const videoEncoders = await listDeviceVideoEncoders(serial);
+      const { videoEncoders, audioEncoders } = await listDeviceEncoders(serial);
 
       const usedFallback = videoEncoders.some((item) =>
         String(item.label ?? "").includes("(fallback)"),
@@ -22,6 +22,7 @@ export async function handleDeviceRoute(req, res, method, pathname) {
         version: APP_VERSION,
         serial,
         videoEncoders,
+        audioEncoders,
         warning: usedFallback
           ? "无法读取设备真实编码器列表，已使用通用列表；停止投屏后刷新页面可重试。"
           : undefined,

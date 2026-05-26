@@ -1,11 +1,12 @@
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 
 import { requestJson } from "../utils/api.js";
 import {
-  FALLBACK_AUDIO_ENCODERS,
   FALLBACK_AUDIO_SOURCES,
   FALLBACK_VIDEO_ENCODERS,
 } from "../utils/mirror-cast-constants.js";
+import { MIRROR_AUDIO_SOURCES } from "../utils/mirror-audio-constants.js";
+import { buildAudioCodeOptions } from "../utils/mirror-audio-utils.js";
 
 export function useMirrorCastOptions(getSerial) {
   const loading = ref(false);
@@ -13,7 +14,8 @@ export function useMirrorCastOptions(getSerial) {
   const error = ref("");
   const encodersError = ref("");
   const videoEncoders = ref([...FALLBACK_VIDEO_ENCODERS]);
-  const audioEncoders = ref([...FALLBACK_AUDIO_ENCODERS]);
+  const deviceAudioEncoders = ref([]);
+  const audioCodeOptions = computed(() => buildAudioCodeOptions(deviceAudioEncoders.value));
   const audioSources = ref([...FALLBACK_AUDIO_SOURCES]);
   const displays = ref([{ value: "0", label: "默认屏幕 (0)" }]);
   const apps = ref([]);
@@ -43,6 +45,8 @@ export function useMirrorCastOptions(getSerial) {
         ? result.videoEncoders
         : [...FALLBACK_VIDEO_ENCODERS];
 
+      deviceAudioEncoders.value = result.audioEncoders ?? [];
+
       if (result.warning) {
         encodersError.value = String(result.warning);
       }
@@ -52,13 +56,14 @@ export function useMirrorCastOptions(getSerial) {
       }
 
       if (requestError instanceof Error && requestError.name === "AbortError") {
-        encodersError.value = "加载视频编码器超时（25 秒），请确认设备已连接并重试。";
+        encodersError.value = "加载编码器列表超时（25 秒），请确认设备已连接并重试。";
       } else {
         encodersError.value =
-          requestError instanceof Error ? requestError.message : "加载视频编码器失败。";
+          requestError instanceof Error ? requestError.message : "加载编码器列表失败。";
       }
 
       videoEncoders.value = [...FALLBACK_VIDEO_ENCODERS];
+      deviceAudioEncoders.value = [];
     } finally {
       clearTimeout(timeoutId);
 
@@ -90,12 +95,9 @@ export function useMirrorCastOptions(getSerial) {
         return;
       }
 
-      audioEncoders.value = result.audioEncoders?.length
-        ? result.audioEncoders
-        : [...FALLBACK_AUDIO_ENCODERS];
       audioSources.value = result.audioSources?.length
         ? result.audioSources
-        : [...FALLBACK_AUDIO_SOURCES];
+        : [...MIRROR_AUDIO_SOURCES];
       displays.value = result.displays?.length
         ? result.displays
         : [{ value: "0", label: "默认屏幕 (0)" }];
@@ -126,7 +128,7 @@ export function useMirrorCastOptions(getSerial) {
     error,
     encodersError,
     videoEncoders,
-    audioEncoders,
+    audioCodeOptions,
     audioSources,
     displays,
     apps,

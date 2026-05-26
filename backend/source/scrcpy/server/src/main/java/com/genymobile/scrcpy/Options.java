@@ -456,6 +456,29 @@ public class Options {
             case "audio":
                 copy.audio = Boolean.parseBoolean(value);
                 break;
+            case "audio_codec":
+                AudioCodec streamAudioCodec = AudioCodec.findByName(value);
+                if (streamAudioCodec != null) {
+                    copy.audioCodec = streamAudioCodec;
+                }
+                break;
+            case "audio_encoder":
+                if (!value.isEmpty()) {
+                    copy.audioEncoder = value;
+                }
+                break;
+            case "audio_bit_rate":
+                copy.audioBitRate = Integer.parseInt(value);
+                break;
+            case "audio_source":
+                AudioSource streamAudioSource = AudioSource.findByName(value);
+                if (streamAudioSource != null) {
+                    copy.audioSource = streamAudioSource;
+                }
+                break;
+            case "audio_dup":
+                copy.audioDup = Boolean.parseBoolean(value);
+                break;
             default:
                 Ln.w("Unknown stream extra: " + key);
                 break;

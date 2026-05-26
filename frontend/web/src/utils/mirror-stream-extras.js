@@ -1,6 +1,59 @@
 import { captureOrientationServerValue } from "./mirror-video-config.js";
 
 /**
+ * @param {string[]} parts
+ * @param {Record<string, any>} mirror
+ */
+function appendAudioStreamExtras(parts, mirror) {
+  const video = mirror.video ?? {};
+  const audio = mirror.audio ?? {};
+  const videoDisabled = video.disabled === true;
+  const audioActive = videoDisabled || audio.disabled !== true;
+
+  if (videoDisabled) {
+    parts.push("video=false");
+    parts.push("audio=true");
+  } else if (audio.disabled) {
+    parts.push("audio=false");
+    return;
+  } else {
+    parts.push("audio=true");
+  }
+
+  if (!audioActive) {
+    return;
+  }
+
+  const source = String(audio.source ?? "output").trim();
+
+  if (source) {
+    parts.push(`audio_source=${source}`);
+  }
+
+  if (audio.audioDup) {
+    parts.push("audio_dup=true");
+  }
+
+  const bitRateKbps = Number(audio.bitRateKbps ?? 128);
+
+  if (bitRateKbps > 0) {
+    parts.push(`audio_bit_rate=${Math.round(bitRateKbps * 1000)}`);
+  }
+
+  const codec = String(audio.codec ?? "opus").trim().toLowerCase();
+
+  if (codec) {
+    parts.push(`audio_codec=${codec}`);
+  }
+
+  const encoder = String(audio.encoder ?? "").trim();
+
+  if (encoder) {
+    parts.push(`audio_encoder=${encoder}`);
+  }
+}
+
+/**
  * Build server-side stream extras (comma-separated key=value) for Options.parse extras.
  * Transport: WebSocket type 101 → device scrcpy-server copyForWebStream().
  * @param {Record<string, any>} mirror
@@ -11,10 +64,7 @@ export function buildStreamExtrasFromMirror(mirror = {}) {
   const screen = mirror.screen ?? {};
   const parts = [];
 
-  if (video.disabled) {
-    parts.push("video=false");
-    parts.push("audio=true");
-  }
+  appendAudioStreamExtras(parts, mirror);
 
   const orientation = video.displayOrientation ?? video.captureOrientation;
   const capture = captureOrientationServerValue(orientation);

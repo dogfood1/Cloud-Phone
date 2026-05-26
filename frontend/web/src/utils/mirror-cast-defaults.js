@@ -14,11 +14,14 @@ export function createDefaultMirrorSettings() {
     },
     audio: {
       disabled: true,
-      keepOnDevice: true,
       audioDup: false,
+      audioCode: "opus",
+      codec: "opus",
+      encoder: "",
       source: "output",
       bitRateKbps: 128,
-      encoder: "",
+      bufferMs: 0,
+      outputBufferMs: 0,
     },
     device: {
       showTouches: false,

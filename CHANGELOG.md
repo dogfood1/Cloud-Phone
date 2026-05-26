@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.8 - 2026-05-26
+
+- Align mirror「音频」settings with escrcpy: `--no-audio`, `--audio-dup`, `--audio-source`, combined `--audio-code`, bitrate presets, buffer fields (web ignores playback buffers)
+- `GET /video-encoders` also returns device audio encoders; UI builds `audio-code` options from device list + fallback
+- Stream extras: `audio_codec`, `audio_encoder`, `audio_bit_rate`, `audio_source`, `audio_dup`; server `Options.applyStreamExtraPair` applies them for web cast
+
 ## 0.6.7 - 2026-05-26
 
 - Enable mirror「禁用视频」for audio-only web cast: PCM over WebSocket (`scrcpy_audio`), canvas waveform + playback via Web Audio

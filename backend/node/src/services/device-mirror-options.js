@@ -2,33 +2,9 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { resolveAdbPath } from "./adb-path.js";
+import { MIRROR_AUDIO_SOURCES } from "./mirror-audio-constants.js";
 
 const execFileAsync = promisify(execFile);
-
-const AUDIO_ENCODERS = [
-  { value: "", label: "默认（自动）" },
-  { value: "opus", label: "Opus" },
-  { value: "aac", label: "AAC" },
-  { value: "flac", label: "FLAC" },
-];
-
-const AUDIO_SOURCES = [
-  { value: "output", label: "设备输出（默认）" },
-  { value: "mic", label: "麦克风" },
-  { value: "playback", label: "播放捕获" },
-  { value: "mic-unprocessed", label: "麦克风（未处理）" },
-  { value: "mic-camcorder", label: "麦克风（摄像机）" },
-  { value: "mic-voice-recognition", label: "语音识别" },
-  { value: "mic-voice-communication", label: "语音通话" },
-  { value: "voice-call", label: "通话" },
-  { value: "voice-call-uplink", label: "通话上行" },
-  { value: "voice-call-downlink", label: "通话下行" },
-  { value: "voice-performance", label: "语音性能" },
-  { value: "voice-communication", label: "VoIP 通信" },
-  { value: "camcorder", label: "摄像机" },
-  { value: "voice-recognition", label: "语音识别（系统）" },
-  { value: "remote-submix", label: "远程混音" },
-];
 
 async function runAdbShell(adbPath, serial, args, timeout = 8000) {
   const { stdout } = await execFileAsync(
@@ -115,8 +91,7 @@ export async function getDeviceMirrorOptions(serial) {
   }
 
   return {
-    audioEncoders: AUDIO_ENCODERS,
-    audioSources: AUDIO_SOURCES,
+    audioSources: MIRROR_AUDIO_SOURCES,
     displays,
     apps,
   };

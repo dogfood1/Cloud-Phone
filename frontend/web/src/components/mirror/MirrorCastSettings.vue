@@ -4,6 +4,10 @@ import { reactive, ref, watch } from "vue";
 import { useMirrorCastOptions } from "../../composables/useMirrorCastOptions.js";
 import { createDefaultMirrorSettings } from "../../utils/mirror-cast-defaults.js";
 import {
+  applyAudioCodeSelection,
+  ensureDefaultAudioCode,
+} from "../../utils/mirror-audio-utils.js";
+import {
   applyVideoEncoderSelection,
   buildEncoderSelectOptions,
   ensureDefaultVideoEncoder,
@@ -35,7 +39,7 @@ const {
   error,
   encodersError,
   videoEncoders,
-  audioEncoders,
+  audioCodeOptions,
   audioSources,
   displays,
   apps,
@@ -82,6 +86,25 @@ watch(
 );
 
 watch(
+  audioCodeOptions,
+  (options) => {
+    ensureDefaultAudioCode(settings, options);
+  },
+  { immediate: true },
+);
+
+watch(
+  () => settings.audio.audioCode,
+  (audioCode) => {
+    const option = audioCodeOptions.value.find((item) => item.value === audioCode);
+
+    if (option) {
+      applyAudioCodeSelection(settings, option);
+    }
+  },
+);
+
+watch(
   settings,
   () => {
     emit("settings-change", settings);
@@ -113,9 +136,10 @@ defineExpose({ getSettings });
     />
     <MirrorCastAudioSection
       :audio="settings.audio"
-      :audio-encoders="audioEncoders"
+      :audio-code-options="audioCodeOptions"
       :audio-sources="audioSources"
       :video-disabled="settings.video.disabled"
+      :encoders-loading="encodersLoading"
     />
     <MirrorCastDeviceSection :device-options="settings.device" />
     <MirrorCastScreenSection

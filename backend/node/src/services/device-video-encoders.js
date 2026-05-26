@@ -8,13 +8,14 @@ const ENCODER_CACHE_TTL_MS = 5 * 60 * 1000;
 const LIST_ENCODERS_TIMEOUT_MS = 12_000;
 const LIST_ENCODERS_HARD_TIMEOUT_MS = LIST_ENCODERS_TIMEOUT_MS + 3_000;
 
-/** @type {Map<string, { encoders: object[], expiresAt: number }>} */
+/** @type {Map<string, { videoEncoders: object[], audioEncoders: object[], expiresAt: number }>} */
 const encoderCache = new Map();
 
 /** @type {Map<string, Promise<object[]>>} */
 const inFlightBySerial = new Map();
 
 const VIDEO_ENCODER_LINE = /--video-codec=(\w+)\s+--video-encoder=(\S+)/;
+const AUDIO_ENCODER_LINE = /--audio-codec=(\w+)\s+--audio-encoder=(\S+)/;
 
 /** Generic fallback when device query fails (labels updated on frontend). */
 export const GENERIC_VIDEO_ENCODER_FALLBACK = [
@@ -27,6 +28,44 @@ export const GENERIC_VIDEO_ENCODER_FALLBACK = [
  * @param {string} output
  * @returns {{ codec: string, value: string, label: string }[]}
  */
+export function parseAudioEncodersFromServerLog(output) {
+  const encoders = [];
+  const seen = new Set();
+
+  for (const line of output.split(/\r?\n/)) {
+    const match = line.match(AUDIO_ENCODER_LINE);
+
+    if (!match) {
+      continue;
+    }
+
+    const codec = match[1].toLowerCase();
+    const value = match[2];
+    const key = `${codec}:${value}`;
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+
+    let label = value;
+    const hw = line.match(/\((hw|sw|hybrid)\)/i);
+
+    if (hw) {
+      label += ` (${hw[1]})`;
+    }
+
+    if (line.includes("[vendor]")) {
+      label += " [vendor]";
+    }
+
+    encoders.push({ codec, value, label });
+  }
+
+  return encoders;
+}
+
 export function parseVideoEncodersFromServerLog(output) {
   const encoders = [];
   const seen = new Set();
@@ -107,13 +146,16 @@ async function readEncodersFromLogcat(serial) {
       { timeout: 8_000, maxBuffer: 4 * 1024 * 1024 },
     );
 
-    return parseVideoEncodersFromServerLog(stdout);
+    return {
+      videoEncoders: parseVideoEncodersFromServerLog(stdout),
+      audioEncoders: parseAudioEncodersFromServerLog(stdout),
+    };
   } catch {
-    return [];
+    return { videoEncoders: [], audioEncoders: [] };
   }
 }
 
-async function listDeviceVideoEncodersOnce(serial) {
+async function listDeviceEncodersOnce(serial) {
   const localJar = getScrcpyServerJarPath();
   const castSession = getCastSession(serial);
   const castActive =
@@ -156,24 +198,34 @@ async function listDeviceVideoEncodersOnce(serial) {
     }
   }
 
-  let encoders = parseVideoEncodersFromServerLog(output);
+  let videoEncoders = parseVideoEncodersFromServerLog(output);
+  let audioEncoders = parseAudioEncodersFromServerLog(output);
 
-  if (!encoders.length) {
-    encoders = await readEncodersFromLogcat(serial);
+  if (!videoEncoders.length || !audioEncoders.length) {
+    const logcat = await readEncodersFromLogcat(serial);
+
+    if (!videoEncoders.length) {
+      videoEncoders = logcat.videoEncoders;
+    }
+
+    if (!audioEncoders.length) {
+      audioEncoders = logcat.audioEncoders;
+    }
   }
 
-  if (!encoders.length) {
+  if (!videoEncoders.length) {
     const message = castActive
       ? "设备编码器列表查询超时（投屏进行中）。已使用通用编码器列表，可稍后在停止投屏后刷新。"
       : "无法从设备读取编码器列表，已使用通用编码器列表。";
 
     const error = new Error(message);
     error.fallback = true;
-    error.encoders = [...GENERIC_VIDEO_ENCODER_FALLBACK];
+    error.videoEncoders = [...GENERIC_VIDEO_ENCODER_FALLBACK];
+    error.audioEncoders = audioEncoders;
     throw error;
   }
 
-  return encoders;
+  return { videoEncoders, audioEncoders };
 }
 
 /**
@@ -181,43 +233,54 @@ async function listDeviceVideoEncodersOnce(serial) {
  * Does not use the global adb lock so mirror settings stay responsive during cast.
  * @param {string} serial
  */
-export async function listDeviceVideoEncoders(serial) {
+export async function listDeviceEncoders(serial) {
   const cached = encoderCache.get(serial);
 
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.encoders;
+    return {
+      videoEncoders: cached.videoEncoders,
+      audioEncoders: cached.audioEncoders,
+    };
   }
 
   let inFlight = inFlightBySerial.get(serial);
 
   if (!inFlight) {
     inFlight = withTimeout(
-      listDeviceVideoEncodersOnce(serial),
+      listDeviceEncodersOnce(serial),
       LIST_ENCODERS_HARD_TIMEOUT_MS,
-      "Timed out listing device video encoders.",
+      "Timed out listing device encoders.",
     )
-      .then((encoders) => {
+      .then((result) => {
         encoderCache.set(serial, {
-          encoders,
+          videoEncoders: result.videoEncoders,
+          audioEncoders: result.audioEncoders,
           expiresAt: Date.now() + ENCODER_CACHE_TTL_MS,
         });
-        return encoders;
+        return result;
       })
       .catch((error) => {
-        if (error.encoders?.length) {
+        if (error.videoEncoders?.length) {
+          const result = {
+            videoEncoders: error.videoEncoders,
+            audioEncoders: error.audioEncoders ?? [],
+          };
           encoderCache.set(serial, {
-            encoders: error.encoders,
+            ...result,
             expiresAt: Date.now() + 60_000,
           });
-          return error.encoders;
+          return result;
         }
 
-        const fallback = [...GENERIC_VIDEO_ENCODER_FALLBACK];
+        const result = {
+          videoEncoders: [...GENERIC_VIDEO_ENCODER_FALLBACK],
+          audioEncoders: [],
+        };
         encoderCache.set(serial, {
-          encoders: fallback,
+          ...result,
           expiresAt: Date.now() + 60_000,
         });
-        return fallback;
+        return result;
       })
       .finally(() => {
         inFlightBySerial.delete(serial);
@@ -227,6 +290,12 @@ export async function listDeviceVideoEncoders(serial) {
   }
 
   return inFlight;
+}
+
+/** @param {string} serial */
+export async function listDeviceVideoEncoders(serial) {
+  const { videoEncoders } = await listDeviceEncoders(serial);
+  return videoEncoders;
 }
 
 export function clearDeviceVideoEncoderCache(serial) {
