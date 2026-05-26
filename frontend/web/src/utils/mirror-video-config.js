@@ -1,4 +1,9 @@
 import { MIRROR_RESOLUTIONS } from "./mirror-cast-constants.js";
+import {
+  DEFAULT_VIDEO_CODEC,
+  resolveVideoEncoderName,
+  sortVideoEncoders,
+} from "./mirror-encoder-utils.js";
 
 const RESOLUTION_MAX_SIZE = Object.fromEntries(
   MIRROR_RESOLUTIONS.map((item) => [item.value, item.maxSize]),
@@ -64,6 +69,10 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
     ? 0
     : Number(screen.displayId ?? 0) || 0;
 
+  const encoderList = sortVideoEncoders(castOptions.videoEncoders ?? mirror.videoEncoders ?? []);
+  const encoderName = resolveVideoEncoderName(video.encoder, encoderList);
+  const matched = encoderList.find((item) => item.value === encoderName);
+
   return {
     bitRate: Math.round(Number(video.bitRateMbps ?? DEFAULT_VIDEO_BITRATE_MBPS) * 1_000_000),
     maxFps: Number(video.maxFps ?? 60),
@@ -74,6 +83,7 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
     lockedVideoOrientation: -1,
     sendFrameMeta: false,
     codecOptions: buildVideoStreamCodecOptions(video),
-    encoderName: String(video.encoder ?? ""),
+    encoderName,
+    videoCodec: String(matched?.codec ?? video.codec ?? DEFAULT_VIDEO_CODEC).toLowerCase(),
   };
 }

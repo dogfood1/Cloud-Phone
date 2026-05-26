@@ -9,20 +9,48 @@ import {
 
 export function useMirrorCastOptions(getSerial) {
   const loading = ref(false);
+  const encodersLoading = ref(false);
   const error = ref("");
+  const encodersError = ref("");
   const videoEncoders = ref([...FALLBACK_VIDEO_ENCODERS]);
   const audioEncoders = ref([...FALLBACK_AUDIO_ENCODERS]);
   const audioSources = ref([...FALLBACK_AUDIO_SOURCES]);
   const displays = ref([{ value: "0", label: "默认屏幕 (0)" }]);
   const apps = ref([]);
 
+  let loadGeneration = 0;
+
+  async function loadVideoEncoders(serial) {
+    encodersLoading.value = true;
+    encodersError.value = "";
+
+    try {
+      const result = await requestJson(
+        `/api/devices/${encodeURIComponent(serial)}/video-encoders`,
+      );
+
+      videoEncoders.value = result.videoEncoders?.length
+        ? result.videoEncoders
+        : [...FALLBACK_VIDEO_ENCODERS];
+    } catch (requestError) {
+      encodersError.value =
+        requestError instanceof Error ? requestError.message : "加载视频编码器失败。";
+      videoEncoders.value = [...FALLBACK_VIDEO_ENCODERS];
+    } finally {
+      encodersLoading.value = false;
+    }
+  }
+
   async function load() {
     const serial = typeof getSerial === "function" ? getSerial() : getSerial;
 
     if (!serial) {
+      loading.value = false;
+      encodersLoading.value = false;
       return;
     }
 
+    const generation = ++loadGeneration;
     loading.value = true;
     error.value = "";
 
@@ -31,9 +59,10 @@ export function useMirrorCastOptions(getSerial) {
         `/api/devices/${encodeURIComponent(serial)}/mirror-options`,
       );
 
-      videoEncoders.value = result.videoEncoders?.length
-        ? result.videoEncoders
-        : [...FALLBACK_VIDEO_ENCODERS];
+      if (generation !== loadGeneration) {
+        return;
+      }
+
       audioEncoders.value = result.audioEncoders?.length
         ? result.audioEncoders
         : [...FALLBACK_AUDIO_ENCODERS];
@@ -45,11 +74,19 @@ export function useMirrorCastOptions(getSerial) {
         : [{ value: "0", label: "默认屏幕 (0)" }];
       apps.value = result.apps ?? [];
     } catch (requestError) {
+      if (generation !== loadGeneration) {
+        return;
+      }
+
       error.value =
         requestError instanceof Error ? requestError.message : "加载设备选项失败。";
     } finally {
-      loading.value = false;
+      if (generation === loadGeneration) {
+        loading.value = false;
+      }
     }
+
+    void loadVideoEncoders(serial);
   }
 
   watch(() => (typeof getSerial === "function" ? getSerial() : getSerial), load, {
@@ -58,7 +95,9 @@ export function useMirrorCastOptions(getSerial) {
 
   return {
     loading,
+    encodersLoading,
     error,
+    encodersError,
     videoEncoders,
     audioEncoders,
     audioSources,

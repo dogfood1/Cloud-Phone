@@ -3,6 +3,11 @@ import { reactive, ref, watch } from "vue";
 
 import { useMirrorCastOptions } from "../../composables/useMirrorCastOptions.js";
 import { createDefaultMirrorSettings } from "../../utils/mirror-cast-defaults.js";
+import {
+  applyVideoEncoderSelection,
+  buildEncoderSelectOptions,
+  ensureDefaultVideoEncoder,
+} from "../../utils/mirror-encoder-utils.js";
 import MirrorCastAudioSection from "./MirrorCastAudioSection.vue";
 import MirrorCastDeviceSection from "./MirrorCastDeviceSection.vue";
 import MirrorCastScreenSection from "./MirrorCastScreenSection.vue";
@@ -26,7 +31,9 @@ const appQuery = ref("");
 
 const {
   loading,
+  encodersLoading,
   error,
+  encodersError,
   videoEncoders,
   audioEncoders,
   audioSources,
@@ -42,6 +49,27 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  videoEncoders,
+  (encoders) => {
+    ensureDefaultVideoEncoder(settings, encoders);
+  },
+  { immediate: true },
+);
+
+watch(
+  () => settings.video.encoder,
+  (encoder) => {
+    const option = buildEncoderSelectOptions(videoEncoders.value).find(
+      (item) => item.value === encoder,
+    );
+
+    if (option) {
+      applyVideoEncoderSelection(settings, option);
+    }
+  },
 );
 
 watch(
@@ -66,9 +94,12 @@ defineExpose({ getSettings });
       {{ error }}
     </p>
 
+    <template v-else>
     <MirrorCastVideoSection
       :video="settings.video"
       :video-encoders="videoEncoders"
+      :encoders-loading="encodersLoading"
+      :encoders-error="encodersError"
       :casting="casting"
     />
     <MirrorCastAudioSection
@@ -83,5 +114,6 @@ defineExpose({ getSettings });
       :displays="displays"
       :apps="apps"
     />
+    </template>
   </div>
 </template>

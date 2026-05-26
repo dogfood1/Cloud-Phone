@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 - 2026-05-26
+
+- List real device video encoders (`GET /video-encoders`) with `H264 - name` / `H265 - name` labels; first item is default (no separate “auto” entry)
+- Split mirror-options from encoder query so settings UI loads in seconds instead of blocking on adb push + list_encoders
+- Reject codec ids (e.g. `h264`) as encoder names; cache encoder list and skip jar push when already on device
+
 ## 0.6.3 - 2026-05-26
 
 - Unify mirror video settings across UI, cast API, and ws-scrcpy type 101 (resolution long-edge map, bitrate, fps, encoder, display, capture orientation)

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import { MIRROR_CAPTURE_ORIENTATIONS, MIRROR_RESOLUTIONS } from "../../utils/mirror-cast-constants.js";
+import { buildEncoderSelectOptions } from "../../utils/mirror-encoder-utils.js";
 
 const props = defineProps({
   video: {
@@ -12,11 +13,21 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  encodersLoading: {
+    type: Boolean,
+    default: false,
+  },
+  encodersError: {
+    type: String,
+    default: "",
+  },
   casting: {
     type: Boolean,
     default: false,
   },
 });
+
+const encoderOptions = computed(() => buildEncoderSelectOptions(props.videoEncoders));
 
 const resolutionHint = computed(() => {
   const item = MIRROR_RESOLUTIONS.find((entry) => entry.value === props.video.resolution);
@@ -38,17 +49,29 @@ const resolutionHint = computed(() => {
     </label>
 
     <label class="mirror-settings__field">
-      <span>比特率 (Mbps)</span>
-      <input v-model.number="video.bitRateMbps" type="number" min="1" max="100" step="0.5" />
-    </label>
-
-    <label class="mirror-settings__field">
       <span>视频编码器</span>
-      <select v-model="video.encoder">
-        <option v-for="item in videoEncoders" :key="item.value" :value="item.value">
+      <select v-model="video.encoder" :disabled="!encoderOptions.length">
+        <option v-for="item in encoderOptions" :key="item.value" :value="item.value">
           {{ item.label }}
         </option>
       </select>
+      <span v-if="encodersLoading" class="mirror-settings__field-hint">
+        正在从设备加载编码器列表（约 10–20 秒）…
+      </span>
+      <span v-else-if="encodersError" class="mirror-settings__field-hint mirror-settings__field-hint--error">
+        {{ encodersError }}
+      </span>
+      <span v-else-if="!encoderOptions.length" class="mirror-settings__field-hint">
+        未获取到编码器，请确认设备已连接并刷新页面。
+      </span>
+      <span v-else class="mirror-settings__field-hint">
+        列表第一项为默认；网页投屏请优先选 H264 条目
+      </span>
+    </label>
+
+    <label class="mirror-settings__field">
+      <span>比特率 (Mbps)</span>
+      <input v-model.number="video.bitRateMbps" type="number" min="1" max="100" step="0.5" />
     </label>
 
     <label class="mirror-settings__field">

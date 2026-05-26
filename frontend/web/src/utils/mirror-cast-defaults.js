@@ -2,6 +2,7 @@ export function createDefaultMirrorSettings() {
   return {
     video: {
       disabled: false,
+      codec: "h264",
       bitRateMbps: 5,
       encoder: "",
       rotationDeg: 0,

@@ -1,3 +1,15 @@
+const CODEC_LIKE_ENCODER_NAMES = new Set(["h264", "h265", "hevc", "av1", "opus", "aac", "flac"]);
+
+function normalizeVideoEncoderName(encoder) {
+  const name = String(encoder ?? "").trim();
+
+  if (!name || CODEC_LIKE_ENCODER_NAMES.has(name.toLowerCase())) {
+    return "";
+  }
+
+  return name;
+}
+
 const RESOLUTION_MAX_SIZE = {
   original: 0,
   "1080p": 1920,
@@ -59,7 +71,8 @@ export function resolveVideoStreamSummary(input = {}) {
     maxSize,
     videoBitRate: Math.round(bitRateMbps * 1_000_000),
     maxFps: Number(video.maxFps ?? 60),
-    videoEncoder: String(video.encoder ?? ""),
+    videoEncoder: normalizeVideoEncoderName(video.encoder) || undefined,
+    videoCodec: String(video.codec ?? "h264").toLowerCase(),
     captureOrientation: String(video.captureOrientation ?? "0"),
     videoStreamCodecOptions: buildVideoStreamCodecOptions(video),
     videoDisabled: video.disabled === true || input.video === false,

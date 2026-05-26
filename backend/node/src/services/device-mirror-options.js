@@ -5,13 +5,6 @@ import { resolveAdbPath } from "./adb-path.js";
 
 const execFileAsync = promisify(execFile);
 
-const VIDEO_ENCODERS = [
-  { value: "", label: "默认（自动）" },
-  { value: "h264", label: "H.264 / AVC" },
-  { value: "h265", label: "H.265 / HEVC" },
-  { value: "av1", label: "AV1" },
-];
-
 const AUDIO_ENCODERS = [
   { value: "", label: "默认（自动）" },
   { value: "opus", label: "Opus" },
@@ -114,7 +107,6 @@ export async function getDeviceMirrorOptions(serial) {
   }
 
   return {
-    videoEncoders: VIDEO_ENCODERS,
     audioEncoders: AUDIO_ENCODERS,
     audioSources: AUDIO_SOURCES,
     displays,

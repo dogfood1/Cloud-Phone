@@ -22,7 +22,7 @@ export const FALLBACK_AUDIO_SOURCES = [
   { value: "playback", label: "播放捕获" },
 ];
 
-export const FALLBACK_VIDEO_ENCODERS = [{ value: "", label: "默认（自动）" }];
+export const FALLBACK_VIDEO_ENCODERS = [];
 
 export const FALLBACK_AUDIO_ENCODERS = [{ value: "", label: "默认（自动）" }];
 

@@ -19,7 +19,7 @@ export function resolveCastServerOptions(input = {}) {
 
   return {
     maxSize: stream.maxSize,
-    videoCodec: String(input.videoCodec ?? "h264").toLowerCase(),
+    videoCodec: String(video.codec ?? input.videoCodec ?? "h264").toLowerCase(),
     videoEncoder: stream.videoEncoder,
     videoBitRate: stream.videoBitRate,
     maxFps: stream.maxFps,

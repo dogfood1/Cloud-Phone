@@ -897,6 +897,10 @@ h2 {
   line-height: 1.4;
 }
 
+.mirror-settings__field-hint--error {
+  color: var(--danger);
+}
+
 .mirror-settings__new-display-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
