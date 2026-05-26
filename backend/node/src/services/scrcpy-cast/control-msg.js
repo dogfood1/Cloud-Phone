@@ -149,6 +149,25 @@ export function serializeInjectText(text) {
   return buffer;
 }
 
+export function serializeNavigationPress(actionId, keyAction) {
+  switch (actionId) {
+    case "home":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.HOME });
+    case "recents":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.APP_SWITCH });
+    case "back":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.BACK });
+    case "power":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.POWER });
+    case "volume-up":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.VOLUME_UP });
+    case "volume-down":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.VOLUME_DOWN });
+    default:
+      return null;
+  }
+}
+
 function serializeKeyTap(keycode) {
   return [
     serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode }),
@@ -163,10 +182,7 @@ export function serializeNavigationActions(actionId) {
     case "recents":
       return serializeKeyTap(ANDROID_KEYCODE.APP_SWITCH);
     case "back":
-      return [
-        serializeBackOrScreenOn(KEY_ACTION.DOWN),
-        serializeBackOrScreenOn(KEY_ACTION.UP),
-      ];
+      return serializeKeyTap(ANDROID_KEYCODE.BACK);
     case "power":
       return serializeKeyTap(ANDROID_KEYCODE.POWER);
     case "volume-up":

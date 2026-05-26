@@ -1,6 +1,6 @@
 {
   "name": "cloud-phone-node",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Node.js backend for Cloud Phone",
   "type": "module",

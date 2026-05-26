@@ -33,7 +33,10 @@ const {
   actionLabel,
   actionTitle,
   isActionDisabled,
-  handleToolbarAction,
+  usesPressHold,
+  onToolbarPointerDown,
+  onToolbarPointerUp,
+  handleToolbarClick,
 } = useDeviceWorkspaceToolbar({
   device: props.device,
   isCasting,
@@ -166,9 +169,13 @@ onBeforeUnmount(() => {
           :key="action.id"
           type="button"
           class="device-workspace__action"
+          :class="{ 'device-workspace__action--hold': usesPressHold(action) }"
           :disabled="isActionDisabled(action)"
           :title="actionTitle(action)"
-          @click="handleToolbarAction(action.id, $event)"
+          @pointerdown="onToolbarPointerDown(action, $event)"
+          @pointerup="onToolbarPointerUp(action, $event)"
+          @pointercancel="onToolbarPointerUp(action, $event)"
+          @click="handleToolbarClick(action, $event)"
         >
           <AppIcon :name="action.icon" />
           <span>{{ actionLabel(action) }}</span>

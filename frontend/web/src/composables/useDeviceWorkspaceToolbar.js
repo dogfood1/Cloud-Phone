@@ -1,13 +1,10 @@
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import {
-  CAST_NAVIGATION_ACTION_IDS,
-  DEVICE_WORKSPACE_ACTIONS,
-} from "../utils/device-workspace-actions.js";
+import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { downloadDeviceScreenshot } from "../utils/device-screenshot-download.js";
 import { getErrorMessage } from "../utils/api.js";
 
-function resolveCastNavigationAction(actionId, shiftKey) {
+function resolvePressActionId(actionId, shiftKey) {
   if (actionId === "volume") {
     return shiftKey ? "volume-down" : "volume-up";
   }
@@ -22,6 +19,8 @@ export function useDeviceWorkspaceToolbar({
   onHint,
 }) {
   const screenshotBusy = ref(false);
+  /** @type {Map<number, string>} pointerId -> resolved press action (volume-up, home, …) */
+  const activePresses = ref(new Map());
 
   const actions = DEVICE_WORKSPACE_ACTIONS;
 
@@ -66,6 +65,56 @@ export function useDeviceWorkspaceToolbar({
     return action.title ?? "";
   }
 
+  function usesPressHold(action) {
+    return action.kind === "cast-navigation" && action.pressHold === true;
+  }
+
+  function sendPressPhase(pressActionId, phase) {
+    castViewportRef.value?.sendNavigationPress?.(pressActionId, phase);
+  }
+
+  function releasePointerPress(pointerId) {
+    const pressActionId = activePresses.value.get(pointerId);
+
+    if (!pressActionId) {
+      return;
+    }
+
+    activePresses.value.delete(pointerId);
+    sendPressPhase(pressActionId, "up");
+  }
+
+  function releaseAllPresses() {
+    for (const pointerId of [...activePresses.value.keys()]) {
+      releasePointerPress(pointerId);
+    }
+  }
+
+  function onWindowPointerUp(event) {
+    releasePointerPress(event.pointerId);
+  }
+
+  function onWindowBlur() {
+    releaseAllPresses();
+  }
+
+  watch(isCasting, (casting) => {
+    if (!casting) {
+      releaseAllPresses();
+    }
+  });
+
+  onMounted(() => {
+    window.addEventListener("pointerup", onWindowPointerUp);
+    window.addEventListener("blur", onWindowBlur);
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener("pointerup", onWindowPointerUp);
+    window.removeEventListener("blur", onWindowBlur);
+    releaseAllPresses();
+  });
+
   async function handleScreenshot() {
     if (!device.connected || screenshotBusy.value) {
       return;
@@ -83,8 +132,8 @@ export function useDeviceWorkspaceToolbar({
     }
   }
 
-  function handleCastNavigation(actionId, shiftKey = false) {
-    if (!isCasting.value || !CAST_NAVIGATION_ACTION_IDS.has(actionId)) {
+  function handleInstantNavigation(actionId) {
+    if (!isCasting.value) {
       return;
     }
 
@@ -96,14 +145,62 @@ export function useDeviceWorkspaceToolbar({
       return;
     }
 
-    const navigationAction = resolveCastNavigationAction(actionId, shiftKey);
-    viewport?.sendNavigation?.(navigationAction);
+    viewport?.sendNavigation?.(actionId);
   }
 
-  function handleToolbarAction(actionId, event) {
-    const action = actions.find((item) => item.id === actionId);
+  function onToolbarPointerDown(action, event) {
+    if (!usesPressHold(action) || isActionDisabled(action)) {
+      return;
+    }
 
-    if (!action || isActionDisabled(action)) {
+    event.preventDefault();
+
+    const target = event.currentTarget;
+
+    if (target instanceof Element && "setPointerCapture" in target) {
+      try {
+        target.setPointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+
+    if (activePresses.value.has(event.pointerId)) {
+      return;
+    }
+
+    const pressActionId = resolvePressActionId(action.id, event.shiftKey === true);
+    activePresses.value.set(event.pointerId, pressActionId);
+    sendPressPhase(pressActionId, "down");
+  }
+
+  function onToolbarPointerUp(action, event) {
+    if (!usesPressHold(action)) {
+      return;
+    }
+
+    releasePointerPress(event.pointerId);
+
+    const target = event.currentTarget;
+
+    if (target instanceof Element && "releasePointerCapture" in target) {
+      try {
+        if (target.hasPointerCapture?.(event.pointerId)) {
+          target.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  function handleToolbarClick(action, event) {
+    if (usesPressHold(action)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (isActionDisabled(action)) {
       return;
     }
 
@@ -113,7 +210,7 @@ export function useDeviceWorkspaceToolbar({
     }
 
     if (action.kind === "cast-navigation") {
-      handleCastNavigation(actionId, event?.shiftKey === true);
+      handleInstantNavigation(action.id);
     }
   }
 
@@ -123,6 +220,9 @@ export function useDeviceWorkspaceToolbar({
     actionLabel,
     actionTitle,
     isActionDisabled,
-    handleToolbarAction,
+    usesPressHold,
+    onToolbarPointerDown,
+    onToolbarPointerUp,
+    handleToolbarClick,
   };
 }

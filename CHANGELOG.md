@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4 - 2026-05-26
+
+- Fix mirror toolbar only working on first click: navigation uses pointer down/up (one scrcpy phase per event) instead of paired DOWN+UP on click
+- Toolbar hold matches phone: press sends key DOWN, release sends UP; global pointerup/blur releases stuck keys; back uses inject keycode
+
 ## 0.7.3 - 2026-05-26
 
 - Mirror cast toolbar: navigation keys (recents, home, back, power, volume, rotate) send scrcpy-style DOWN+UP pairs so buttons work reliably

@@ -8,7 +8,9 @@ import {
   MOTION_ACTION,
   serializeInjectScroll,
   serializeInjectTouch,
+  KEY_ACTION,
   serializeNavigationActions,
+  serializeNavigationPress,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
@@ -484,6 +486,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     beginCast,
     startCast,
     stopCast,
+    sendNavigationPress: (actionId, phase) => {
+      const keyAction = phase === "down" ? KEY_ACTION.DOWN : KEY_ACTION.UP;
+      const buffer = serializeNavigationPress(actionId, keyAction);
+
+      if (buffer) {
+        sendControl(buffer);
+      }
+    },
     sendNavigation: (actionId) => {
       if (actionId === "screen-off" || actionId === "screen-on") {
         const turnOn = actionId === "screen-on";

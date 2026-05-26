@@ -135,6 +135,28 @@ export function serializeSetClipboard(text, paste = true, sequence = 0n) {
   return new Uint8Array(buffer);
 }
 
+export { KEY_ACTION };
+
+/** Toolbar hold: one phase (DOWN or UP) per browser pointer event. */
+export function serializeNavigationPress(actionId, keyAction) {
+  switch (actionId) {
+    case "home":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.HOME });
+    case "recents":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.APP_SWITCH });
+    case "back":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.BACK });
+    case "power":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.POWER });
+    case "volume-up":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.VOLUME_UP });
+    case "volume-down":
+      return serializeInjectKeycode({ action: keyAction, keycode: ANDROID_KEYCODE.VOLUME_DOWN });
+    default:
+      return null;
+  }
+}
+
 function serializeKeyTap(keycode) {
   return [
     serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode }),
@@ -142,7 +164,7 @@ function serializeKeyTap(keycode) {
   ];
 }
 
-/** scrcpy toolbar: one logical press = DOWN then UP (or paired control msgs). */
+/** One-shot navigation (rotate, display power, wake). */
 export function serializeNavigationActions(actionId) {
   switch (actionId) {
     case "home":
@@ -150,10 +172,7 @@ export function serializeNavigationActions(actionId) {
     case "recents":
       return serializeKeyTap(ANDROID_KEYCODE.APP_SWITCH);
     case "back":
-      return [
-        serializeBackOrScreenOn(KEY_ACTION.DOWN),
-        serializeBackOrScreenOn(KEY_ACTION.UP),
-      ];
+      return serializeKeyTap(ANDROID_KEYCODE.BACK);
     case "power":
       return serializeKeyTap(ANDROID_KEYCODE.POWER);
     case "volume-up":

@@ -639,6 +639,17 @@ h2 {
   color: var(--success);
 }
 
+.device-workspace__action--hold {
+  touch-action: none;
+  user-select: none;
+}
+
+.device-workspace__action--hold:active {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
 .device-workspace__split {
   display: grid;
   flex: 1;
