@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.5 - 2026-05-26
+
+- Fix mirror toolbar「点亮屏幕」after turn-off: read exposed `displayScreenOn` with `unref` (`.value ?? true` always treated screen as on)
+- Screen on sends only `SET_DISPLAY_POWER` on; drop client POWER wake to avoid toggling display off again when server power-on succeeds
+
 ## 0.7.4 - 2026-05-26
 
 - Fix mirror toolbar only working on first click: navigation uses pointer down/up (one scrcpy phase per event) instead of paired DOWN+UP on click

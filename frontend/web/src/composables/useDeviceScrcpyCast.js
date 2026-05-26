@@ -500,13 +500,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
         displayScreenOn.value = turnOn;
 
         if (turnOn) {
+          // Server falls back to POWER on setDisplayPower failure; avoid extra POWER here (would toggle off again).
           for (const buffer of serializeNavigationActions("screen-on")) {
-            sendControl(buffer);
-          }
-          for (const buffer of serializeNavigationActions("wake-screen")) {
-            sendControl(buffer);
-          }
-          for (const buffer of serializeNavigationActions("wake-screen-up")) {
             sendControl(buffer);
           }
         } else {

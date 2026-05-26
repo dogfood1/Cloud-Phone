@@ -36,7 +36,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 镜像音频默认开启，修复未勾「禁用视频」时整组音频误灰及「禁用音频」开关无法关闭的问题
 - 镜像投屏顶栏：多任务/主屏/返回等导航键发送完整 DOWN+UP；设备在线可截屏下载；Shift+点击降低音量
 - 顶栏导航键按住/松开与手机同步（pointer DOWN/UP）；修复仅第一次点击有效；失焦自动释放按键
-- 同步前端与后端版本号到 `0.7.4`
+- 修复关屏后无法再次点亮（正确读取亮屏状态；亮屏不再重复发送电源键）
+- 同步前端与后端版本号到 `0.7.5`
 
 ### 启动方式
 ```powershell
@@ -95,7 +96,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Mirror audio enabled by default; fix grayed-out audio panel and locked「disable audio」switch without toggling video-only mode
 - Mirror cast toolbar: recents/home/back/power/volume/rotate send full DOWN+UP key pairs; screenshot download when device online; Shift+click for volume-down
 - Toolbar navigation: pointer press/release maps to device key DOWN/UP; fix first-click-only; release keys on blur
-- Sync frontend and backend versions to `0.7.4`
+- Fix screen-on after turn-off (read `displayScreenOn` via unref; omit duplicate POWER wake on client)
+- Sync frontend and backend versions to `0.7.5`
 
 ### Getting Started
 ```powershell

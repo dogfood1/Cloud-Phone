@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { downloadDeviceScreenshot } from "../utils/device-screenshot-download.js";
 import { getErrorMessage } from "../utils/api.js";
+import { readExposedBoolean } from "../utils/read-exposed-ref.js";
 
 function resolvePressActionId(actionId, shiftKey) {
   if (actionId === "volume") {
@@ -29,7 +30,7 @@ export function useDeviceWorkspaceToolbar({
       return "关闭屏幕";
     }
 
-    const screenOn = castViewportRef.value?.displayScreenOn?.value ?? true;
+    const screenOn = readExposedBoolean(castViewportRef.value?.displayScreenOn);
     return screenOn ? "关闭屏幕" : "点亮屏幕";
   });
 
@@ -140,7 +141,7 @@ export function useDeviceWorkspaceToolbar({
     const viewport = castViewportRef.value;
 
     if (actionId === "screen-off") {
-      const screenOn = viewport?.displayScreenOn?.value ?? true;
+      const screenOn = readExposedBoolean(viewport?.displayScreenOn);
       viewport?.sendNavigation?.(screenOn ? "screen-off" : "screen-on");
       return;
     }
