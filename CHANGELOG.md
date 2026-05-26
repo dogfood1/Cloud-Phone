@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.9 - 2026-05-26
+
+- Fix cast mouse drag broken after capture: use `primaryDown` state so `MOVE` is not mis-sent as `HOVER_MOVE` when `event.buttons` is 0
+- Fix release jumping to top-left: `UP` uses last valid point; send `UP` before releasing pointer capture
+- Simplify cast interaction (down / move / hover / up); clamp coords inside video area instead of dropping invalid touches
+
 ## 0.7.8 - 2026-05-26
 
 - Fix mirror cast canvas touch not reaching device: touch `screenW/H` must match encoded video size (from decoder), not physical display from `scrcpy_initial`

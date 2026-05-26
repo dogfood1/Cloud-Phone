@@ -1,5 +1,5 @@
 /**
- * ws-scrcpy FeaturedInteractionHandler-style canvas control (pointer + capture).
+ * scrcpy SDK mouse + touch on cast canvas (hover / press / drag / release).
  */
 
 import {
@@ -12,6 +12,7 @@ import {
   buildTouchOnClient,
   createTouchPointerRegistry,
   emulatedUpFrame,
+  isMouseLikePointer,
   resolveEventClientXY,
   resolvePointerClientXY,
   touchToBuffer,
@@ -45,9 +46,10 @@ export function attachCastInteraction(options) {
   const touchPointers = createTouchPointerRegistry();
   let lastScroll = null;
   let lastHoverSent = 0;
+  /** Primary button held (scrcpy mouse_sdk buttons_state). */
+  let primaryDown = false;
   /** @type {number | null} */
   let activePointerId = null;
-  let mousePressed = false;
   /** @type {{ x: number, y: number } | null} */
   let lastGoodPoint = null;
 
@@ -66,6 +68,11 @@ export function attachCastInteraction(options) {
       }
 
       lastHoverSent = now;
+
+      if (frame.point.x !== 0 || frame.point.y !== 0) {
+        lastGoodPoint = { ...frame.point };
+      }
+
       sendControl(touchToBuffer(frame));
       return;
     }
@@ -77,93 +84,117 @@ export function attachCastInteraction(options) {
     sendFrames(validateTouchSequence(mouseStorage, frame));
   };
 
-  function buildPointerFrame(event, mouseType) {
-    const { clientX, clientY } =
-      mouseType === "mousemove"
-        ? resolvePointerClientXY(event, canvas)
-        : resolveEventClientXY(event, canvas);
-    const built = buildTouchOnClient(
-      {
-        ...event,
-        clientX,
-        clientY,
-        type: mouseType,
-        pointerType: event.pointerType,
-        target: canvas,
-        buttons: mouseType === "mousedown" ? BUTTON_PRIMARY : event.buttons ?? 0,
-      },
-      canvas,
-      getScreenSize(),
-      getRotator(),
-    );
+  function makeSyntheticEvent(event, mouseType, buttons) {
+    const useCoalesced = mouseType === "mousemove" || mouseType === "mouseup";
+    const { clientX, clientY } = useCoalesced
+      ? resolvePointerClientXY(event, canvas)
+      : resolveEventClientXY(event, canvas);
 
-    if (!built || built.touch.invalid) {
+    return {
+      clientX,
+      clientY,
+      type: mouseType,
+      pointerType: isMouseLikePointer(event.pointerType) ? "mouse" : "touch",
+      buttons: buttons ?? event.buttons ?? 0,
+      target: canvas,
+    };
+  }
+
+  function buildFrame(event, mouseType, buttons) {
+    const synthetic = makeSyntheticEvent(event, mouseType, buttons);
+    const built = buildTouchOnClient(synthetic, canvas, getScreenSize(), getRotator(), {
+      primaryDown,
+    });
+
+    if (!built) {
       return null;
     }
 
     if (built.touch.point.x === 0 && built.touch.point.y === 0) {
-      if (lastGoodPoint && mouseType !== "mouseup" && built.touch.action !== MOTION_ACTION.HOVER_MOVE) {
-        return {
-          ...built,
-          touch: { ...built.touch, point: { ...lastGoodPoint } },
-        };
-      }
-
-      if (built.touch.action === MOTION_ACTION.HOVER_MOVE) {
+      if (!lastGoodPoint) {
         return null;
       }
 
-      return null;
-    }
-
-    if (built.touch.action === MOTION_ACTION.HOVER_MOVE && pressed) {
-      return null;
+      return {
+        ...built,
+        touch: { ...built.touch, point: { ...lastGoodPoint } },
+      };
     }
 
     return built;
   }
 
-  const endActivePointer = (event) => {
-    if (activePointerId === null) {
-      return;
+  function sendMouseDown(event, mouseType) {
+    const built = buildFrame(event, mouseType, BUTTON_PRIMARY);
+
+    if (!built) {
+      return false;
     }
 
-    const pointerId = activePointerId;
-    activePointerId = null;
+    primaryDown = true;
+    sendTouchFrame({
+      ...built.touch,
+      pointerId: POINTER_ID_MOUSE,
+      action: MOTION_ACTION.DOWN,
+      pressure: 1,
+      buttons: BUTTON_PRIMARY,
+    });
+    return true;
+  }
 
-    try {
-      if (canvas.hasPointerCapture?.(pointerId)) {
-        canvas.releasePointerCapture(pointerId);
-      }
-    } catch {
-      // ignore
-    }
-
-    if (!hasScreenInfo()) {
-      flushMouseStorage();
-      return;
-    }
-
-    const built = buildPointerFrame(
-      { ...event, type: "mouseup", buttons: 0, target: canvas },
-      "mouseup",
+  function sendMouseMove(event, mouseType) {
+    const built = buildFrame(
+      event,
+      mouseType,
+      primaryDown ? BUTTON_PRIMARY : 0,
     );
 
     if (!built) {
-      flushMouseStorage();
-      lastGoodPoint = null;
       return;
     }
 
-    mousePressed = false;
     sendTouchFrame({
       ...built.touch,
-      pointerId: built.touch.pointerId,
-      pressure: 0,
-      buttons: 0,
+      pointerId: POINTER_ID_MOUSE,
+      buttons: primaryDown ? BUTTON_PRIMARY : 0,
+      pressure: 1,
     });
+  }
+
+  function sendMouseUp(event) {
+    const built = buildFrame(event, "mouseup", 0);
+
+    const upFrame = built
+      ? {
+          ...built.touch,
+          pointerId: POINTER_ID_MOUSE,
+          action: MOTION_ACTION.UP,
+          pressure: 0,
+          buttons: 0,
+        }
+      : lastGoodPoint
+        ? {
+            ...(mouseStorage.get(POINTER_ID_MOUSE) ?? {
+              screenSize: getScreenSize(),
+              pointerId: POINTER_ID_MOUSE,
+            }),
+            action: MOTION_ACTION.UP,
+            point: { ...lastGoodPoint },
+            pressure: 0,
+            buttons: 0,
+          }
+        : null;
+
+    primaryDown = false;
+
+    if (upFrame) {
+      sendTouchFrame(upFrame);
+    } else {
+      flushMouseStorage();
+    }
+
     lastGoodPoint = null;
-  };
+  }
 
   function flushMouseStorage() {
     for (const frame of mouseStorage.values()) {
@@ -173,14 +204,30 @@ export function attachCastInteraction(options) {
     mouseStorage.clear();
   }
 
+  function releasePointerCaptureSafe(pointerId) {
+    try {
+      if (canvas.hasPointerCapture?.(pointerId)) {
+        canvas.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const onWheel = (event) => {
     if (!hasScreenInfo() || event.target !== canvas) {
       return;
     }
 
-    const built = buildTouchOnClient(event, canvas, getScreenSize(), getRotator());
+    const built = buildTouchOnClient(
+      makeSyntheticEvent(event, "mousemove", 0),
+      canvas,
+      getScreenSize(),
+      getRotator(),
+      { primaryDown: false },
+    );
 
-    if (!built || built.touch.invalid) {
+    if (!built) {
       return;
     }
 
@@ -216,7 +263,11 @@ export function attachCastInteraction(options) {
       return;
     }
 
-    if (event.pointerType === "mouse" && event.button !== 0 && event.type === "pointerdown") {
+    if (!isMouseLikePointer(event.pointerType)) {
+      return;
+    }
+
+    if (event.button !== 0 && event.type === "pointerdown") {
       return;
     }
 
@@ -232,7 +283,6 @@ export function attachCastInteraction(options) {
       }
 
       activePointerId = event.pointerId;
-      mousePressed = true;
 
       try {
         canvas.setPointerCapture(event.pointerId);
@@ -240,9 +290,10 @@ export function attachCastInteraction(options) {
         // ignore
       }
 
-      const built = buildPointerFrame(event, mouseType);
-
-      if (!built) {
+      if (!sendMouseDown(event, mouseType)) {
+        activePointerId = null;
+        primaryDown = false;
+        releasePointerCaptureSafe(event.pointerId);
         return;
       }
 
@@ -251,13 +302,6 @@ export function attachCastInteraction(options) {
       }
 
       event.stopPropagation();
-
-      sendTouchFrame({
-        ...built.touch,
-        pointerId: event.pointerType === "mouse" ? POINTER_ID_MOUSE : built.touch.pointerId,
-        pressure: 1,
-        buttons: BUTTON_PRIMARY,
-      });
       return;
     }
 
@@ -266,56 +310,34 @@ export function attachCastInteraction(options) {
     }
 
     if (event.type === "pointermove") {
-      const pressed = (event.buttons & BUTTON_PRIMARY) !== 0;
-
-      if (event.pointerType === "mouse" && !pressed && !mousePressed) {
-        const built = buildPointerFrame(event, mouseType);
-
-        if (!built) {
-          return;
-        }
-
-        if (event.cancelable) {
-          event.preventDefault();
-        }
-
-        sendTouchFrame(built.touch);
-        return;
-      }
-
-      if (!pressed && activePointerId === null) {
-        return;
-      }
-
-      const built = buildPointerFrame(event, mouseType);
-
-      if (!built) {
-        return;
-      }
-
       if (event.cancelable) {
         event.preventDefault();
       }
 
-      sendTouchFrame({
-        ...built.touch,
-        pointerId: event.pointerType === "mouse" ? POINTER_ID_MOUSE : built.touch.pointerId,
-        pressure: built.touch.action === MOTION_ACTION.UP ? 0 : 1,
-        buttons: pressed ? BUTTON_PRIMARY : 0,
-      });
+      sendMouseMove(event, mouseType);
       return;
     }
 
     if (event.type === "pointerup" || event.type === "pointercancel") {
-      mousePressed = false;
-
       if (event.cancelable) {
         event.preventDefault();
       }
 
       event.stopPropagation();
-      endActivePointer(event);
+
+      const pointerId = activePointerId;
+      activePointerId = null;
+      sendMouseUp(event);
+      releasePointerCaptureSafe(pointerId);
     }
+  };
+
+  const onPointerEnter = (event) => {
+    if (!hasScreenInfo() || !isMouseLikePointer(event.pointerType) || primaryDown) {
+      return;
+    }
+
+    sendMouseMove(event, "mousemove");
   };
 
   const onTouch = (event) => {
@@ -350,6 +372,7 @@ export function attachCastInteraction(options) {
         canvas,
         getScreenSize(),
         getRotator(),
+        { primaryDown: event.type === "touchmove" || event.type === "touchstart" },
       );
 
       if (!built) {
@@ -372,16 +395,6 @@ export function attachCastInteraction(options) {
         buttons: built.touch.action === MOTION_ACTION.UP ? 0 : BUTTON_PRIMARY,
       };
 
-      if (frame.invalid) {
-        const previous = touchStorage.get(pointerId);
-
-        if (previous) {
-          buffers.push(...validateTouchSequence(touchStorage, emulatedUpFrame(previous)));
-        }
-
-        continue;
-      }
-
       buffers.push(...validateTouchSequence(touchStorage, frame));
     }
 
@@ -401,12 +414,14 @@ export function attachCastInteraction(options) {
   };
 
   const onLostCapture = (event) => {
-    if (activePointerId === event.pointerId) {
-      endActivePointer(event);
+    if (primaryDown && event.pointerId === activePointerId) {
+      activePointerId = null;
+      sendMouseUp(event);
     }
   };
 
   canvas.addEventListener("wheel", onWheel, passiveOpts);
+  canvas.addEventListener("pointerenter", onPointerEnter, passiveOpts);
   canvas.addEventListener("pointerdown", onPointer, passiveOpts);
   canvas.addEventListener("pointermove", onPointer, passiveOpts);
   canvas.addEventListener("pointerup", onPointer, passiveOpts);
@@ -417,10 +432,13 @@ export function attachCastInteraction(options) {
   });
 
   return () => {
-    if (activePointerId !== null) {
-      activePointerId = null;
+    if (primaryDown) {
       flushMouseStorage();
     }
+
+    primaryDown = false;
+    activePointerId = null;
+    lastGoodPoint = null;
 
     for (const frame of touchStorage.values()) {
       sendControl(touchToBuffer(emulatedUpFrame(frame)));
@@ -429,6 +447,7 @@ export function attachCastInteraction(options) {
     touchStorage.clear();
     touchPointers.clear();
     canvas.removeEventListener("wheel", onWheel);
+    canvas.removeEventListener("pointerenter", onPointerEnter);
     canvas.removeEventListener("pointerdown", onPointer);
     canvas.removeEventListener("pointermove", onPointer);
     canvas.removeEventListener("pointerup", onPointer);

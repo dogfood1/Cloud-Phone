@@ -22,12 +22,16 @@ const EVENT_ACTION_MAP = {
   mouseup: MOTION_ACTION.UP,
 };
 
+export function isMouseLikePointer(pointerType) {
+  return pointerType !== "touch";
+}
+
 function mapTypeToAction(type) {
   return EVENT_ACTION_MAP[type] ?? -1;
 }
 
 /**
- * Pointer capture can yield clientX/clientY = 0 on move; fall back to offsetX/Y like canvas-local coords.
+ * Pointer capture can yield clientX/clientY = 0 on move; fall back to offsetX/Y.
  */
 export function resolveEventClientXY(event, target) {
   const rect = target.getBoundingClientRect();
@@ -44,8 +48,13 @@ export function resolveEventClientXY(event, target) {
     clientY > rect.bottom + 1;
 
   if ((zeroClient || outside) && typeof event.offsetX === "number" && Number.isFinite(event.offsetX)) {
-    clientX = rect.left + event.offsetX;
-    clientY = rect.top + event.offsetY;
+    const ox = event.offsetX;
+    const oy = event.offsetY;
+
+    if (ox !== 0 || oy !== 0) {
+      clientX = rect.left + ox;
+      clientY = rect.top + oy;
+    }
   }
 
   return { clientX, clientY };
@@ -101,53 +110,51 @@ export function createTouchPointerRegistry() {
   };
 }
 
-function resolvePointerId(pointerType) {
-  return pointerType === "mouse" ? POINTER_ID_MOUSE : 0n;
-}
+function resolveTouchAction(event, pointerType, primaryDown) {
+  const mapped = mapTypeToAction(event.type);
 
-function resolveTouchAction(event, pointerType) {
-  const action = mapTypeToAction(event.type);
-
-  if (action < 0) {
+  if (mapped < 0) {
     return -1;
   }
 
-  if (
-    pointerType === "mouse" &&
-    event.type === "mousemove" &&
-    ((event.buttons ?? 0) & BUTTON_PRIMARY) === 0
-  ) {
+  if (pointerType === "touch") {
+    return mapped;
+  }
+
+  if (event.type === "mousemove") {
+    if (primaryDown || ((event.buttons ?? 0) & BUTTON_PRIMARY) !== 0) {
+      return MOTION_ACTION.MOVE;
+    }
+
     return MOTION_ACTION.HOVER_MOVE;
   }
 
-  return action;
+  return mapped;
 }
 
-/** ws-scrcpy InteractionHandler.buildTouchOnClient (+ preview rotation). */
-export function buildTouchOnClient(event, target, screenSize, rotator) {
+/**
+ * @param {object} event
+ * @param {HTMLElement} target
+ * @param {{ width: number, height: number }} screenSize
+ * @param {HTMLElement | null} rotator
+ * @param {{ primaryDown?: boolean }} [options]
+ */
+export function buildTouchOnClient(event, target, screenSize, rotator, options = {}) {
+  const { primaryDown = false } = options;
   const pointerType =
     event.pointerType === "touch" || event.type?.startsWith("touch") ? "touch" : "mouse";
-  const action = resolveTouchAction(event, pointerType);
+  const action = resolveTouchAction(event, pointerType, primaryDown);
 
-  if (action < 0) {
+  if (action < 0 || !screenSize.width || !screenSize.height) {
     return null;
   }
 
-  const { clientX, clientY } =
-    event.type === "mousemove" || event.type === "touchmove"
-      ? resolvePointerClientXY(event, target)
-      : resolveEventClientXY(event, target);
+  const useCoalesced =
+    event.type === "mousemove" || event.type === "mouseup" || event.type === "touchmove";
+  const { clientX, clientY } = useCoalesced
+    ? resolvePointerClientXY(event, target)
+    : resolveEventClientXY(event, target);
   const local = mapClientToVideoLocal(clientX, clientY, target, screenSize);
-  let invalid = false;
-
-  if (
-    local.x < 0 ||
-    local.x > local.width ||
-    local.y < 0 ||
-    local.y > local.height
-  ) {
-    invalid = true;
-  }
 
   const deg = rotator ? normalizeRotationDeg(Number(rotator.dataset?.rotation || 0)) : 0;
   let nx = local.x / (local.width || 1);
@@ -171,28 +178,22 @@ export function buildTouchOnClient(event, target, screenSize, rotator) {
   const x = Math.round(Math.min(1, Math.max(0, nx)) * screenSize.width);
   const y = Math.round(Math.min(1, Math.max(0, ny)) * screenSize.height);
 
-  if (x < 0 || y < 0 || x > screenSize.width || y > screenSize.height) {
-    invalid = true;
-  }
-
   const buttons =
     action === MOTION_ACTION.HOVER_MOVE
       ? 0
       : action === MOTION_ACTION.UP
         ? 0
-        : (event.buttons ?? BUTTON_PRIMARY) & BUTTON_PRIMARY
-          ? BUTTON_PRIMARY
-          : 0;
+        : BUTTON_PRIMARY;
 
   return {
     touch: {
       action,
-      pointerId: resolvePointerId(pointerType),
+      pointerId: pointerType === "touch" ? 0n : POINTER_ID_MOUSE,
       point: { x, y },
       screenSize,
       pressure: action === MOTION_ACTION.UP ? 0 : 1,
       buttons,
-      invalid,
+      invalid: false,
     },
   };
 }
@@ -200,7 +201,7 @@ export function buildTouchOnClient(event, target, screenSize, rotator) {
 export function touchToBuffer(frame) {
   return serializeInjectTouch({
     action: frame.action,
-    pointerId: BigInt(frame.pointerId),
+    pointerId: typeof frame.pointerId === "bigint" ? frame.pointerId : BigInt(frame.pointerId),
     point: frame.point,
     screenSize: frame.screenSize,
     pressure: frame.pressure,
@@ -214,39 +215,35 @@ export function validateTouchSequence(storage, frame) {
   }
 
   const buffers = [];
-  const { action, pointerId } = frame;
-  const previous = storage.get(pointerId);
+  const pointerKey = frame.pointerId;
+  const previous = storage.get(pointerKey);
 
-  if (action === MOTION_ACTION.UP) {
+  if (frame.action === MOTION_ACTION.UP) {
     if (previous) {
-      storage.delete(pointerId);
+      storage.delete(pointerKey);
       buffers.push(touchToBuffer(frame));
     }
 
     return buffers;
   }
 
-  if (action === MOTION_ACTION.DOWN) {
+  if (frame.action === MOTION_ACTION.DOWN) {
     if (!previous) {
-      storage.set(pointerId, frame);
+      storage.set(pointerKey, frame);
       buffers.push(touchToBuffer(frame));
     }
 
     return buffers;
   }
 
-  if (action === MOTION_ACTION.MOVE) {
-    if (frame.point.x === 0 && frame.point.y === 0) {
-      return buffers;
-    }
-
+  if (frame.action === MOTION_ACTION.MOVE) {
     if (!previous) {
-      const downFrame = { ...frame, action: MOTION_ACTION.DOWN, pressure: 1 };
-      storage.set(pointerId, downFrame);
+      const downFrame = { ...frame, action: MOTION_ACTION.DOWN, pressure: 1, buttons: BUTTON_PRIMARY };
+      storage.set(pointerKey, downFrame);
       buffers.push(touchToBuffer(downFrame));
     }
 
-    storage.set(pointerId, frame);
+    storage.set(pointerKey, frame);
     buffers.push(touchToBuffer(frame));
   }
 
