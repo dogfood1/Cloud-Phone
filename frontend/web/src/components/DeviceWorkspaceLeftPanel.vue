@@ -15,6 +15,14 @@ defineProps({
     type: Boolean,
     required: true,
   },
+  castBusy: {
+    type: Boolean,
+    default: false,
+  },
+  castHint: {
+    type: String,
+    default: "",
+  },
 });
 
 const emit = defineEmits(["start-cast", "stop-cast"]);
@@ -26,6 +34,14 @@ const modes = DEVICE_CAST_MODES;
 function buildCastOptions() {
   const settings = mirrorSettingsRef.value?.getSettings?.() ?? createDefaultMirrorSettings();
   return buildCastPayloadFromMirrorSettings(settings);
+}
+
+function handleStartClick() {
+  emit("start-cast", buildCastOptions());
+}
+
+function handleStopClick() {
+  emit("stop-cast");
 }
 </script>
 
@@ -50,21 +66,30 @@ function buildCastOptions() {
     </div>
 
     <div class="workspace-left__section workspace-left__bottom">
+      <p v-if="castHint" class="workspace-left__hint workspace-left__hint--error" role="alert">
+        {{ castHint }}
+      </p>
+      <p v-else-if="!device.connected" class="workspace-left__hint">
+        设备未在线，无法投屏。
+      </p>
+      <p v-else class="workspace-left__hint workspace-left__hint--muted">
+        网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。
+      </p>
       <button
         type="button"
         class="workspace-left__btn workspace-left__btn--ghost"
-        :disabled="!casting"
-        @click="emit('stop-cast')"
+        :disabled="!casting || castBusy"
+        @click="handleStopClick"
       >
         取消投屏
       </button>
       <button
         type="button"
         class="workspace-left__btn workspace-left__btn--primary"
-        :disabled="!device.connected || casting"
-        @click="emit('start-cast', buildCastOptions())"
+        :disabled="!device.connected || casting || castBusy"
+        @click="handleStartClick"
       >
-        开始投屏
+        {{ castBusy ? "正在处理…" : "开始投屏" }}
       </button>
     </div>
   </aside>

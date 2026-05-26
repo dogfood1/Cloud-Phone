@@ -1,4 +1,4 @@
-import { SCRCPY_SERVER_VERSION } from "../../config/scrcpy-paths.js";
+import { SCRCPY_SERVER_VERSION, SCRCPY_WEB_CAST_MODE } from "../../config/scrcpy-paths.js";
 import { resolveCastServerOptions } from "./cast-options.js";
 
 const REMOTE_JAR_PATH = "/data/local/tmp/scrcpy-server.jar";
@@ -20,10 +20,10 @@ export function buildSocketName(scid = DEFAULT_CAST_SCID) {
 
 export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) {
   const resolved = resolveCastServerOptions(options);
-  // Cloud Phone scrcpy-server (4.0-ws1) web mode expects:
+  // Cloud Phone scrcpy-server web mode expects:
   //   <clientVersion> web <logLevel> <port> <listenOnAllInterfaces>
   // It runs its own WebSocket server on device (default 8886), so no tunnel_forward sockets are used.
-  if (String(SCRCPY_SERVER_VERSION).includes("ws")) {
+  if (SCRCPY_WEB_CAST_MODE) {
     // Keep the process running even if the adb shell session ends.
     // Mirrors ws-scrcpy server runner:
     //   CLASSPATH=... nohup app_process / com.genymobile.scrcpy.Server <ver> web <level> <port> <listenAll> 2>&1 > /dev/null

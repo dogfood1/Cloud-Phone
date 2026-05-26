@@ -5,6 +5,7 @@ import com.genymobile.scrcpy.control.ControlMessage;
 import com.genymobile.scrcpy.control.ControlMessageReader;
 import com.genymobile.scrcpy.control.DeviceMessage;
 import com.genymobile.scrcpy.control.DeviceMessageWriter;
+import com.genymobile.scrcpy.util.Ln;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,8 +53,13 @@ public final class WsControlChannel implements ControlConnection {
     }
     byte[] chunk = new byte[message.remaining()];
     message.get(chunk);
-    controlWriteEnd.write(chunk);
-    controlWriteEnd.flush();
+    try {
+      controlWriteEnd.write(chunk);
+      controlWriteEnd.flush();
+    } catch (IOException e) {
+      // Controller thread may have stopped; ignore further client input.
+      Ln.d("Control pipe closed: " + e.getMessage());
+    }
   }
 
   public void feedControl(byte[] chunk) throws IOException {

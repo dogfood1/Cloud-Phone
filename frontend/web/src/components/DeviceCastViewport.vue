@@ -23,7 +23,7 @@ const castOptionsRef = defineModel("castOptions", {
 });
 
 const serialRef = toRef(() => props.device.serial);
-const { status, errorMessage, startCast, stopCast, sendNavigation } = useDeviceScrcpyCast(
+const { status, errorMessage, beginCast, stopCast, sendNavigation } = useDeviceScrcpyCast(
   serialRef,
   canvasRef,
   castOptionsRef,
@@ -33,27 +33,13 @@ const isStreaming = computed(() => status.value === "streaming");
 const isStarting = computed(() => status.value === "starting");
 const hasError = computed(() => status.value === "error");
 
-watch(
-  () => props.casting,
-  async (casting, wasCasting) => {
-    if (casting && !wasCasting) {
-      await startCast();
-      return;
-    }
-
-    if (!casting && wasCasting) {
-      await stopCast();
-    }
-  },
-);
-
 watch(hasError, (failed) => {
   if (failed) {
     emit("cast-failed");
   }
 });
 
-defineExpose({ sendNavigation });
+defineExpose({ beginCast, stopCast, sendNavigation, status, errorMessage });
 </script>
 
 <template>
@@ -72,6 +58,9 @@ defineExpose({ sendNavigation });
     <div v-if="!casting || !device.connected" class="device-cast-viewport__placeholder">
       <p v-if="!device.connected">设备未在线，无法投屏。</p>
       <p v-else-if="!casting">点击左侧「开始投屏」预览设备画面。</p>
+    </div>
+    <div v-else-if="!isStarting && !isStreaming && !hasError" class="device-cast-viewport__overlay">
+      <p>正在准备投屏连接…</p>
     </div>
     <div v-else-if="isStarting" class="device-cast-viewport__overlay">
       <p>正在启动 scrcpy 投屏…</p>

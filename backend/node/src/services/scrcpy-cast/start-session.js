@@ -1,6 +1,7 @@
 import {
   getScrcpyServerJarPath,
   SCRCPY_SERVER_VERSION,
+  SCRCPY_WEB_CAST_MODE,
 } from "../../config/scrcpy-paths.js";
 import { ensureScrcpyServerBuilt } from "../scrcpy-build.js";
 import { runWithAdbLock } from "../adb-lock.js";
@@ -42,7 +43,7 @@ export async function startScrcpyCast(serial, options = {}) {
   const socketName = buildSocketName(scid);
   const jarPath = getScrcpyServerJarPath();
   const serverOptions = resolveCastServerOptions(options);
-  const isWsScrcpy = String(SCRCPY_SERVER_VERSION).includes("ws");
+  const isWsScrcpy = SCRCPY_WEB_CAST_MODE;
 
   logCastInfo(serial, "cast.start", {
     serverVersion: SCRCPY_SERVER_VERSION,
@@ -61,6 +62,7 @@ export async function startScrcpyCast(serial, options = {}) {
     localPort,
     tunnelMode: CAST_TUNNEL_FORWARD,
     serverVersion: SCRCPY_SERVER_VERSION,
+    webCast: SCRCPY_WEB_CAST_MODE,
     castOptions: { ...options, ...serverOptions },
     controlClients: new Set(),
     controlSocket: null,
@@ -148,7 +150,7 @@ export async function ensureCastVideoPipe(serial) {
   }
 
   // ws-scrcpy modified server streams over its own WebSocket server, no scrcpy TCP sockets.
-  if (String(SCRCPY_SERVER_VERSION).includes("ws")) {
+  if (session.webCast ?? SCRCPY_WEB_CAST_MODE) {
     const { ensureServerShell } = await import("./shell-launcher.js");
     await ensureServerShell(session, session.castOptions ?? {});
     return session;

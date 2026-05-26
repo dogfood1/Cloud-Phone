@@ -3,6 +3,7 @@ package com.genymobile.scrcpy.ws;
 import com.genymobile.scrcpy.AsyncProcessor;
 import com.genymobile.scrcpy.CleanUp;
 import com.genymobile.scrcpy.Options;
+import com.genymobile.scrcpy.control.ControlMessage;
 import com.genymobile.scrcpy.control.Controller;
 import com.genymobile.scrcpy.model.ConfigurationException;
 import com.genymobile.scrcpy.util.Ln;
@@ -102,6 +103,16 @@ public final class WsCastSession implements WsSocketBroadcaster {
       byte[] bytes = new byte[payload.remaining()];
       payload.get(bytes);
       join(null, VideoSettings.fromByteArray(bytes));
+      return;
+    }
+    if (type == WsControlFilter.TYPE_PUSH_FILE) {
+      // ws-scrcpy file push — not implemented on Cloud-Phone yet.
+      return;
+    }
+    if (!WsControlFilter.shouldFeedToControl(payload)) {
+      if (type > ControlMessage.TYPE_RESIZE_DISPLAY && type != WsControlFilter.TYPE_PUSH_FILE) {
+        Ln.w("Ignoring unknown WebSocket control type: " + type);
+      }
       return;
     }
 

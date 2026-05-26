@@ -29,9 +29,9 @@
 | 依赖 | `Java-WebSocket`、slf4j | 无第三方网络库 |
 | 包结构 | 扁平 `com.genymobile.scrcpy.*`（约 42 个类） | 子包 `device/` `video/` `control/` 等（约 89 个类） |
 
-**Cloud-Phone 目标**：在 **`backend/source/scrcpy`（官方 4.0）** 上移植 fork 的 WebSocket 能力与 ws-scrcpy 线协议，本地编译 `scrcpy-server`（版本号仍与客户端约定一致，如 `4.0` 或 `4.0-ws1`）。**不要**长期依赖预编译的 `1.19-ws7` jar。
+**Cloud-Phone 目标**：在 **`backend/source/scrcpy`（官方 4.0）** 上移植 WebSocket 能力与 ws-scrcpy 线协议，本地编译 `scrcpy-server`（版本号与官方桌面客户端一致：`4.0`），避免 `scrcpy.exe` 直连时报版本不匹配。**不要**长期依赖预编译的 `1.19-ws7` jar。
 
-**当前运行时（待替换）**：`SCRCPY_SERVER_VERSION=1.19-ws7` + `projects/scrcpy-ws-scrcpy` 编出的 jar；Node `server-args.js` 在版本名含 `ws` 时走 `web DEBUG 8886` 与 `/cast/ws` 代理。
+**当前运行时**：`SCRCPY_SERVER_VERSION=4.0`；`SCRCPY_WEB_CAST_MODE=true` 时 Node 走 `web DEBUG 8886` 与 `/cast/ws` 代理。启动前会 `pkill -f com.genymobile.scrcpy.Server` 清理残留进程，避免 `8886` 端口占用。
 
 ## Cloud Phone 扩展参数
 

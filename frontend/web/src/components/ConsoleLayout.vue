@@ -1,10 +1,12 @@
 <script setup>
+import { computed } from "vue";
+
 import AppSidebar from "./AppSidebar.vue";
 import DeviceWorkspace from "./DeviceWorkspace.vue";
 import DevicesPanel from "./DevicesPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 
-defineProps({
+const props = defineProps({
   devices: {
     type: Array,
     required: true,
@@ -50,6 +52,16 @@ defineProps({
 const activeTab = defineModel("activeTab", { type: String, required: true });
 const selectedDevice = defineModel("selectedDevice", { type: Object, default: null });
 
+const workspaceDevice = computed(() => {
+  const selected = selectedDevice.value;
+
+  if (!selected?.serial) {
+    return selected;
+  }
+
+  return props.devices.find((device) => device.serial === selected.serial) ?? selected;
+});
+
 const emit = defineEmits(["logout", "save-settings", "refresh-devices"]);
 
 function handleOpenDevice(device) {
@@ -78,8 +90,8 @@ function handleTabChange(tabId) {
     />
     <main class="main-panel" :class="{ 'main-panel--workspace': selectedDevice }">
       <DeviceWorkspace
-        v-if="selectedDevice"
-        :device="selectedDevice"
+        v-if="workspaceDevice"
+        :device="workspaceDevice"
         @close="handleCloseWorkspace"
       />
       <DevicesPanel

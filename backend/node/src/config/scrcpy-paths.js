@@ -51,5 +51,9 @@ export function isScrcpyServerReady() {
   return fs.existsSync(getScrcpyServerJarPath());
 }
 
-// Must match backend/source/scrcpy/server/build.gradle versionName (WebSocket-enabled fork of official 4.0).
-export const SCRCPY_SERVER_VERSION = "4.0-ws1";
+// Must match backend/source/scrcpy/server/build.gradle versionName exactly.
+// Keep it "4.0" so the official scrcpy desktop client can run with this server jar.
+export const SCRCPY_SERVER_VERSION = "4.0";
+
+/** Cloud-Phone web cast uses device-side WebSocket (ws-scrcpy wire), not scrcpy TCP sockets. */
+export const SCRCPY_WEB_CAST_MODE = true;

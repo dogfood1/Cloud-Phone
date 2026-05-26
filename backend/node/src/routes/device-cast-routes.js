@@ -24,6 +24,8 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
   if (method === "POST" && startMatch) {
     const serial = decodeURIComponent(startMatch[1]);
 
+    logCastInfo(serial, "api.cast.start.request", { method, pathname });
+
     try {
       await ensureScrcpyServerBuilt();
     } catch (buildError) {
@@ -145,7 +147,7 @@ export async function handleCastWebSocket(ws, serial) {
     await ensureCastVideoPipe(serial);
 
     // ws-scrcpy server listens at ws://127.0.0.1:<localPort>/
-    if (String(session.serverVersion ?? "").includes("ws")) {
+    if (session.webCast) {
       proxyWebSocket(ws, `ws://127.0.0.1:${session.localPort}/`);
       return;
     }

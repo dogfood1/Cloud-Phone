@@ -2,6 +2,7 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref } from "vue";
 
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
+import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
 
 function buildCastWebSocketUrl(serial) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -57,11 +58,15 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   /** True after POST /cast/start succeeded (backend has a session). */
   let backendSessionActive = false;
 
-  async function startCast() {
+  async function beginCast(payload) {
     const serial = serialRef.value;
 
     if (!serial) {
-      return;
+      throw new Error("设备序列号无效，无法开始投屏。");
+    }
+
+    if (!payload?.success) {
+      throw new Error("投屏会话无效。");
     }
 
     errorMessage.value = "";
@@ -69,8 +74,26 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
 
     if (!WsScrcpyAnnexBPlayer.isSupported()) {
       status.value = "error";
-      errorMessage.value = "当前浏览器不支持 WebCodecs H.264 解码。";
-      return;
+      errorMessage.value = "当前浏览器不支持 WebCodecs H.264 解码（请使用 Chrome / Edge）。";
+      throw new Error(errorMessage.value);
+    }
+
+    sessionMeta.value = payload;
+    backendSessionActive = true;
+
+    await nextTick();
+    await openWebSocket(serial);
+    unbindCanvas?.();
+    unbindCanvas = bindCanvas(canvasRef.value);
+    status.value = "streaming";
+  }
+
+  /** @deprecated Prefer workspace calling cast-api then beginCast(payload). */
+  async function startCast() {
+    const serial = serialRef.value;
+
+    if (!serial) {
+      throw new Error("设备序列号无效，无法开始投屏。");
     }
 
     try {
@@ -78,6 +101,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       const response = await fetch(`/api/devices/${encodeURIComponent(serial)}/cast/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(options),
       });
       const payload = await response.json();
@@ -86,19 +110,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
         throw new Error(payload.message ?? payload.error ?? "投屏启动失败");
       }
 
-      sessionMeta.value = payload;
-      backendSessionActive = true;
-
-      await nextTick();
-      await openWebSocket(serial);
-      unbindCanvas?.();
-      unbindCanvas = bindCanvas(canvasRef.value);
-
-      status.value = "streaming";
+      await beginCast(payload);
     } catch (error) {
       status.value = "error";
       errorMessage.value = error instanceof Error ? error.message : "投屏启动失败";
       await stopCast({ backend: backendSessionActive });
+      throw error;
     }
   }
 
@@ -146,6 +163,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       let settled = false;
 
       socket.addEventListener("open", () => {
+        const castOptions = unref(castOptionsRef) ?? {};
+        sendControl(
+          serializeChangeStreamParameters(
+            videoSettingsFromCastOptions(castOptions, sessionMeta.value),
+          ),
+        );
         if (!settled) {
           settled = true;
           resolve();
@@ -329,6 +352,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     errorMessage,
     screenSize,
     sessionMeta,
+    beginCast,
     startCast,
     stopCast,
     sendNavigation: (actionId) => {

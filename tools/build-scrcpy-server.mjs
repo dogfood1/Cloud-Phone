@@ -71,6 +71,36 @@ function run(command, args, options = {}) {
   }
 }
 
+function readGradleVersionName() {
+  const gradlePath = path.join(serverDir, "build.gradle");
+  const text = fs.readFileSync(gradlePath, "utf8");
+  const match = text.match(/versionName\s+"([^"]+)"/);
+  if (!match) {
+    throw new Error(`versionName not found in ${gradlePath}`);
+  }
+  return match[1];
+}
+
+function readNodeServerVersion() {
+  const pathsFile = path.join(rootDir, "backend", "node", "src", "config", "scrcpy-paths.js");
+  const text = fs.readFileSync(pathsFile, "utf8");
+  const match = text.match(/SCRCPY_SERVER_VERSION\s*=\s*"([^"]+)"/);
+  if (!match) {
+    throw new Error(`SCRCPY_SERVER_VERSION not found in ${pathsFile}`);
+  }
+  return match[1];
+}
+
+function assertServerVersionAligned() {
+  const gradleVersion = readGradleVersionName();
+  const nodeVersion = readNodeServerVersion();
+  if (gradleVersion !== nodeVersion) {
+    throw new Error(
+      `scrcpy server version mismatch: build.gradle has "${gradleVersion}", scrcpy-paths.js has "${nodeVersion}"`,
+    );
+  }
+}
+
 function findBuiltApk() {
   const candidates = [
     path.join(serverDir, "build", "outputs", "apk", "release", "server-release-unsigned.apk"),
@@ -85,6 +115,7 @@ export function buildScrcpyServer() {
   }
 
   fs.mkdirSync(binDir, { recursive: true });
+  assertServerVersionAligned();
   console.log("Building scrcpy-server (Android) from backend/source/scrcpy ...");
   run(path.join(scrcpyRoot, gradlew), [":server:assembleRelease"], { cwd: scrcpyRoot });
 

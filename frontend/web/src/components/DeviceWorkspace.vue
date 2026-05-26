@@ -1,11 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 
 import AppIcon from "./AppIcon.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
+import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
+import { getErrorMessage } from "../utils/api.js";
+import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 
 const props = defineProps({
   device: {
@@ -27,13 +30,28 @@ const CAST_NAVIGATION_IDS = new Set([
   "volume",
 ]);
 const isCasting = ref(false);
+const castBusy = ref(false);
+const castHint = ref("");
 const castOptions = ref({ maxSize: 1024, control: true, video: true, audio: false });
 const castViewportRef = ref(null);
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
 
-function startCast(options) {
+async function startCast(options) {
+  castHint.value = "";
+
+  if (!props.device?.serial) {
+    castHint.value = "设备序列号无效。";
+    return;
+  }
+
   if (!props.device.connected) {
+    castHint.value = "设备未在线，无法开始投屏。";
+    return;
+  }
+
+  if (!WsScrcpyAnnexBPlayer.isSupported()) {
+    castHint.value = "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge。";
     return;
   }
 
@@ -41,11 +59,58 @@ function startCast(options) {
     castOptions.value = options;
   }
 
-  isCasting.value = true;
+  castBusy.value = true;
+
+  try {
+    const payload = await startDeviceCast(props.device.serial, castOptions.value);
+    isCasting.value = true;
+    await nextTick();
+
+    const viewport = castViewportRef.value;
+    if (!viewport?.beginCast) {
+      throw new Error("投屏画面组件未就绪，请刷新页面后重试。");
+    }
+
+    await viewport.beginCast(payload);
+  } catch (error) {
+    isCasting.value = false;
+    castHint.value = getErrorMessage(error, "投屏启动失败");
+    try {
+      await stopDeviceCast(props.device.serial);
+    } catch {
+      // ignore cleanup errors
+    }
+  } finally {
+    castBusy.value = false;
+  }
 }
 
-function stopCast() {
-  isCasting.value = false;
+async function stopCast() {
+  castHint.value = "";
+  castBusy.value = true;
+
+  try {
+    await castViewportRef.value?.stopCast?.({ backend: false });
+    if (props.device?.serial) {
+      await stopDeviceCast(props.device.serial);
+    }
+  } catch (error) {
+    castHint.value = getErrorMessage(error, "停止投屏失败");
+  } finally {
+    isCasting.value = false;
+    castBusy.value = false;
+  }
+}
+
+function handleCastFailed() {
+  const viewport = castViewportRef.value;
+  const message = viewport?.errorMessage?.value ?? viewport?.errorMessage;
+
+  if (typeof message === "string" && message) {
+    castHint.value = message;
+  }
+
+  void stopCast();
 }
 
 function isToolbarActionDisabled(actionId) {
@@ -65,12 +130,14 @@ function handleToolbarAction(actionId) {
   castViewportRef.value?.sendNavigation?.(navigationAction);
 }
 
-function handleClose() {
-  stopCast();
+async function handleClose() {
+  await stopCast();
   emit("close");
 }
 
-onBeforeUnmount(stopCast);
+onBeforeUnmount(() => {
+  void stopCast();
+});
 </script>
 
 <template>
@@ -111,6 +178,8 @@ onBeforeUnmount(stopCast);
         class="device-workspace__pane device-workspace__pane--left"
         :device="device"
         :casting="isCasting"
+        :cast-busy="castBusy"
+        :cast-hint="castHint"
         @start-cast="startCast"
         @stop-cast="stopCast"
       />
@@ -120,7 +189,7 @@ onBeforeUnmount(stopCast);
         class="device-workspace__pane device-workspace__pane--right"
         :device="device"
         :casting="isCasting"
-        @cast-failed="stopCast"
+        @cast-failed="handleCastFailed"
       />
     </div>
   </section>

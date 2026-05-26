@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-05-26
+
+- Make custom scrcpy WebSocket server report version `4.0` for compatibility with the official scrcpy desktop client
+- Kill leftover device scrcpy server processes before starting web cast to avoid `8886` bind conflicts
+- Harden ws-scrcpy control handling (filter invalid payloads; send initial VideoSettings on connect)
+
 ## 0.6.0 - 2026-05-26
 
 - Add WebSocket cast mode to official scrcpy 4.0 server fork (`4.0-ws1`) in `backend/source/scrcpy` (device-side WS on port 8886, ws-scrcpy wire protocol)

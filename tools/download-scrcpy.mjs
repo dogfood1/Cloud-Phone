@@ -105,7 +105,19 @@ function installFiles(binaryPath, serverPath) {
   fs.copyFileSync(serverPath, path.join(binDir, "scrcpy-server"));
 
   if (binaryPath) {
-    fs.copyFileSync(binaryPath, path.join(binDir, binaryName));
+    const sourceDir = path.dirname(binaryPath);
+
+    for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const sourceFile = path.join(sourceDir, entry.name);
+      const targetFile = path.join(binDir, entry.name);
+      fs.copyFileSync(sourceFile, targetFile);
+    }
+
+    console.log(`Installed scrcpy desktop bundle from ${sourceDir}`);
   }
 }
 
