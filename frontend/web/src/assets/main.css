@@ -610,6 +610,47 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.device-workspace__action-anchor {
+  position: relative;
+}
+
+.device-workspace__volume-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 100%;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface, var(--bg-muted));
+  box-shadow:
+    0 10px 28px rgb(8 12 20 / 22%),
+    0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent);
+  transform: translateX(-50%);
+}
+
+.device-workspace__action--sub {
+  min-width: 3.5rem;
+  min-height: 2.85rem;
+  padding: 0.45rem 0.4rem;
+}
+
+.device-workspace__action--menu-open:not(:disabled) {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--line));
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.device-workspace__action--menu-open:not(:disabled) .device-workspace__action-icon {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
 }
 
 .device-workspace__action {

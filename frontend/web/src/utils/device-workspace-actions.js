@@ -17,15 +17,20 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     id: "volume",
     label: "音量",
     icon: "volume",
-    kind: "cast-navigation",
-    pressHold: true,
-    title: "按住提高音量，Shift+按住降低音量",
+    kind: "volume-menu",
+    pressHold: false,
+    title: "点击展开音量调节",
   },
   { id: "screenshot", label: "截屏", icon: "camera", kind: "screenshot" },
   { id: "record", label: "录屏", icon: "record", kind: "planned" },
   { id: "files", label: "文件管理", icon: "folder", kind: "planned" },
   { id: "apps", label: "应用管理", icon: "apps", kind: "planned" },
   { id: "terminal", label: "终端", icon: "terminal", kind: "planned" },
+];
+
+export const VOLUME_SUB_ACTIONS = [
+  { id: "volume-up", label: "增加", icon: "volume-up" },
+  { id: "volume-down", label: "减小", icon: "volume-down" },
 ];
 
 export const CAST_NAVIGATION_ACTION_IDS = new Set(

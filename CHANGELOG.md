@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.11 - 2026-05-26
+
+- Volume toolbar: click to expand「增加 / 减小」sub-buttons (replaces hold / Shift+hold)
+
 ## 0.7.10 - 2026-05-26
 
 - Screenshot toolbar action plays a white edge-glow flash animation on the cast viewport

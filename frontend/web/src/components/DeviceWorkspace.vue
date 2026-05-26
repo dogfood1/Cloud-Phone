@@ -31,6 +31,9 @@ const leftPanelRef = ref(null);
 
 const {
   actions,
+  volumeSubActions,
+  volumeMenuOpen,
+  isVolumeMenuAction,
   actionLabel,
   actionIcon,
   actionTitle,
@@ -40,6 +43,7 @@ const {
   onToolbarPointerDown,
   onToolbarPointerUp,
   handleToolbarClick,
+  handleVolumeSubAction,
 } = useDeviceWorkspaceToolbar({
   device: props.device,
   isCasting,
@@ -169,27 +173,69 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="device-workspace__toolbar" role="toolbar" aria-label="设备控制">
-        <button
-          v-for="action in actions"
-          :key="action.id"
-          type="button"
-          class="device-workspace__action"
-          :class="{
-            'device-workspace__action--hold': usesPressHold(action),
-            'device-workspace__action--pressed': isActionPressed(action),
-          }"
-          :disabled="isActionDisabled(action)"
-          :title="actionTitle(action)"
-          @pointerdown="onToolbarPointerDown(action, $event)"
-          @pointerup="onToolbarPointerUp(action, $event)"
-          @pointercancel="onToolbarPointerUp(action, $event)"
-          @click="handleToolbarClick(action, $event)"
-        >
-          <span class="device-workspace__action-icon" aria-hidden="true">
-            <AppIcon :name="actionIcon(action)" variant="toolbar" />
-          </span>
-          <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
-        </button>
+        <template v-for="action in actions" :key="action.id">
+          <div
+            v-if="isVolumeMenuAction(action)"
+            class="device-workspace__action-anchor device-workspace__action-anchor--volume"
+          >
+            <button
+              type="button"
+              class="device-workspace__action"
+              :class="{ 'device-workspace__action--menu-open': volumeMenuOpen }"
+              :disabled="isActionDisabled(action)"
+              :title="actionTitle(action)"
+              :aria-expanded="volumeMenuOpen"
+              aria-haspopup="true"
+              @click="handleToolbarClick(action, $event)"
+            >
+              <span class="device-workspace__action-icon" aria-hidden="true">
+                <AppIcon :name="actionIcon(action)" variant="toolbar" />
+              </span>
+              <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
+            </button>
+            <div
+              v-show="volumeMenuOpen"
+              class="device-workspace__volume-menu"
+              role="group"
+              aria-label="音量调节"
+            >
+              <button
+                v-for="sub in volumeSubActions"
+                :key="sub.id"
+                type="button"
+                class="device-workspace__action device-workspace__action--sub"
+                :disabled="isActionDisabled(action)"
+                :title="sub.label"
+                @click.stop="handleVolumeSubAction(sub)"
+              >
+                <span class="device-workspace__action-icon" aria-hidden="true">
+                  <AppIcon :name="sub.icon" variant="toolbar" />
+                </span>
+                <span class="device-workspace__action-label">{{ sub.label }}</span>
+              </button>
+            </div>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="device-workspace__action"
+            :class="{
+              'device-workspace__action--hold': usesPressHold(action),
+              'device-workspace__action--pressed': isActionPressed(action),
+            }"
+            :disabled="isActionDisabled(action)"
+            :title="actionTitle(action)"
+            @pointerdown="onToolbarPointerDown(action, $event)"
+            @pointerup="onToolbarPointerUp(action, $event)"
+            @pointercancel="onToolbarPointerUp(action, $event)"
+            @click="handleToolbarClick(action, $event)"
+          >
+            <span class="device-workspace__action-icon" aria-hidden="true">
+              <AppIcon :name="actionIcon(action)" variant="toolbar" />
+            </span>
+            <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
+          </button>
+        </template>
       </div>
     </header>
 

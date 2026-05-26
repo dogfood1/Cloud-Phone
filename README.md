@@ -34,7 +34,7 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 投屏中锁定镜像参数；修复触摸点关闭残留、关屏/亮屏切换、视频+音频同传；WebSocket 软重配避免管线崩溃
 - 镜像「屏幕」对齐 escrcpy：分组虚拟屏预设、`--new-display`、IME/装饰选项；`--start-app` 在新建虚拟屏上启动（非主屏）
 - 镜像音频默认开启，修复未勾「禁用视频」时整组音频误灰及「禁用音频」开关无法关闭的问题
-- 镜像投屏顶栏：多任务/主屏/返回等导航键发送完整 DOWN+UP；设备在线可截屏下载；Shift+点击降低音量
+- 镜像投屏顶栏：多任务/主屏/返回等导航键发送完整 DOWN+UP；设备在线可截屏下载；音量按钮展开「增加 / 减小」
 - 顶栏导航键按住/松开与手机同步（pointer DOWN/UP）；修复仅第一次点击有效；失焦自动释放按键
 - 修复关屏后无法再次点亮（正确读取亮屏状态；亮屏不再重复发送电源键）
 - 工具栏旋转同步「预览旋转」；亮屏 WAKEUP+HOME 唤醒序列与视频采集重置，缓解黑屏可点无画面
@@ -42,7 +42,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 修复投屏画布触摸无法控机：触摸坐标使用解码视频帧尺寸（与 scrcpy `PositionMapper` 一致）；悬停/按下/拖动/抬起按 scrcpy SDK 鼠标协议注入；WebSocket 代理与控制调试日志
 - 修复投屏鼠标拖动与悬停：`primaryDown` 区分 MOVE/HOVER_MOVE；松开不再跳到左上角
 - 截屏时投屏区域四周白光闪动动画反馈
-- 同步前端与后端版本号到 `0.7.10`
+- 音量按钮点击展开「增加 / 减小」子按钮（替代按住与 Shift+按住）
+- 同步前端与后端版本号到 `0.7.11`
 
 ### 启动方式
 ```powershell
@@ -99,7 +100,7 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Cast settings locked during session; fix show_touches, screen power toggle, video+audio PCM; soft stream reconfigure avoids pipeline crash
 - Mirror screen settings (escrcpy-aligned): grouped new-display presets, IME/decorations; `--start-app` on virtual display, not main screen
 - Mirror audio enabled by default; fix grayed-out audio panel and locked「disable audio」switch without toggling video-only mode
-- Mirror cast toolbar: recents/home/back/power/volume/rotate send full DOWN+UP key pairs; screenshot download when device online; Shift+click for volume-down
+- Mirror cast toolbar: recents/home/back/power/volume/rotate send full DOWN+UP key pairs; screenshot download when device online; volume opens increase/decrease sub-buttons
 - Toolbar navigation: pointer press/release maps to device key DOWN/UP; fix first-click-only; release keys on blur
 - Fix screen-on after turn-off (read `displayScreenOn` via unref; omit duplicate POWER wake on client)
 - Toolbar rotate syncs preview rotation (°); display wake sequence + capture reset for black-screen-after-on
@@ -107,7 +108,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Fix cast canvas touch not controlling device: use decoded video frame size for injection; scrcpy SDK mouse hover/press/release; WebSocket proxy and control debug logging
 - Fix cast mouse drag and hover (`primaryDown` for MOVE vs HOVER_MOVE); release no longer jumps to top-left
 - Screenshot action: white edge-glow flash on cast viewport
-- Sync frontend and backend versions to `0.7.10`
+- Volume button expands increase/decrease sub-buttons (replaces hold and Shift+hold)
+- Sync frontend and backend versions to `0.7.11`
 
 ### Getting Started
 ```powershell

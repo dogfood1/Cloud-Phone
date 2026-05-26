@@ -1,18 +1,13 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
+import {
+  DEVICE_WORKSPACE_ACTIONS,
+  VOLUME_SUB_ACTIONS,
+} from "../utils/device-workspace-actions.js";
 import { downloadDeviceScreenshot } from "../utils/device-screenshot-download.js";
 import { getErrorMessage } from "../utils/api.js";
 import { readExposedBoolean } from "../utils/read-exposed-ref.js";
 import { nextPreviewRotationDeg, normalizeRotationDeg } from "../utils/canvas-rotation.js";
-
-function resolvePressActionId(actionId, shiftKey) {
-  if (actionId === "volume") {
-    return shiftKey ? "volume-down" : "volume-up";
-  }
-
-  return actionId;
-}
 
 export function useDeviceWorkspaceToolbar({
   device,
@@ -23,10 +18,12 @@ export function useDeviceWorkspaceToolbar({
   onHint,
 }) {
   const screenshotBusy = ref(false);
-  /** @type {Map<number, string>} pointerId -> resolved press action (volume-up, home, …) */
+  const volumeMenuOpen = ref(false);
+  /** @type {Map<number, string>} pointerId -> resolved press action */
   const activePresses = ref(new Map());
 
   const actions = DEVICE_WORKSPACE_ACTIONS;
+  const volumeSubActions = VOLUME_SUB_ACTIONS;
 
   const screenOffActionLabel = computed(() => {
     if (!isCasting.value) {
@@ -36,6 +33,18 @@ export function useDeviceWorkspaceToolbar({
     const screenOn = readExposedBoolean(castViewportRef.value?.displayScreenOn);
     return screenOn ? "关闭屏幕" : "点亮屏幕";
   });
+
+  function isVolumeMenuAction(action) {
+    return action.kind === "volume-menu";
+  }
+
+  function closeVolumeMenu() {
+    volumeMenuOpen.value = false;
+  }
+
+  function toggleVolumeMenu() {
+    volumeMenuOpen.value = !volumeMenuOpen.value;
+  }
 
   function actionLabel(action) {
     if (action.id === "screen-off") {
@@ -61,6 +70,10 @@ export function useDeviceWorkspaceToolbar({
 
     if (action.kind === "planned") {
       return true;
+    }
+
+    if (action.kind === "volume-menu") {
+      return !isCasting.value;
     }
 
     if (action.kind === "cast-navigation") {
@@ -96,13 +109,6 @@ export function useDeviceWorkspaceToolbar({
     }
 
     for (const pressActionId of activePresses.value.values()) {
-      if (action.id === "volume") {
-        if (pressActionId === "volume-up" || pressActionId === "volume-down") {
-          return true;
-        }
-        continue;
-      }
-
       if (pressActionId === action.id) {
         return true;
       }
@@ -138,23 +144,42 @@ export function useDeviceWorkspaceToolbar({
 
   function onWindowBlur() {
     releaseAllPresses();
+    closeVolumeMenu();
+  }
+
+  function onDocumentPointerDown(event) {
+    if (!volumeMenuOpen.value) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (target instanceof Element && target.closest(".device-workspace__action-anchor--volume")) {
+      return;
+    }
+
+    closeVolumeMenu();
   }
 
   watch(isCasting, (casting) => {
     if (!casting) {
       releaseAllPresses();
+      closeVolumeMenu();
     }
   });
 
   onMounted(() => {
     window.addEventListener("pointerup", onWindowPointerUp);
     window.addEventListener("blur", onWindowBlur);
+    document.addEventListener("pointerdown", onDocumentPointerDown, true);
   });
 
   onBeforeUnmount(() => {
     window.removeEventListener("pointerup", onWindowPointerUp);
     window.removeEventListener("blur", onWindowBlur);
+    document.removeEventListener("pointerdown", onDocumentPointerDown, true);
     releaseAllPresses();
+    closeVolumeMenu();
   });
 
   async function handleScreenshot() {
@@ -194,6 +219,14 @@ export function useDeviceWorkspaceToolbar({
     }
 
     viewport?.sendNavigation?.(actionId);
+  }
+
+  function handleVolumeSubAction(subAction) {
+    if (!isCasting.value) {
+      return;
+    }
+
+    castViewportRef.value?.sendNavigation?.(subAction.id);
   }
 
   function handlePreviewRotate() {
@@ -249,9 +282,8 @@ export function useDeviceWorkspaceToolbar({
       return;
     }
 
-    const pressActionId = resolvePressActionId(action.id, event.shiftKey === true);
-    activePresses.value.set(event.pointerId, pressActionId);
-    sendPressPhase(pressActionId, "down");
+    activePresses.value.set(event.pointerId, action.id);
+    sendPressPhase(action.id, "down");
   }
 
   function onToolbarPointerUp(action, event) {
@@ -293,6 +325,11 @@ export function useDeviceWorkspaceToolbar({
       return;
     }
 
+    if (action.kind === "volume-menu") {
+      toggleVolumeMenu();
+      return;
+    }
+
     if (action.kind === "cast-navigation") {
       handleInstantNavigation(action.id);
     }
@@ -300,7 +337,10 @@ export function useDeviceWorkspaceToolbar({
 
   return {
     actions,
+    volumeSubActions,
+    volumeMenuOpen,
     screenshotBusy,
+    isVolumeMenuAction,
     actionLabel,
     actionIcon,
     actionTitle,
@@ -310,5 +350,6 @@ export function useDeviceWorkspaceToolbar({
     onToolbarPointerDown,
     onToolbarPointerUp,
     handleToolbarClick,
+    handleVolumeSubAction,
   };
 }
