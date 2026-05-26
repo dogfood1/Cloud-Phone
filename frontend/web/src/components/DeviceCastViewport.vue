@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, toRef, watch } from "vue";
+import { computed, nextTick, ref, toRef, watch } from "vue";
 
 import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
 
@@ -45,6 +45,23 @@ const {
 const isStreaming = computed(() => status.value === "streaming");
 const isStarting = computed(() => status.value === "starting");
 const hasError = computed(() => status.value === "error");
+const screenshotFlashActive = ref(false);
+
+function playScreenshotFlash() {
+  screenshotFlashActive.value = false;
+
+  void nextTick(() => {
+    screenshotFlashActive.value = true;
+  });
+}
+
+function onScreenshotFlashEnd(event) {
+  if (event.animationName !== "device-cast-screenshot-flash") {
+    return;
+  }
+
+  screenshotFlashActive.value = false;
+}
 
 watch(hasError, (failed) => {
   if (failed) {
@@ -59,6 +76,7 @@ defineExpose({
   sendNavigationPress,
   displayScreenOn,
   applyPreviewRotation,
+  playScreenshotFlash,
   status,
   errorMessage,
 });
@@ -96,5 +114,11 @@ defineExpose({
       </span>
     </div>
     <div v-else-if="isStreaming" class="device-cast-viewport__badge">scrcpy</div>
+    <div
+      v-if="screenshotFlashActive"
+      class="device-cast-viewport__screenshot-flash"
+      aria-hidden="true"
+      @animationend="onScreenshotFlashEnd"
+    />
   </div>
 </template>

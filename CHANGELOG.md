@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.10 - 2026-05-26
+
+- Screenshot toolbar action plays a white edge-glow flash animation on the cast viewport
+
 ## 0.7.9 - 2026-05-26
 
 - Fix cast mouse drag broken after capture: use `primaryDown` state so `MOVE` is not mis-sent as `HOVER_MOVE` when `event.buttons` is 0

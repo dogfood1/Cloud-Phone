@@ -41,7 +41,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 投屏顶栏图标与布局重设计（Lucide 风格、上图标下文字）
 - 修复投屏画布触摸无法控机：触摸坐标使用解码视频帧尺寸（与 scrcpy `PositionMapper` 一致）；悬停/按下/拖动/抬起按 scrcpy SDK 鼠标协议注入；WebSocket 代理与控制调试日志
 - 修复投屏鼠标拖动与悬停：`primaryDown` 区分 MOVE/HOVER_MOVE；松开不再跳到左上角
-- 同步前端与后端版本号到 `0.7.9`
+- 截屏时投屏区域四周白光闪动动画反馈
+- 同步前端与后端版本号到 `0.7.10`
 
 ### 启动方式
 ```powershell
@@ -105,7 +106,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Mirror cast toolbar icons and layout refresh (Lucide-style, icon above label)
 - Fix cast canvas touch not controlling device: use decoded video frame size for injection; scrcpy SDK mouse hover/press/release; WebSocket proxy and control debug logging
 - Fix cast mouse drag and hover (`primaryDown` for MOVE vs HOVER_MOVE); release no longer jumps to top-left
-- Sync frontend and backend versions to `0.7.9`
+- Screenshot action: white edge-glow flash on cast viewport
+- Sync frontend and backend versions to `0.7.10`
 
 ### Getting Started
 ```powershell

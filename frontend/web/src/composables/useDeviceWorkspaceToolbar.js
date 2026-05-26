@@ -164,6 +164,7 @@ export function useDeviceWorkspaceToolbar({
 
     screenshotBusy.value = true;
     onHint?.("");
+    castViewportRef.value?.playScreenshotFlash?.();
 
     try {
       await downloadDeviceScreenshot(device.serial, device.displayName);
