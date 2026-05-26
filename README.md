@@ -29,7 +29,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - ui-ux-pro-max 设计系统：玻璃质感卡片、SVG 图标、优化排版与对比度
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
 - 镜像「显示方向」经 WebSocket 正确下发（修复 codecOptions 解析）；区分采集方向与预览旋转
-- 同步前端与后端版本号到 `0.6.6`
+- 镜像可勾选「禁用视频」仅音频投屏：画布音频波纹，设备 PCM（Android 11+，需重编译 server）
+- 同步前端与后端版本号到 `0.6.7`
 
 ### 启动方式
 ```powershell
@@ -81,7 +82,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - ui-ux-pro-max design refresh: glass cards, SVG icons, improved typography
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
 - Mirror capture orientation applied over WebSocket (codecOptions parse fix); UI distinguishes capture vs preview rotation
-- Sync frontend and backend versions to `0.6.6`
+- Mirror「disable video」audio-only cast: canvas waveform, device PCM over WebSocket (Android 11+, rebuild server jar)
+- Sync frontend and backend versions to `0.6.7`
 
 ### Getting Started
 ```powershell

@@ -450,6 +450,12 @@ public class Options {
             case "display_ime_policy":
                 copy.displayImePolicy = parseDisplayImePolicy(value);
                 break;
+            case "video":
+                copy.video = Boolean.parseBoolean(value);
+                break;
+            case "audio":
+                copy.audio = Boolean.parseBoolean(value);
+                break;
             default:
                 Ln.w("Unknown stream extra: " + key);
                 break;

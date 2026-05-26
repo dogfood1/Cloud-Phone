@@ -31,6 +31,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
   private SurfaceEncoder surfaceEncoder;
   private SurfaceCapture surfaceCapture;
   private WsStreamer streamer;
+  private WsPcmAudioProcessor pcmAudioProcessor;
   private CleanUp cleanUp;
   private boolean started;
 
@@ -126,6 +127,8 @@ public final class WsCastSession implements WsSocketBroadcaster {
   private void startPipeline() throws IOException, ConfigurationException {
     stopPipeline();
     Options streamOptions = baseOptions.copyForWebStream(videoSettings);
+    boolean useVideo = streamOptions.getVideo();
+    boolean useAudio = streamOptions.getAudio();
 
     if (streamOptions.getCleanup()) {
       cleanUp = CleanUp.start(streamOptions);
@@ -133,18 +136,27 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
     controlChannel = new WsControlChannel(this);
     controller = new Controller(controlChannel, cleanUp, streamOptions);
-    surfaceCapture = new ScreenCapture(controller, streamOptions);
-    streamer = new WsStreamer(clients, streamOptions);
-    surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
-    controller.setSurfaceCapture(surfaceCapture);
 
-  AsyncProcessor.TerminationListener listener = fatalError -> {
+    AsyncProcessor.TerminationListener listener = fatalError -> {
       if (fatalError) {
         Ln.e("Web cast processor stopped on error");
       }
     };
 
-    surfaceEncoder.start(listener);
+    if (useVideo) {
+      surfaceCapture = new ScreenCapture(controller, streamOptions);
+      streamer = new WsStreamer(clients, streamOptions);
+      surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
+      controller.setSurfaceCapture(surfaceCapture);
+      surfaceEncoder.start(listener);
+    } else if (useAudio) {
+      pcmAudioProcessor = new WsPcmAudioProcessor(clients, streamOptions);
+      pcmAudioProcessor.start(listener);
+      Ln.i("Web cast audio-only mode (PCM over WebSocket)");
+    } else {
+      Ln.w("Web cast started with neither video nor audio");
+    }
+
     controller.start(listener);
     started = true;
     server.broadcastInitialInfo();
@@ -159,6 +171,10 @@ public final class WsCastSession implements WsSocketBroadcaster {
     if (surfaceEncoder != null) {
       surfaceEncoder.stop();
       surfaceEncoder = null;
+    }
+    if (pcmAudioProcessor != null) {
+      pcmAudioProcessor.stop();
+      pcmAudioProcessor = null;
     }
     if (controller != null) {
       controller.stop();

@@ -12,6 +12,7 @@ final class WsControlFilter {
 
   private static final byte[] MAGIC_INITIAL = "scrcpy_initial".getBytes(StandardCharsets.UTF_8);
   private static final byte[] MAGIC_MESSAGE = "scrcpy_message".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] MAGIC_AUDIO = WsPcmSender.MAGIC_AUDIO;
 
   private WsControlFilter() {
   }
@@ -20,7 +21,7 @@ final class WsControlFilter {
     if (payload == null || !payload.hasRemaining()) {
       return false;
     }
-    if (startsWith(payload, MAGIC_INITIAL) || startsWith(payload, MAGIC_MESSAGE)) {
+    if (startsWith(payload, MAGIC_INITIAL) || startsWith(payload, MAGIC_MESSAGE) || startsWith(payload, MAGIC_AUDIO)) {
       return false;
     }
     if (looksLikeAnnexB(payload)) {

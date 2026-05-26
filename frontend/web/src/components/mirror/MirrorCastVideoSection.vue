@@ -42,15 +42,17 @@ const resolutionHint = computed(() => {
   <fieldset class="mirror-settings__group">
     <legend>视频</legend>
 
-    <label class="mirror-settings__check mirror-settings__field--disabled">
-      <input v-model="video.disabled" type="checkbox" disabled />
-      <span>禁用视频</span>
-      <span class="mirror-settings__field-hint">网页投屏需保持视频开启</span>
+    <label class="mirror-settings__check">
+      <input v-model="video.disabled" type="checkbox" />
+      <span>禁用视频（仅音频）</span>
+      <span class="mirror-settings__field-hint">
+        开启后画布显示音频波纹；需 Android 11+。音频编码/源设置仍在完善中。
+      </span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>视频编码器</span>
-      <select v-model="video.encoder" :disabled="!encoderOptions.length">
+      <select v-model="video.encoder" :disabled="video.disabled || !encoderOptions.length">
         <option v-for="item in encoderOptions" :key="item.value" :value="item.value">
           {{ item.label }}
         </option>
@@ -69,19 +71,33 @@ const resolutionHint = computed(() => {
       </span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>比特率 (Mbps)</span>
-      <input v-model.number="video.bitRateMbps" type="number" min="1" max="100" step="0.5" />
+      <input
+        v-model.number="video.bitRateMbps"
+        type="number"
+        min="1"
+        max="100"
+        step="0.5"
+        :disabled="video.disabled"
+      />
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>刷新率 (fps)</span>
-      <input v-model.number="video.maxFps" type="number" min="1" max="120" step="1" />
+      <input
+        v-model.number="video.maxFps"
+        type="number"
+        min="1"
+        max="120"
+        step="1"
+        :disabled="video.disabled"
+      />
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>分辨率</span>
-      <select v-model="video.resolution">
+      <select v-model="video.resolution" :disabled="video.disabled">
         <option v-for="item in MIRROR_RESOLUTIONS" :key="item.value" :value="item.value">
           {{ item.label }}
         </option>
@@ -89,20 +105,21 @@ const resolutionHint = computed(() => {
       <span class="mirror-settings__field-hint">{{ resolutionHint }}</span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>裁剪区域</span>
       <input
         v-model="video.crop"
         type="text"
         placeholder="宽:高:x:y，例如 1080:1920:0:0"
         spellcheck="false"
+        :disabled="video.disabled"
       />
       <span class="mirror-settings__field-hint">对应 scrcpy --crop，通过 WebSocket 下发到设备</span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>显示方向（采集）</span>
-      <select v-model="video.captureOrientation">
+      <select v-model="video.captureOrientation" :disabled="video.disabled">
         <option
           v-for="item in MIRROR_CAPTURE_ORIENTATIONS"
           :key="item.value"
@@ -117,15 +134,29 @@ const resolutionHint = computed(() => {
       </span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>关键帧间隔 (秒)</span>
-      <input v-model.number="video.iFrameInterval" type="number" min="1" max="60" step="1" />
+      <input
+        v-model.number="video.iFrameInterval"
+        type="number"
+        min="1"
+        max="60"
+        step="1"
+        :disabled="video.disabled"
+      />
       <span class="mirror-settings__field-hint">连接后通过 WebSocket 下发，部分机型可能忽略</span>
     </label>
 
-    <label class="mirror-settings__field">
+    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': video.disabled }">
       <span>预览旋转 (°)</span>
-      <input v-model.number="video.rotationDeg" type="number" min="0" max="360" step="90" />
+      <input
+        v-model.number="video.rotationDeg"
+        type="number"
+        min="0"
+        max="360"
+        step="90"
+        :disabled="video.disabled"
+      />
       <span class="mirror-settings__field-hint">
         只旋转浏览器里的预览画布；要旋转投屏视频本身请改「显示方向（采集）」。
       </span>

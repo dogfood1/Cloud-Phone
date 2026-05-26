@@ -11,6 +11,7 @@ import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
+import { WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
 
 const props = defineProps({
   device: {
@@ -52,7 +53,14 @@ async function startCast(options) {
     return;
   }
 
-  if (!WsScrcpyAnnexBPlayer.isSupported()) {
+  const audioOnly = options?.mirror?.video?.disabled === true;
+
+  if (audioOnly) {
+    if (!WsScrcpyAudioCanvas.isSupported()) {
+      castHint.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
+      return;
+    }
+  } else if (!WsScrcpyAnnexBPlayer.isSupported()) {
     castHint.value = "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge。";
     return;
   }

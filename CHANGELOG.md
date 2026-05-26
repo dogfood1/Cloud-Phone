@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.7 - 2026-05-26
+
+- Enable mirror「禁用视频」for audio-only web cast: PCM over WebSocket (`scrcpy_audio`), canvas waveform + playback via Web Audio
+- Server: `WsPcmAudioProcessor`, `WsPcmSender`; `WsCastSession` audio-only pipeline; stream extras `video=false` / `audio=true`
+- Fix `WsPcmSender` ByteBuffer read for Android (`get(dst, offset, length)`)
+
 ## 0.6.6 - 2026-05-26
 
 - Fix mirror display orientation ignored on web cast: tolerate stream extras in VideoSettings codecOptions (capture_orientation, show_touches, etc.) instead of failing MediaCodec parse

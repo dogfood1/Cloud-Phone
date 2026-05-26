@@ -3,12 +3,13 @@ import { maxSizeFromMirrorVideo } from "./mirror-video-config.js";
 
 export function buildCastPayloadFromMirrorSettings(settings = createDefaultMirrorSettings()) {
   const maxSize = maxSizeFromMirrorVideo(settings.video);
+  const videoDisabled = settings.video?.disabled === true;
 
   return {
     maxSize,
     mirror: settings,
-    video: !settings.video.disabled,
+    video: !videoDisabled,
     control: true,
-    audio: !settings.audio.disabled,
+    audio: videoDisabled ? true : !settings.audio.disabled,
   };
 }

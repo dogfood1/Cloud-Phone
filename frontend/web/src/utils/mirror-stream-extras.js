@@ -11,6 +11,11 @@ export function buildStreamExtrasFromMirror(mirror = {}) {
   const screen = mirror.screen ?? {};
   const parts = [];
 
+  if (video.disabled) {
+    parts.push("video=false");
+    parts.push("audio=true");
+  }
+
   const orientation = video.displayOrientation ?? video.captureOrientation;
   const capture = captureOrientationServerValue(orientation);
   if (capture) {

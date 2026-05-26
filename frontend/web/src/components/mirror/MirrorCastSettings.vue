@@ -73,6 +73,15 @@ watch(
 );
 
 watch(
+  () => settings.video.disabled,
+  (disabled) => {
+    if (disabled) {
+      settings.audio.disabled = false;
+    }
+  },
+);
+
+watch(
   settings,
   () => {
     emit("settings-change", settings);
@@ -106,6 +115,7 @@ defineExpose({ getSettings });
       :audio="settings.audio"
       :audio-encoders="audioEncoders"
       :audio-sources="audioSources"
+      :video-disabled="settings.video.disabled"
     />
     <MirrorCastDeviceSection :device-options="settings.device" />
     <MirrorCastScreenSection

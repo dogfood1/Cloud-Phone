@@ -1,8 +1,13 @@
 import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
+import { isScrcpyAudioPacket, WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
 import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
+
+function isAudioOnlyCast(castOptions) {
+  return castOptions?.mirror?.video?.disabled === true;
+}
 
 function buildCastWebSocketUrl(serial) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -73,7 +78,15 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     errorMessage.value = "";
     status.value = "starting";
 
-    if (!WsScrcpyAnnexBPlayer.isSupported()) {
+    const audioOnly = isAudioOnlyCast(unref(castOptionsRef));
+
+    if (audioOnly) {
+      if (!WsScrcpyAudioCanvas.isSupported()) {
+        status.value = "error";
+        errorMessage.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
+        throw new Error(errorMessage.value);
+      }
+    } else if (!WsScrcpyAnnexBPlayer.isSupported()) {
       status.value = "error";
       errorMessage.value = "当前浏览器不支持 WebCodecs H.264 解码（请使用 Chrome / Edge）。";
       throw new Error(errorMessage.value);
@@ -137,7 +150,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       return;
     }
 
-    nextPlayer.pushFrame(bytes);
+    if (isScrcpyAudioPacket(bytes) && typeof nextPlayer.pushPcm === "function") {
+      nextPlayer.pushPcm(bytes);
+      return;
+    }
+
+    if (typeof nextPlayer.pushFrame === "function") {
+      nextPlayer.pushFrame(bytes);
+    }
 
     if (nextPlayer.lastError && status.value === "streaming") {
       status.value = "error";
@@ -156,7 +176,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
         return;
       }
 
-      const nextPlayer = new WsScrcpyAnnexBPlayer(canvas);
+      const castOptions = unref(castOptionsRef) ?? {};
+      const nextPlayer = isAudioOnlyCast(castOptions)
+        ? new WsScrcpyAudioCanvas(canvas)
+        : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
 
       socket = new WebSocket(buildCastWebSocketUrl(serial));
@@ -255,7 +278,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
 
     const mapPoint = (event) => {
       const rect = canvas.getBoundingClientRect();
-      const size = screenSize.value;
+      const size =
+        screenSize.value.width > 0
+          ? screenSize.value
+          : { width: 1080, height: 1920 };
       const scaleX = size.width / rect.width;
       const scaleY = size.height / rect.height;
       return {
@@ -265,9 +291,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     };
 
     const onPointerDown = (event) => {
-      if (!screenSize.value.width) {
-        return;
-      }
       canvas.setPointerCapture(event.pointerId);
       sendControl(
         serializeInjectTouch({

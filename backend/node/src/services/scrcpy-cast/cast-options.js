@@ -24,7 +24,7 @@ export function resolveCastServerOptions(input = {}) {
     videoBitRate: stream.videoBitRate,
     maxFps: stream.maxFps,
     video: stream.videoDisabled !== true && input.video !== false,
-    audio: audio.disabled !== true && input.audio === true,
+    audio: stream.videoDisabled === true || audio.disabled !== true,
     control: input.control !== false,
     audioSource: String(audio.source ?? "output"),
     audioBitRate: Number(audio.bitRateKbps ?? 128) * 1000,
@@ -42,7 +42,7 @@ export function resolveCastServerOptions(input = {}) {
 export function listCastFeatures(options) {
   const features = ["video", "control"];
 
-  if (!SCRCPY_WEB_CAST_MODE && options.audio) {
+  if (options.audio) {
     features.push("audio");
   }
 
