@@ -72,6 +72,18 @@ public class VideoSettings {
     return encoderName;
   }
 
+  public int getLockedVideoOrientation() {
+    return lockedVideoOrientation;
+  }
+
+  public byte getIFrameInterval() {
+    return iFrameInterval;
+  }
+
+  public String getCodecOptionsString() {
+    return codecOptionsString;
+  }
+
   public Rect getCrop() {
     return crop;
   }

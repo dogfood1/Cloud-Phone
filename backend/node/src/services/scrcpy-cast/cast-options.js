@@ -1,9 +1,9 @@
-const RESOLUTION_MAX_SIZE = {
-  "720p": 720,
-  "1080p": 1080,
-  "1440p": 1440,
-  "4k": 2160,
-};
+import { SCRCPY_WEB_CAST_MODE } from "../../config/scrcpy-paths.js";
+import {
+  DEFAULT_VIDEO_BITRATE_MBPS,
+  maxSizeFromMirrorVideo,
+  resolveVideoStreamSummary,
+} from "./video-stream-config.js";
 
 /**
  * Map UI / API options to scrcpy-server shell parameters (official protocol).
@@ -15,20 +15,15 @@ export function resolveCastServerOptions(input = {}) {
   const audio = mirror.audio ?? {};
   const device = mirror.device ?? {};
   const screen = mirror.screen ?? {};
-
-  const maxSize =
-    Number(input.maxSize) ||
-    RESOLUTION_MAX_SIZE[video.resolution] ||
-    RESOLUTION_MAX_SIZE["1080p"];
-
-  const videoBitRateMbps = Number(video.bitRateMbps ?? input.videoBitRateMbps ?? 8);
+  const stream = resolveVideoStreamSummary(input);
 
   return {
-    maxSize,
-    videoCodec: String(video.encoder || input.videoCodec || "h264").toLowerCase(),
-    videoBitRate: Math.round(videoBitRateMbps * 1_000_000),
-    maxFps: Number(video.maxFps ?? input.maxFps ?? 60),
-    video: video.disabled !== true && input.video !== false,
+    maxSize: stream.maxSize,
+    videoCodec: String(input.videoCodec ?? "h264").toLowerCase(),
+    videoEncoder: stream.videoEncoder,
+    videoBitRate: stream.videoBitRate,
+    maxFps: stream.maxFps,
+    video: stream.videoDisabled !== true && input.video !== false,
     audio: audio.disabled !== true && input.audio === true,
     control: input.control !== false,
     audioSource: String(audio.source ?? "output"),
@@ -39,13 +34,15 @@ export function resolveCastServerOptions(input = {}) {
     powerOn: device.powerOn !== false,
     displayId: screen.displayId ? Number(screen.displayId) : undefined,
     captureOrientation: video.captureOrientation,
+    videoStreamCodecOptions: stream.videoStreamCodecOptions,
+    videoBitRateMbps: Number(video.bitRateMbps ?? DEFAULT_VIDEO_BITRATE_MBPS),
   };
 }
 
 export function listCastFeatures(options) {
   const features = ["video", "control"];
 
-  if (options.audio) {
+  if (!SCRCPY_WEB_CAST_MODE && options.audio) {
     features.push("audio");
   }
 
@@ -56,6 +53,7 @@ export function listCastFeatures(options) {
     "clipboard",
     "display_power",
     "mirror_settings",
+    "video_stream_parameters",
   );
 
   return features;

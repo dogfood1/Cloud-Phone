@@ -13,7 +13,13 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  casting: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const emit = defineEmits(["settings-change"]);
 
 const settings = reactive(createDefaultMirrorSettings());
 const appQuery = ref("");
@@ -38,6 +44,14 @@ watch(
   { immediate: true },
 );
 
+watch(
+  settings,
+  () => {
+    emit("settings-change", settings);
+  },
+  { deep: true },
+);
+
 function getSettings() {
   return settings;
 }
@@ -52,7 +66,11 @@ defineExpose({ getSettings });
       {{ error }}
     </p>
 
-    <MirrorCastVideoSection :video="settings.video" :video-encoders="videoEncoders" />
+    <MirrorCastVideoSection
+      :video="settings.video"
+      :video-encoders="videoEncoders"
+      :casting="casting"
+    />
     <MirrorCastAudioSection
       :audio="settings.audio"
       :audio-encoders="audioEncoders"

@@ -6,7 +6,9 @@ import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
+import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
+import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 
@@ -32,7 +34,7 @@ const CAST_NAVIGATION_IDS = new Set([
 const isCasting = ref(false);
 const castBusy = ref(false);
 const castHint = ref("");
-const castOptions = ref({ maxSize: 1024, control: true, video: true, audio: false });
+const castOptions = ref(buildCastPayloadFromMirrorSettings(createDefaultMirrorSettings()));
 const castViewportRef = ref(null);
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
@@ -83,6 +85,10 @@ async function startCast(options) {
   } finally {
     castBusy.value = false;
   }
+}
+
+function updateCastOptions(options) {
+  castOptions.value = options;
 }
 
 async function stopCast() {
@@ -182,6 +188,7 @@ onBeforeUnmount(() => {
         :cast-hint="castHint"
         @start-cast="startCast"
         @stop-cast="stopCast"
+        @cast-options-change="updateCastOptions"
       />
       <DeviceCastViewport
         ref="castViewportRef"

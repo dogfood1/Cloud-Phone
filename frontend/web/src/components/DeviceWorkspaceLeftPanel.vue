@@ -25,7 +25,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["start-cast", "stop-cast"]);
+const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change"]);
 
 const mirrorSettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
@@ -42,6 +42,14 @@ function handleStartClick() {
 
 function handleStopClick() {
   emit("stop-cast");
+}
+
+function handleSettingsChange(settings) {
+  if (!props.casting) {
+    return;
+  }
+
+  emit("cast-options-change", buildCastPayloadFromMirrorSettings(settings));
 }
 </script>
 
@@ -61,6 +69,8 @@ function handleStopClick() {
         v-if="castMode === 'mirror'"
         ref="mirrorSettingsRef"
         :serial="device.serial"
+        :casting="casting"
+        @settings-change="handleSettingsChange"
       />
       <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
     </div>

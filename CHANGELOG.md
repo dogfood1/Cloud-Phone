@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3 - 2026-05-26
+
+- Unify mirror video settings across UI, cast API, and ws-scrcpy type 101 (resolution long-edge map, bitrate, fps, encoder, display, capture orientation)
+- Apply capture orientation on device via `copyForWebStream`; hot-reload video parameters while casting
+- Add preview-only canvas rotation; clarify web cast video UI hints
+
 ## 0.6.2 - 2026-05-26
 
 - Fix web cast black screen: align Annex-B WebCodecs player with ws-scrcpy (decode P-frames after first IDR, not only the first keyframe)

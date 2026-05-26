@@ -1,3 +1,5 @@
+import { videoStreamSettingsFromCastOptions } from "./mirror-video-config.js";
+
 export const TYPE_CHANGE_STREAM_PARAMETERS = 101;
 
 const BASE_LENGTH = 35;
@@ -77,20 +79,14 @@ export function serializeChangeStreamParameters(settings) {
 }
 
 export function videoSettingsFromCastOptions(castOptions = {}, sessionMeta = null) {
-  const mirror = castOptions.mirror?.video ?? castOptions.mirror ?? {};
-  const maxSize =
-    Number(castOptions.maxSize) ||
-    Number(sessionMeta?.castOptions?.maxSize) ||
-    1080;
-  const bitRateMbps = Number(mirror.bitRateMbps ?? 8);
-  const maxFps = Number(mirror.maxFps ?? 60);
+  const sessionCast = sessionMeta?.castOptions ?? {};
 
-  return {
-    bitRate: Math.round(bitRateMbps * 1_000_000),
-    maxFps,
-    width: maxSize & ~15,
-    height: maxSize & ~15,
-    displayId: Number(castOptions.mirror?.screen?.displayId ?? 0) || 0,
-    encoderName: String(mirror.encoder ?? ""),
-  };
+  return videoStreamSettingsFromCastOptions({
+    ...sessionCast,
+    ...castOptions,
+    maxSize: castOptions.maxSize || sessionCast.maxSize,
+    mirror: castOptions.mirror ?? sessionCast.mirror,
+  });
 }
+
+export { videoStreamSettingsFromCastOptions };

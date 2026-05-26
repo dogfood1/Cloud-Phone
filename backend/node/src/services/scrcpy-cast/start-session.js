@@ -8,6 +8,7 @@ import { runWithAdbLock } from "../adb-lock.js";
 import { adbForward, adbForwardTcp, adbPush, clearDeviceTunnels, listAdbForward } from "../adb-command.js";
 import { logCastError, logCastInfo, logCastWarn } from "./cast-logger.js";
 import { listCastFeatures, resolveCastServerOptions } from "./cast-options.js";
+import { resolveVideoStreamSummary } from "./video-stream-config.js";
 import { connectControlSocket } from "./control-bridge.js";
 import {
   buildServerShellCommand,
@@ -125,6 +126,7 @@ export async function startScrcpyCast(serial, options = {}) {
 
   const encoded = encodeURIComponent(serial);
   const features = listCastFeatures(serverOptions);
+  const video = resolveVideoStreamSummary(options);
 
   return {
     serial,
@@ -135,6 +137,8 @@ export async function startScrcpyCast(serial, options = {}) {
     socketName,
     tunnel: CAST_TUNNEL_FORWARD,
     features,
+    castOptions: session.castOptions,
+    video,
     wsPath: `/api/devices/${encoded}/cast/ws`,
     controlWsPath: serverOptions.control ? `/api/devices/${encoded}/cast/control/ws` : null,
     audio: serverOptions.audio,

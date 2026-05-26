@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, ref, shallowRef, unref } from "vue";
+import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
@@ -55,6 +55,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   let socket = null;
   let stopRequest = null;
   let unbindCanvas = null;
+  let videoSettingsTimer = null;
   /** True after POST /cast/start succeeded (backend has a session). */
   let backendSessionActive = false;
 
@@ -85,6 +86,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     await openWebSocket(serial);
     unbindCanvas?.();
     unbindCanvas = bindCanvas(canvasRef.value);
+    applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
     status.value = "streaming";
   }
 
@@ -226,6 +228,26 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     socket.send(buffer);
   }
 
+  function pushVideoStreamSettings() {
+    const castOptions = unref(castOptionsRef) ?? {};
+    sendControl(
+      serializeChangeStreamParameters(
+        videoSettingsFromCastOptions(castOptions, sessionMeta.value),
+      ),
+    );
+  }
+
+  function applyPreviewRotation(degrees) {
+    const canvas = canvasRef.value;
+    if (!canvas) {
+      return;
+    }
+
+    const deg = Number(degrees) || 0;
+    canvas.style.transform = deg ? `rotate(${deg}deg)` : "";
+    canvas.style.transformOrigin = "center center";
+  }
+
   function bindCanvas(canvas) {
     if (!canvas) {
       return () => {};
@@ -343,7 +365,25 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     }
   }
 
+  watch(
+    () => unref(castOptionsRef),
+    () => {
+      applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
+
+      if (status.value !== "streaming") {
+        return;
+      }
+
+      clearTimeout(videoSettingsTimer);
+      videoSettingsTimer = setTimeout(() => {
+        pushVideoStreamSettings();
+      }, 400);
+    },
+    { deep: true },
+  );
+
   onBeforeUnmount(() => {
+    clearTimeout(videoSettingsTimer);
     void stopCast();
   });
 

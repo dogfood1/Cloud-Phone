@@ -1,14 +1,8 @@
 import { createDefaultMirrorSettings } from "./mirror-cast-defaults.js";
-
-const RESOLUTION_MAX_SIZE = {
-  "720p": 720,
-  "1080p": 1080,
-  "1440p": 1440,
-  "4k": 2160,
-};
+import { maxSizeFromMirrorVideo } from "./mirror-video-config.js";
 
 export function buildCastPayloadFromMirrorSettings(settings = createDefaultMirrorSettings()) {
-  const maxSize = RESOLUTION_MAX_SIZE[settings.video.resolution] ?? 1024;
+  const maxSize = maxSizeFromMirrorVideo(settings.video);
 
   return {
     maxSize,

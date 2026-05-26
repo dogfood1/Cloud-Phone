@@ -376,7 +376,29 @@ public class Options {
         copy.powerOn = powerOn;
         copy.cleanup = cleanup;
         copy.downsizeOnError = downsizeOnError;
+        applyVideoStreamExtras(copy, settings);
         return copy;
+    }
+
+    private static void applyVideoStreamExtras(Options copy, com.genymobile.scrcpy.ws.VideoSettings settings) {
+        String extras = settings.getCodecOptionsString();
+        if (extras == null || extras.isEmpty()) {
+            return;
+        }
+
+        for (String part : extras.split(",")) {
+            String token = part.trim();
+            if (!token.startsWith("capture_orientation=")) {
+                continue;
+            }
+            String value = token.substring("capture_orientation=".length());
+            if (value.isEmpty()) {
+                continue;
+            }
+            Pair<Orientation.Lock, Orientation> pair = parseCaptureOrientation(value);
+            copy.captureOrientationLock = pair.first;
+            copy.captureOrientation = pair.second;
+        }
     }
 
     @SuppressWarnings("MethodLength")

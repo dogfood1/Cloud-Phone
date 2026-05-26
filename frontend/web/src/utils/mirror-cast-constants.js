@@ -10,10 +10,10 @@ export const MIRROR_CAPTURE_ORIENTATIONS = [
 ];
 
 export const MIRROR_RESOLUTIONS = [
-  { value: "original", label: "原画", maxSize: null },
-  { value: "1080p", label: "1080p", maxSize: 1920 },
-  { value: "720p", label: "720p", maxSize: 1280 },
-  { value: "540p", label: "540p", maxSize: 960 },
+  { value: "original", label: "原画（设备原生）", maxSize: 0 },
+  { value: "1080p", label: "1080p（长边 1920）", maxSize: 1920 },
+  { value: "720p", label: "720p（长边 1280）", maxSize: 1280 },
+  { value: "540p", label: "540p（长边 960）", maxSize: 960 },
 ];
 
 export const FALLBACK_AUDIO_SOURCES = [

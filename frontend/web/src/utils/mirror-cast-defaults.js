@@ -7,6 +7,7 @@ export function createDefaultMirrorSettings() {
       rotationDeg: 0,
       captureOrientation: "0",
       maxFps: 60,
+      iFrameInterval: 10,
       resolution: "1080p",
     },
     audio: {
