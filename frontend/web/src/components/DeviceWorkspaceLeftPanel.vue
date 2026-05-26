@@ -6,7 +6,7 @@ import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
 
-defineProps({
+const props = defineProps({
   device: {
     type: Object,
     required: true,
@@ -33,7 +33,7 @@ const modes = DEVICE_CAST_MODES;
 
 function buildCastOptions() {
   const settings = mirrorSettingsRef.value?.getSettings?.() ?? createDefaultMirrorSettings();
-  return buildCastPayloadFromMirrorSettings(settings);
+  return buildCastPayloadFromMirrorSettings(settings, props.device.sdkVersion);
 }
 
 function handleStartClick() {
@@ -44,12 +44,8 @@ function handleStopClick() {
   emit("stop-cast");
 }
 
-function handleSettingsChange(settings) {
-  if (!props.casting) {
-    return;
-  }
-
-  emit("cast-options-change", buildCastPayloadFromMirrorSettings(settings));
+function handleSettingsChange() {
+  // Settings are locked while casting; options apply on next start.
 }
 </script>
 
@@ -57,7 +53,12 @@ function handleSettingsChange(settings) {
   <aside class="workspace-left" aria-label="投屏设置">
     <div class="workspace-left__section workspace-left__top">
       <label class="workspace-left__label" for="cast-mode-select">投屏模式</label>
-      <select id="cast-mode-select" v-model="castMode" class="workspace-left__select">
+      <select
+        id="cast-mode-select"
+        v-model="castMode"
+        class="workspace-left__select"
+        :disabled="casting || castBusy"
+      >
         <option v-for="mode in modes" :key="mode.id" :value="mode.id">
           {{ mode.label }}
         </option>
@@ -69,6 +70,7 @@ function handleSettingsChange(settings) {
         v-if="castMode === 'mirror'"
         ref="mirrorSettingsRef"
         :serial="device.serial"
+        :device-sdk="device.sdkVersion"
         :casting="casting"
         @settings-change="handleSettingsChange"
       />

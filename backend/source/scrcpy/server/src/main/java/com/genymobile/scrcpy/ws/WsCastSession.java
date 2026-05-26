@@ -7,6 +7,8 @@ import com.genymobile.scrcpy.control.ControlMessage;
 import com.genymobile.scrcpy.control.Controller;
 import com.genymobile.scrcpy.model.ConfigurationException;
 import com.genymobile.scrcpy.util.Ln;
+import com.genymobile.scrcpy.util.Settings;
+import com.genymobile.scrcpy.util.SettingsException;
 import com.genymobile.scrcpy.video.ScreenCapture;
 import com.genymobile.scrcpy.video.SurfaceCapture;
 import com.genymobile.scrcpy.video.SurfaceEncoder;
@@ -18,8 +20,13 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class WsCastSession implements WsSocketBroadcaster {
+
+  private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
 
   private final Options baseOptions;
   private final WsServer server;
@@ -75,8 +82,11 @@ public final class WsCastSession implements WsSocketBroadcaster {
     }
     if (incoming != null && !incoming.equals(videoSettings)) {
       videoSettings = incoming;
-      restartPipeline();
-      return;
+      if (started) {
+        softReconfigureStream();
+        server.broadcastInitialInfo();
+        return;
+      }
     }
     if (!started) {
       startPipeline();
@@ -137,33 +147,121 @@ public final class WsCastSession implements WsSocketBroadcaster {
     controlChannel = new WsControlChannel(this);
     controller = new Controller(controlChannel, cleanUp, streamOptions);
 
-    AsyncProcessor.TerminationListener listener = fatalError -> {
-      if (fatalError) {
-        Ln.e("Web cast processor stopped on error");
-      }
-    };
+    applyShowTouchesSystemSetting(streamOptions.getShowTouches());
 
     if (useVideo) {
       surfaceCapture = new ScreenCapture(controller, streamOptions);
       streamer = new WsStreamer(clients, streamOptions);
       surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
       controller.setSurfaceCapture(surfaceCapture);
-      surfaceEncoder.start(listener);
-    } else if (useAudio) {
-      pcmAudioProcessor = new WsPcmAudioProcessor(clients, streamOptions);
-      pcmAudioProcessor.start(listener);
-      Ln.i("Web cast audio-only mode (PCM over WebSocket)");
-    } else {
+      surfaceEncoder.start(videoTerminationListener());
+    }
+
+    controller.start(controlTerminationListener());
+
+    if (useAudio) {
+      scheduleAudioProcessorStart(streamOptions, useVideo);
+    } else if (!useVideo) {
       Ln.w("Web cast started with neither video nor audio");
     }
 
-    controller.start(listener);
+    scheduleTurnScreenOffIfRequested(streamOptions);
     started = true;
     server.broadcastInitialInfo();
   }
 
-  private void restartPipeline() throws IOException, ConfigurationException {
-    startPipeline();
+  private void softReconfigureStream() throws IOException, ConfigurationException {
+    Options streamOptions = baseOptions.copyForWebStream(videoSettings);
+    applyShowTouchesSystemSetting(streamOptions.getShowTouches());
+    syncAudioProcessor(streamOptions, streamOptions.getVideo());
+    if (streamOptions.getVideo() && controller != null) {
+      controller.requestResetVideo();
+    }
+    scheduleTurnScreenOffIfRequested(streamOptions);
+  }
+
+  private AsyncProcessor.TerminationListener videoTerminationListener() {
+    return fatalError -> {
+      if (fatalError) {
+        Ln.e("Web cast video encoder stopped on error");
+      }
+    };
+  }
+
+  private AsyncProcessor.TerminationListener controlTerminationListener() {
+    return fatalError -> {
+      if (fatalError) {
+        Ln.d("Web cast control channel closed");
+      }
+    };
+  }
+
+  private AsyncProcessor.TerminationListener audioTerminationListener() {
+    return fatalError -> {
+      if (fatalError) {
+        Ln.w("Web cast audio processor stopped");
+      }
+    };
+  }
+
+  private void scheduleAudioProcessorStart(Options streamOptions, boolean withVideo) {
+    Runnable start = () -> {
+      if (!started) {
+        return;
+      }
+      stopAudioProcessor();
+      pcmAudioProcessor = new WsPcmAudioProcessor(clients, streamOptions);
+      pcmAudioProcessor.start(audioTerminationListener());
+      if (withVideo) {
+        Ln.i("Web cast video + audio (PCM over WebSocket, audio_dup=" + streamOptions.getAudioDup() + ")");
+      } else {
+        Ln.i("Web cast audio-only mode (PCM over WebSocket)");
+      }
+    };
+
+    if (withVideo) {
+      SCHEDULER.schedule(start, 350, TimeUnit.MILLISECONDS);
+    } else {
+      start.run();
+    }
+  }
+
+  private void syncAudioProcessor(Options streamOptions, boolean withVideo) {
+    if (streamOptions.getAudio()) {
+      scheduleAudioProcessorStart(streamOptions, withVideo);
+    } else {
+      stopAudioProcessor();
+    }
+  }
+
+  private void stopAudioProcessor() {
+    if (pcmAudioProcessor != null) {
+      pcmAudioProcessor.stop();
+      pcmAudioProcessor = null;
+    }
+  }
+
+  private static void applyShowTouchesSystemSetting(boolean enabled) {
+    try {
+      Settings.putValue(Settings.TABLE_SYSTEM, "show_touches", enabled ? "1" : "0");
+    } catch (SettingsException e) {
+      Ln.w("Could not set show_touches=" + enabled + ": " + e.getMessage());
+    }
+  }
+
+  private void scheduleTurnScreenOffIfRequested(Options streamOptions) {
+    if (!streamOptions.getTurnScreenOff() || controlChannel == null) {
+      return;
+    }
+
+    SCHEDULER.schedule(() -> {
+      try {
+        byte[] msg = new byte[] { (byte) ControlMessage.TYPE_SET_DISPLAY_POWER, 0 };
+        controlChannel.feedControl(ByteBuffer.wrap(msg));
+      } catch (IOException e) {
+        Ln.w("Could not request turn_screen_off: " + e.getMessage());
+      }
+    }, 250, TimeUnit.MILLISECONDS);
   }
 
   private void stopPipeline() {
@@ -172,10 +270,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
       surfaceEncoder.stop();
       surfaceEncoder = null;
     }
-    if (pcmAudioProcessor != null) {
-      pcmAudioProcessor.stop();
-      pcmAudioProcessor = null;
-    }
+    stopAudioProcessor();
     if (controller != null) {
       controller.stop();
       controller = null;

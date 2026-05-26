@@ -21,10 +21,10 @@ defineProps({
       <span>保持唤醒</span>
     </label>
 
-    <label class="mirror-settings__check mirror-settings__field--disabled">
-      <input v-model="deviceOptions.turnScreenOff" type="checkbox" disabled />
-      <span>关闭设备屏幕</span>
-      <span class="mirror-settings__field-hint">桌面 scrcpy --turn-screen-off；网页投屏请用工具栏「关屏」</span>
+    <label class="mirror-settings__check">
+      <input v-model="deviceOptions.turnScreenOff" type="checkbox" />
+      <span>关闭设备屏幕（--turn-screen-off）</span>
+      <span class="mirror-settings__field-hint">开始投屏后自动熄屏；投屏中可用工具栏「关屏/亮屏」切换</span>
     </label>
 
     <label class="mirror-settings__check">

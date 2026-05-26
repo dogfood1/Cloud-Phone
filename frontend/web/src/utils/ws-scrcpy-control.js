@@ -137,6 +137,10 @@ export function serializeNavigationAction(actionId) {
       return serializeSetScreenPowerMode(false);
     case "screen-on":
       return serializeSetScreenPowerMode(true);
+    case "wake-screen":
+      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.POWER });
+    case "wake-screen-up":
+      return serializeInjectKeycode({ action: KEY_ACTION.UP, keycode: ANDROID_KEYCODE.POWER });
     default:
       return null;
   }

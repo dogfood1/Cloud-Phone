@@ -21,10 +21,6 @@ const props = defineProps({
     type: String,
     default: "",
   },
-  casting: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const encoderOptions = computed(() => buildEncoderSelectOptions(props.videoEncoders));
@@ -162,8 +158,5 @@ const resolutionHint = computed(() => {
       </span>
     </label>
 
-    <p v-if="casting" class="mirror-settings__field-hint">
-      投屏中修改视频项后，将自动重新下发编码参数（约 1 秒内）。
-    </p>
   </fieldset>
 </template>

@@ -23,7 +23,8 @@ const castOptionsRef = defineModel("castOptions", {
 });
 
 const serialRef = toRef(() => props.device.serial);
-const { status, errorMessage, beginCast, stopCast, sendNavigation } = useDeviceScrcpyCast(
+const { status, errorMessage, beginCast, stopCast, sendNavigation, displayScreenOn } =
+  useDeviceScrcpyCast(
   serialRef,
   canvasRef,
   castOptionsRef,
@@ -39,7 +40,7 @@ watch(hasError, (failed) => {
   }
 });
 
-defineExpose({ beginCast, stopCast, sendNavigation, status, errorMessage });
+defineExpose({ beginCast, stopCast, sendNavigation, displayScreenOn, status, errorMessage });
 </script>
 
 <template>

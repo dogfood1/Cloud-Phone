@@ -1,3 +1,4 @@
+import { resolveAudioStreamParams } from "./mirror-audio-platform.js";
 import { captureOrientationServerValue } from "./mirror-video-config.js";
 
 /**
@@ -24,15 +25,13 @@ function appendAudioStreamExtras(parts, mirror) {
     return;
   }
 
-  const source = String(audio.source ?? "output").trim();
+  const { source, audioDup } = resolveAudioStreamParams(audio, mirror.deviceSdk);
 
   if (source) {
     parts.push(`audio_source=${source}`);
   }
 
-  if (audio.audioDup) {
-    parts.push("audio_dup=true");
-  }
+  parts.push(`audio_dup=${audioDup}`);
 
   const bitRateKbps = Number(audio.bitRateKbps ?? 128);
 
@@ -86,8 +85,10 @@ export function buildStreamExtrasFromMirror(mirror = {}) {
     // displayId sent via VideoSettings.displayId field
   }
 
-  if (device.showTouches) {
-    parts.push("show_touches=true");
+  parts.push(`show_touches=${Boolean(device.showTouches)}`);
+
+  if (device.turnScreenOff) {
+    parts.push("turn_screen_off=true");
   }
 
   if (device.stayAwake) {

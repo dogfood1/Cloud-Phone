@@ -84,7 +84,6 @@ public final class WsPcmAudioProcessor implements AsyncProcessor {
         // logged by capture layer
       } catch (Throwable t) {
         Ln.e("Web cast audio processor error", t);
-        fatal = true;
       } finally {
         listener.onTerminated(fatal);
       }

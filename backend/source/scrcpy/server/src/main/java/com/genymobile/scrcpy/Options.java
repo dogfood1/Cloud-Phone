@@ -2,6 +2,8 @@ package com.genymobile.scrcpy;
 
 import com.genymobile.scrcpy.audio.AudioCodec;
 import com.genymobile.scrcpy.audio.AudioSource;
+
+import android.os.Build;
 import com.genymobile.scrcpy.device.Device;
 import com.genymobile.scrcpy.model.CodecOption;
 import com.genymobile.scrcpy.model.NewDisplay;
@@ -55,6 +57,7 @@ public class Options {
     private boolean cameraHighSpeed;
     private boolean cameraTorch;
     private boolean showTouches;
+    private boolean turnScreenOff;
     private boolean stayAwake;
     private int screenOffTimeout = -1;
     private int displayImePolicy = -1;
@@ -205,6 +208,10 @@ public class Options {
 
     public boolean getShowTouches() {
         return showTouches;
+    }
+
+    public boolean getTurnScreenOff() {
+        return turnScreenOff;
     }
 
     public boolean getStayAwake() {
@@ -377,7 +384,33 @@ public class Options {
         copy.cleanup = cleanup;
         copy.downsizeOnError = downsizeOnError;
         applyVideoStreamExtras(copy, settings);
+        normalizeWebAudioOptions(copy);
         return copy;
+    }
+
+    /**
+     * Align with scrcpy desktop: --audio-dup implies playback source (Android 13+ only).
+     */
+    private static void normalizeWebAudioOptions(Options copy) {
+        if (!copy.getAudio()) {
+            return;
+        }
+
+        if (copy.getAudioDup()) {
+            if (Build.VERSION.SDK_INT < AndroidVersions.API_33_ANDROID_13) {
+                Ln.w("audio_dup requires Android 13+; using output capture (device speakers muted during cast)");
+                copy.audioDup = false;
+                if (copy.getAudioSource() == AudioSource.PLAYBACK) {
+                    copy.audioSource = AudioSource.OUTPUT;
+                }
+            } else {
+                copy.audioSource = AudioSource.PLAYBACK;
+            }
+        } else if (copy.getAudioSource() == AudioSource.PLAYBACK
+                && Build.VERSION.SDK_INT < AndroidVersions.API_33_ANDROID_13) {
+            Ln.w("audio_source=playback requires Android 13+; using output");
+            copy.audioSource = AudioSource.OUTPUT;
+        }
     }
 
     private static void applyVideoStreamExtras(Options copy, com.genymobile.scrcpy.ws.VideoSettings settings) {
@@ -428,6 +461,9 @@ public class Options {
                 break;
             case "show_touches":
                 copy.showTouches = Boolean.parseBoolean(value);
+                break;
+            case "turn_screen_off":
+                copy.turnScreenOff = Boolean.parseBoolean(value);
                 break;
             case "stay_awake":
                 copy.stayAwake = Boolean.parseBoolean(value);

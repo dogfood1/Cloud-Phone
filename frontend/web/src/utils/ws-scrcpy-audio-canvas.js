@@ -1,24 +1,13 @@
 /** Device PCM: s16le stereo 48 kHz after `scrcpy_audio` magic (12 bytes). */
 
-export const MAGIC_AUDIO = new TextEncoder().encode("scrcpy_audio");
+import { MAGIC_AUDIO, isScrcpyAudioPacket } from "./ws-scrcpy-audio-packet.js";
+import { WsScrcpyAudioPlayback } from "./ws-scrcpy-audio-playback.js";
+
+export { MAGIC_AUDIO, isScrcpyAudioPacket };
 
 const SAMPLE_RATE = 48_000;
 const CHANNELS = 2;
 const BAR_COUNT = 64;
-
-export function isScrcpyAudioPacket(bytes) {
-  if (bytes.length < MAGIC_AUDIO.length) {
-    return false;
-  }
-
-  for (let i = 0; i < MAGIC_AUDIO.length; i += 1) {
-    if (bytes[i] !== MAGIC_AUDIO[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 function pcmRms(int16View) {
   if (!int16View.length) {
@@ -44,10 +33,8 @@ export class WsScrcpyAudioCanvas {
     this.frameId = 0;
     this.receiving = false;
     this.statusText = "仅音频模式 · 等待设备音频…";
-    this.audioContext = null;
+    this.playback = new WsScrcpyAudioPlayback();
     this.analyser = null;
-    this.gain = null;
-    this.playhead = 0;
     this.resizeObserver = null;
 
     if (this.container) {
@@ -56,41 +43,31 @@ export class WsScrcpyAudioCanvas {
       this.#resize();
     }
 
-    this.#ensureAudioContext();
+    this.#startDrawLoop();
+  }
+
+  #ensureAnalyser() {
+    const ctx = this.playback.audioContext;
+
+    if (!ctx || this.analyser) {
+      return;
+    }
+
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = 256;
+    this.analyser.smoothingTimeConstant = 0.65;
+
+    if (this.playback.gain) {
+      this.playback.gain.disconnect();
+      this.playback.gain.connect(this.analyser);
+      this.analyser.connect(ctx.destination);
+    }
+
     this.#startDrawLoop();
   }
 
   static isSupported() {
-    return typeof window !== "undefined" && typeof AudioContext !== "undefined";
-  }
-
-  #ensureAudioContext() {
-    if (this.audioContext) {
-      return;
-    }
-
-    try {
-      this.audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 256;
-      this.analyser.smoothingTimeConstant = 0.65;
-      this.gain = this.audioContext.createGain();
-      this.gain.gain.value = 1;
-      this.gain.connect(this.analyser);
-      this.analyser.connect(this.audioContext.destination);
-    } catch {
-      this.audioContext = null;
-    }
-  }
-
-  async #resumeContext() {
-    if (this.audioContext?.state === "suspended") {
-      try {
-        await this.audioContext.resume();
-      } catch {
-        // ignore
-      }
-    }
+    return WsScrcpyAudioPlayback.isSupported();
   }
 
   #resize() {
@@ -124,43 +101,8 @@ export class WsScrcpyAudioCanvas {
 
     this.levels[this.levels.length - 1] = Math.min(1, rms * 4);
 
-    void this.#schedulePlayback(int16);
-  }
-
-  async #schedulePlayback(int16) {
-    this.#ensureAudioContext();
-
-    if (!this.audioContext || !this.gain) {
-      return;
-    }
-
-    await this.#resumeContext();
-
-    const frameCount = Math.floor(int16.length / CHANNELS);
-
-    if (frameCount <= 0) {
-      return;
-    }
-
-    const buffer = this.audioContext.createBuffer(CHANNELS, frameCount, SAMPLE_RATE);
-    const left = buffer.getChannelData(0);
-    const right = buffer.getChannelData(1);
-
-    for (let i = 0; i < frameCount; i += 1) {
-      const l = int16[i * 2] / 32768;
-      const r = int16[i * 2 + 1] / 32768;
-      left[i] = l;
-      right[i] = r;
-    }
-
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.gain);
-
-    const now = this.audioContext.currentTime;
-    const startAt = Math.max(now, this.playhead);
-    source.start(startAt);
-    this.playhead = startAt + buffer.duration;
+    this.playback.pushPcm(bytes);
+    this.#ensureAnalyser();
   }
 
   #startDrawLoop() {
@@ -245,14 +187,8 @@ export class WsScrcpyAudioCanvas {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
 
-    try {
-      this.audioContext?.close();
-    } catch {
-      // ignore
-    }
-
-    this.audioContext = null;
+    this.playback?.destroy();
+    this.playback = null;
     this.analyser = null;
-    this.gain = null;
   }
 }

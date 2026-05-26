@@ -796,6 +796,38 @@ h2 {
   line-height: 1.5;
 }
 
+.mirror-settings__body {
+  position: relative;
+}
+
+.mirror-settings__body--locked {
+  pointer-events: none;
+  user-select: none;
+}
+
+.mirror-settings__body--locked .mirror-settings__group {
+  opacity: 0.45;
+  filter: grayscale(0.15);
+}
+
+.mirror-settings__lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
 .mirror-settings {
   display: grid;
   gap: 0.65rem;

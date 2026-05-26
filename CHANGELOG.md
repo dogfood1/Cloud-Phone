@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.9 - 2026-05-26
+
+- Fix web cast startup crash: soft-reconfigure on ws type 101 instead of full pipeline restart; video+audio PCM with delayed audio start
+- Fix show_touches stuck on: always send `show_touches=true/false` and sync system setting on device
+- Fix display power toggle (screen off/on); enable `--turn-screen-off` in mirror settings; POWER key fallback on server
+- Lock mirror settings UI with overlay while casting (no hot-reload during session)
+- Video+audio: browser PCM playback via `WsScrcpyAudioPlayback`; `audio_dup` aligned with scrcpy (playback source, Android 13+ only)
+- UI/server guard: disable `audio-dup` and `playback` source when device SDK below 33 (Android 12 devices keep output capture, speakers muted)
+
 ## 0.6.8 - 2026-05-26
 
 - Align mirror「音频」settings with escrcpy: `--no-audio`, `--audio-dup`, `--audio-source`, combined `--audio-code`, bitrate presets, buffer fields (web ignores playback buffers)

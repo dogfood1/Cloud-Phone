@@ -30,8 +30,9 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - `.cursor/skills` 内置 ui-ux-pro-max 设计技能
 - 镜像「显示方向」经 WebSocket 正确下发（修复 codecOptions 解析）；区分采集方向与预览旋转
 - 镜像可勾选「禁用视频」仅音频投屏：画布音频波纹，设备 PCM（Android 11+，需重编译 server）
-- 镜像「音频」设置对齐 escrcpy：音频源、audio-code 编码器（设备 list_encoders + 回退）、比特率、audio-dup；参数经 stream extras 下发
-- 同步前端与后端版本号到 `0.6.8`
+- 镜像「音频」设置对齐 escrcpy：音频源、audio-code 编码器（设备 list_encoders + 回退）、比特率、audio-dup（Android 13+）；Android 12 仅浏览器出声
+- 投屏中锁定镜像参数；修复触摸点关闭残留、关屏/亮屏切换、视频+音频同传；WebSocket 软重配避免管线崩溃
+- 同步前端与后端版本号到 `0.6.9`
 
 ### 启动方式
 ```powershell
@@ -84,8 +85,9 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - `.cursor/skills` includes ui-ux-pro-max design skill for Cursor
 - Mirror capture orientation applied over WebSocket (codecOptions parse fix); UI distinguishes capture vs preview rotation
 - Mirror「disable video」audio-only cast: canvas waveform, device PCM over WebSocket (Android 11+, rebuild server jar)
-- Mirror audio settings aligned with escrcpy: source, combined audio-code encoders (device list + fallback), bitrate, audio-dup; applied via stream extras
-- Sync frontend and backend versions to `0.6.8`
+- Mirror audio settings aligned with escrcpy: source, audio-code encoders, bitrate, audio-dup (Android 13+); SDK-aware fallback on Android 12
+- Cast settings locked during session; fix show_touches, screen power toggle, video+audio PCM; soft stream reconfigure avoids pipeline crash
+- Sync frontend and backend versions to `0.6.9`
 
 ### Getting Started
 ```powershell

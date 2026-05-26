@@ -140,9 +140,25 @@ function handleToolbarAction(actionId) {
     return;
   }
 
+  if (actionId === "screen-off") {
+    const viewport = castViewportRef.value;
+    const screenOn = viewport?.displayScreenOn?.value ?? true;
+    viewport?.sendNavigation?.(screenOn ? "screen-off" : "screen-on");
+    return;
+  }
+
   const navigationAction = actionId === "volume" ? "volume-up" : actionId;
   castViewportRef.value?.sendNavigation?.(navigationAction);
 }
+
+const screenOffActionLabel = computed(() => {
+  if (!isCasting.value) {
+    return "关闭屏幕";
+  }
+
+  const screenOn = castViewportRef.value?.displayScreenOn?.value ?? true;
+  return screenOn ? "关闭屏幕" : "点亮屏幕";
+});
 
 async function handleClose() {
   await stopCast();
@@ -182,7 +198,7 @@ onBeforeUnmount(() => {
           @click="handleToolbarAction(action.id)"
         >
           <AppIcon :name="action.icon" />
-          <span>{{ action.label }}</span>
+          <span>{{ action.id === "screen-off" ? screenOffActionLabel : action.label }}</span>
         </button>
       </div>
     </header>

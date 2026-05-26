@@ -7,6 +7,7 @@ import {
   applyAudioCodeSelection,
   ensureDefaultAudioCode,
 } from "../../utils/mirror-audio-utils.js";
+import { isAudioDupSupported } from "../../utils/mirror-audio-platform.js";
 import {
   applyVideoEncoderSelection,
   buildEncoderSelectOptions,
@@ -21,6 +22,10 @@ const props = defineProps({
   serial: {
     type: String,
     required: true,
+  },
+  deviceSdk: {
+    type: [Number, String],
+    default: 0,
   },
   casting: {
     type: Boolean,
@@ -86,6 +91,16 @@ watch(
 );
 
 watch(
+  () => props.deviceSdk,
+  () => {
+    if (!isAudioDupSupported(props.deviceSdk)) {
+      settings.audio.audioDup = false;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
   audioCodeOptions,
   (options) => {
     ensureDefaultAudioCode(settings, options);
@@ -107,7 +122,9 @@ watch(
 watch(
   settings,
   () => {
-    emit("settings-change", settings);
+    if (!props.casting) {
+      emit("settings-change", settings);
+    }
   },
   { deep: true },
 );
@@ -127,17 +144,21 @@ defineExpose({ getSettings });
     </p>
 
     <template v-else>
+    <div
+      class="mirror-settings__body"
+      :class="{ 'mirror-settings__body--locked': casting }"
+    >
     <MirrorCastVideoSection
       :video="settings.video"
       :video-encoders="videoEncoders"
       :encoders-loading="encodersLoading"
       :encoders-error="encodersError"
-      :casting="casting"
     />
     <MirrorCastAudioSection
       :audio="settings.audio"
       :audio-code-options="audioCodeOptions"
       :audio-sources="audioSources"
+      :device-sdk="deviceSdk"
       :video-disabled="settings.video.disabled"
       :encoders-loading="encodersLoading"
     />
@@ -148,6 +169,15 @@ defineExpose({ getSettings });
       :displays="displays"
       :apps="apps"
     />
+    <div
+      v-if="casting"
+      class="mirror-settings__lock-overlay"
+      aria-hidden="true"
+    >
+      <p>投屏进行中，参数已锁定</p>
+      <p class="mirror-settings__field-hint">停止投屏后可修改设置</p>
+    </div>
+    </div>
     </template>
   </div>
 </template>

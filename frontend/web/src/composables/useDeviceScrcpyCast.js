@@ -2,11 +2,20 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { isScrcpyAudioPacket, WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
+import { WsScrcpyAudioPlayback } from "../utils/ws-scrcpy-audio-playback.js";
 import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
 
 function isAudioOnlyCast(castOptions) {
   return castOptions?.mirror?.video?.disabled === true;
+}
+
+function isCastAudioEnabled(castOptions) {
+  if (isAudioOnlyCast(castOptions)) {
+    return true;
+  }
+
+  return castOptions?.audio === true;
 }
 
 function buildCastWebSocketUrl(serial) {
@@ -60,9 +69,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   let socket = null;
   let stopRequest = null;
   let unbindCanvas = null;
-  let videoSettingsTimer = null;
+  let audioPlayback = null;
   /** True after POST /cast/start succeeded (backend has a session). */
   let backendSessionActive = false;
+  const displayScreenOn = ref(true);
 
   async function beginCast(payload) {
     const serial = serialRef.value;
@@ -150,8 +160,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       return;
     }
 
-    if (isScrcpyAudioPacket(bytes) && typeof nextPlayer.pushPcm === "function") {
-      nextPlayer.pushPcm(bytes);
+    if (isScrcpyAudioPacket(bytes)) {
+      if (typeof nextPlayer.pushPcm === "function") {
+        nextPlayer.pushPcm(bytes);
+      } else {
+        audioPlayback?.pushPcm(bytes);
+      }
       return;
     }
 
@@ -177,10 +191,15 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       }
 
       const castOptions = unref(castOptionsRef) ?? {};
-      const nextPlayer = isAudioOnlyCast(castOptions)
-        ? new WsScrcpyAudioCanvas(canvas)
-        : new WsScrcpyAnnexBPlayer(canvas);
+      const audioOnly = isAudioOnlyCast(castOptions);
+      const nextPlayer = audioOnly ? new WsScrcpyAudioCanvas(canvas) : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
+
+      audioPlayback?.destroy();
+      audioPlayback =
+        !audioOnly && isCastAudioEnabled(castOptions) && WsScrcpyAudioPlayback.isSupported()
+          ? new WsScrcpyAudioPlayback()
+          : null;
 
       socket = new WebSocket(buildCastWebSocketUrl(serial));
       socket.binaryType = "arraybuffer";
@@ -240,7 +259,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
 
     player.value?.destroy();
     player.value = null;
+    audioPlayback?.destroy();
+    audioPlayback = null;
     sessionMeta.value = null;
+    displayScreenOn.value = true;
   }
 
   function sendControl(buffer) {
@@ -389,24 +411,13 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   }
 
   watch(
-    () => unref(castOptionsRef),
-    () => {
-      applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
-
-      if (status.value !== "streaming") {
-        return;
-      }
-
-      clearTimeout(videoSettingsTimer);
-      videoSettingsTimer = setTimeout(() => {
-        pushVideoStreamSettings();
-      }, 400);
+    () => unref(castOptionsRef)?.mirror?.video?.rotationDeg,
+    (degrees) => {
+      applyPreviewRotation(degrees ?? 0);
     },
-    { deep: true },
   );
 
   onBeforeUnmount(() => {
-    clearTimeout(videoSettingsTimer);
     void stopCast();
   });
 
@@ -419,10 +430,26 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     startCast,
     stopCast,
     sendNavigation: (actionId) => {
+      if (actionId === "screen-off" || actionId === "screen-on") {
+        const turnOn = actionId === "screen-on";
+        displayScreenOn.value = turnOn;
+
+        if (turnOn) {
+          sendControl(serializeNavigationAction("screen-on"));
+          sendControl(serializeNavigationAction("wake-screen"));
+          sendControl(serializeNavigationAction("wake-screen-up"));
+        } else {
+          sendControl(serializeNavigationAction("screen-off"));
+        }
+
+        return;
+      }
+
       const buffer = serializeNavigationAction(actionId);
       if (buffer) {
         sendControl(buffer);
       }
     },
+    displayScreenOn,
   };
 }

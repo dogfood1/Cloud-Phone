@@ -872,7 +872,18 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
                 boolean mustRestoreOnExit = !on;
                 cleanUp.setRestoreDisplayPower(mustRestoreOnExit);
             }
+            return;
         }
+
+        if (on && supportsInputEvents) {
+            Ln.i("setDisplayPower failed, trying POWER key wake");
+            pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
+        }
+    }
+
+    /** Reset video capture/encoder after live stream parameter changes (web cast). */
+    public void requestResetVideo() {
+        resetVideo();
     }
 
     private void resetVideo() {

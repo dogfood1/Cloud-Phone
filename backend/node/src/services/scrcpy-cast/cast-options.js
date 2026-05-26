@@ -1,4 +1,5 @@
 import { SCRCPY_WEB_CAST_MODE } from "../../config/scrcpy-paths.js";
+import { resolveAudioStreamParams } from "../mirror-audio-platform.js";
 import {
   DEFAULT_VIDEO_BITRATE_MBPS,
   maxSizeFromMirrorVideo,
@@ -26,10 +27,7 @@ export function resolveCastServerOptions(input = {}) {
     video: stream.videoDisabled !== true && input.video !== false,
     audio: stream.videoDisabled === true || audio.disabled !== true,
     control: input.control !== false,
-    audioSource: String(audio.source ?? "output"),
-    audioCodec: String(audio.codec ?? "opus").toLowerCase(),
-    audioEncoder: audio.encoder ? String(audio.encoder) : undefined,
-    audioDup: Boolean(audio.audioDup),
+    ...resolveAudioCastFields(audio, mirror.deviceSdk ?? input.deviceSdk),
     audioBitRate: Number(audio.bitRateKbps ?? 128) * 1000,
     showTouches: Boolean(device.showTouches),
     stayAwake: Boolean(device.stayAwake),
@@ -60,4 +58,19 @@ export function listCastFeatures(options) {
   );
 
   return features;
+}
+
+/**
+ * @param {Record<string, unknown>} audio
+ * @param {number | string | null | undefined} deviceSdk
+ */
+function resolveAudioCastFields(audio, deviceSdk) {
+  const { source, audioDup } = resolveAudioStreamParams(audio, deviceSdk);
+
+  return {
+    audioSource: source,
+    audioCodec: String(audio.codec ?? "opus").toLowerCase(),
+    audioEncoder: audio.encoder ? String(audio.encoder) : undefined,
+    audioDup,
+  };
 }
