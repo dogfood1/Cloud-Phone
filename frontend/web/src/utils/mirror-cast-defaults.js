@@ -13,7 +13,7 @@ export function createDefaultMirrorSettings() {
       crop: "",
     },
     audio: {
-      disabled: true,
+      disabled: false,
       audioDup: false,
       audioCode: "opus",
       codec: "opus",

@@ -119,7 +119,8 @@ watch(audioDupSupported, (supported) => {
         variant="checkbox"
       >
         <template #control>
-          <NSwitch v-model:value="audio.disabled" :disabled="fieldsDisabled" />
+          <!-- 须始终可点：fieldsDisabled 时其它项已灰，若此处也 disabled 则无法关闭「禁用音频」 -->
+          <NSwitch v-model:value="audio.disabled" />
         </template>
       </MirrorSettingRow>
 

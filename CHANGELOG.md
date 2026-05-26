@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2 - 2026-05-26
+
+- Fix mirror audio section stuck disabled on load: default `audio.disabled` to false (web cast ships audio with video)
+- Fix「禁用音频」switch locked when section grayed; toggle always available so users can re-enable audio without toggling「禁用视频」first
+
 ## 0.7.1 - 2026-05-26
 
 - Mirror cast settings UI rebuilt with Naive UI (`NCollapse`, `NForm`, `NSwitch`, `NAlert`, theme provider synced with app light/dark)
