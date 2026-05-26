@@ -43,7 +43,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 修复投屏鼠标拖动与悬停：`primaryDown` 区分 MOVE/HOVER_MOVE；松开不再跳到左上角
 - 截屏时投屏区域四周白光闪动动画反馈
 - 音量按钮点击展开「增加 / 减小」子按钮（替代按住与 Shift+按住）
-- 同步前端与后端版本号到 `0.7.11`
+- 投屏画布置底、顶栏音量菜单叠在画布之上（z-index）
+- 同步前端与后端版本号到 `0.7.12`
 
 ### 启动方式
 ```powershell
@@ -109,7 +110,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Fix cast mouse drag and hover (`primaryDown` for MOVE vs HOVER_MOVE); release no longer jumps to top-left
 - Screenshot action: white edge-glow flash on cast viewport
 - Volume button expands increase/decrease sub-buttons (replaces hold and Shift+hold)
-- Sync frontend and backend versions to `0.7.11`
+- Cast canvas at bottom layer; toolbar volume menu above viewport (z-index)
+- Sync frontend and backend versions to `0.7.12`
 
 ### Getting Started
 ```powershell

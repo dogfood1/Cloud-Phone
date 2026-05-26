@@ -547,6 +547,8 @@ h2 {
 }
 
 .device-workspace__header {
+  position: relative;
+  z-index: 20;
   flex-shrink: 0;
   display: grid;
   gap: 0.85rem;
@@ -555,6 +557,7 @@ h2 {
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   backdrop-filter: blur(var(--blur));
+  overflow: visible;
 }
 
 .device-workspace__intro {
@@ -607,21 +610,29 @@ h2 {
 }
 
 .device-workspace__toolbar {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: flex-start;
+  overflow: visible;
 }
 
 .device-workspace__action-anchor {
   position: relative;
+  z-index: 1;
+}
+
+.device-workspace__action-anchor--volume {
+  z-index: 2;
 }
 
 .device-workspace__volume-menu {
   position: absolute;
   top: calc(100% + 0.4rem);
   left: 50%;
-  z-index: 30;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -753,6 +764,8 @@ h2 {
 }
 
 .device-workspace__split {
+  position: relative;
+  z-index: 0;
   display: grid;
   flex: 1;
   grid-template-columns: minmax(24rem, 28rem) minmax(0, 1fr);
@@ -789,6 +802,7 @@ h2 {
 
 .device-cast-viewport {
   position: relative;
+  z-index: 0;
   display: flex;
   flex: 1;
   width: 100%;
@@ -797,11 +811,13 @@ h2 {
   align-items: center;
   justify-content: center;
   background: var(--bg-preview);
+  isolation: isolate;
 }
 
 .device-cast-viewport__stage {
   position: absolute;
   inset: 0;
+  z-index: 0;
   min-height: 0;
   display: flex;
   align-items: center;
@@ -810,6 +826,8 @@ h2 {
 }
 
 .device-cast-viewport__rotator {
+  position: relative;
+  z-index: 0;
   width: 100%;
   height: 100%;
   display: flex;
@@ -819,6 +837,8 @@ h2 {
 }
 
 .device-cast-viewport__canvas {
+  position: relative;
+  z-index: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -836,6 +856,7 @@ h2 {
 .device-cast-viewport__overlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: grid;
   place-content: center;
   gap: 0.5rem;
@@ -858,7 +879,7 @@ h2 {
   color: var(--muted);
   font-size: 0.75rem;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .device-cast-viewport__screenshot-flash {
@@ -907,6 +928,8 @@ h2 {
 }
 
 .device-cast-viewport__placeholder {
+  position: relative;
+  z-index: 2;
   display: grid;
   gap: 0.45rem;
   max-width: 18rem;

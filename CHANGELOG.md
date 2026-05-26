@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.12 - 2026-05-26
+
+- Fix cast canvas z-index: video canvas at bottom; toolbar volume menu stacks above cast viewport
+
 ## 0.7.11 - 2026-05-26
 
 - Volume toolbar: click to expand「增加 / 减小」sub-buttons (replaces hold / Shift+hold)
