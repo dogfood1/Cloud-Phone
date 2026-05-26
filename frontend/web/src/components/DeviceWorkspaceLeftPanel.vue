@@ -1,7 +1,9 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { NAlert, NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
+import MirrorSearchableSelect from "./mirror/MirrorSearchableSelect.vue";
 import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
@@ -29,7 +31,10 @@ const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change"]);
 
 const mirrorSettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
-const modes = DEVICE_CAST_MODES;
+
+const modeOptions = computed(() =>
+  DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
+);
 
 function buildCastOptions() {
   const settings = mirrorSettingsRef.value?.getSettings?.() ?? createDefaultMirrorSettings();
@@ -52,17 +57,15 @@ function handleSettingsChange() {
 <template>
   <aside class="workspace-left" aria-label="投屏设置">
     <div class="workspace-left__section workspace-left__top">
-      <label class="workspace-left__label" for="cast-mode-select">投屏模式</label>
-      <select
-        id="cast-mode-select"
-        v-model="castMode"
-        class="workspace-left__select"
-        :disabled="casting || castBusy"
-      >
-        <option v-for="mode in modes" :key="mode.id" :value="mode.id">
-          {{ mode.label }}
-        </option>
-      </select>
+      <NForm size="small" :show-feedback="false">
+        <NFormItem label="投屏模式" label-placement="top">
+          <MirrorSearchableSelect
+            v-model:value="castMode"
+            :options="modeOptions"
+            :disabled="casting || castBusy"
+          />
+        </NFormItem>
+      </NForm>
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
@@ -78,31 +81,30 @@ function handleSettingsChange() {
     </div>
 
     <div class="workspace-left__section workspace-left__bottom">
-      <p v-if="castHint" class="workspace-left__hint workspace-left__hint--error" role="alert">
-        {{ castHint }}
-      </p>
-      <p v-else-if="!device.connected" class="workspace-left__hint">
-        设备未在线，无法投屏。
-      </p>
-      <p v-else class="workspace-left__hint workspace-left__hint--muted">
-        网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。
-      </p>
-      <button
-        type="button"
-        class="workspace-left__btn workspace-left__btn--ghost"
-        :disabled="!casting || castBusy"
-        @click="handleStopClick"
-      >
-        取消投屏
-      </button>
-      <button
-        type="button"
-        class="workspace-left__btn workspace-left__btn--primary"
-        :disabled="!device.connected || casting || castBusy"
-        @click="handleStartClick"
-      >
-        {{ castBusy ? "正在处理…" : "开始投屏" }}
-      </button>
+      <NSpace vertical :size="10">
+        <NAlert v-if="castHint" type="error" :bordered="false">
+          {{ castHint }}
+        </NAlert>
+        <NAlert v-else-if="!device.connected" type="warning" :bordered="false">
+          设备未在线，无法投屏。
+        </NAlert>
+        <NText v-else depth="3" style="font-size: 0.8rem">
+          网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。
+        </NText>
+
+        <NButton block :disabled="!casting || castBusy" @click="handleStopClick">
+          取消投屏
+        </NButton>
+        <NButton
+          block
+          type="primary"
+          :disabled="!device.connected || casting || castBusy"
+          :loading="castBusy"
+          @click="handleStartClick"
+        >
+          {{ castBusy ? "正在处理…" : "开始投屏" }}
+        </NButton>
+      </NSpace>
     </div>
   </aside>
 </template>

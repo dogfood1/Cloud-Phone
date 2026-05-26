@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { NAlert, NCollapse, NSpin, NText } from "naive-ui";
 
 import { useMirrorCastOptions } from "../../composables/useMirrorCastOptions.js";
 import { createDefaultMirrorSettings } from "../../utils/mirror-cast-defaults.js";
@@ -36,7 +37,7 @@ const props = defineProps({
 const emit = defineEmits(["settings-change"]);
 
 const settings = reactive(createDefaultMirrorSettings());
-const appQuery = ref("");
+const expandedPanels = ref(["video", "audio", "device", "screen"]);
 
 const {
   loading,
@@ -138,46 +139,42 @@ defineExpose({ getSettings });
 
 <template>
   <div class="mirror-settings">
-    <p v-if="loading" class="mirror-settings__status">正在加载设备选项…</p>
-    <p v-else-if="error" class="mirror-settings__status mirror-settings__status--error">
-      {{ error }}
-    </p>
+    <NSpin :show="loading">
+      <NAlert v-if="error" type="error" :bordered="false" style="margin-bottom: 0.5rem">
+        {{ error }}
+      </NAlert>
 
-    <template v-else>
-    <div
-      class="mirror-settings__body"
-      :class="{ 'mirror-settings__body--locked': casting }"
-    >
-    <MirrorCastVideoSection
-      :video="settings.video"
-      :video-encoders="videoEncoders"
-      :encoders-loading="encodersLoading"
-      :encoders-error="encodersError"
-    />
-    <MirrorCastAudioSection
-      :audio="settings.audio"
-      :audio-code-options="audioCodeOptions"
-      :audio-sources="audioSources"
-      :device-sdk="deviceSdk"
-      :video-disabled="settings.video.disabled"
-      :encoders-loading="encodersLoading"
-    />
-    <MirrorCastDeviceSection :device-options="settings.device" />
-    <MirrorCastScreenSection
-      v-model:app-query="appQuery"
-      :screen="settings.screen"
-      :displays="displays"
-      :apps="apps"
-    />
-    <div
-      v-if="casting"
-      class="mirror-settings__lock-overlay"
-      aria-hidden="true"
-    >
-      <p>投屏进行中，参数已锁定</p>
-      <p class="mirror-settings__field-hint">停止投屏后可修改设置</p>
-    </div>
-    </div>
-    </template>
+      <template v-else>
+        <div class="mirror-settings__body">
+          <NCollapse v-model:expanded-names="expandedPanels">
+            <MirrorCastVideoSection
+              :video="settings.video"
+              :video-encoders="videoEncoders"
+              :encoders-loading="encodersLoading"
+              :encoders-error="encodersError"
+            />
+            <MirrorCastAudioSection
+              :audio="settings.audio"
+              :audio-code-options="audioCodeOptions"
+              :audio-sources="audioSources"
+              :device-sdk="deviceSdk"
+              :video-disabled="settings.video.disabled"
+              :encoders-loading="encodersLoading"
+            />
+            <MirrorCastDeviceSection :device-options="settings.device" />
+            <MirrorCastScreenSection
+              :screen="settings.screen"
+              :displays="displays"
+              :apps="apps"
+            />
+          </NCollapse>
+
+          <div v-if="casting" class="mirror-settings__lock">
+            <NText strong>投屏进行中，参数已锁定</NText>
+            <NText depth="3">停止投屏后可修改</NText>
+          </div>
+        </div>
+      </template>
+    </NSpin>
   </div>
 </template>

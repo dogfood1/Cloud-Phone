@@ -1,5 +1,7 @@
 <script setup>
 import { computed, watch } from "vue";
+import { NCollapseItem, NForm, NInputNumber, NSwitch } from "naive-ui";
+import MirrorSearchableSelect from "./MirrorSearchableSelect.vue";
 
 import { AUDIO_BITRATE_PRESETS_KBPS, MIRROR_AUDIO_SOURCES } from "../../utils/mirror-audio-constants.js";
 import {
@@ -7,6 +9,7 @@ import {
   isAudioDupSupported,
   parseDeviceSdk,
 } from "../../utils/mirror-audio-platform.js";
+import MirrorSettingRow from "./MirrorSettingRow.vue";
 
 const props = defineProps({
   audio: {
@@ -51,17 +54,46 @@ const filteredAudioSources = computed(() => {
 const audioActive = computed(() => props.videoDisabled || !props.audio.disabled);
 const fieldsDisabled = computed(() => !audioActive.value);
 
-const webPcmHint = computed(() => {
+const sourceOptions = computed(() =>
+  filteredAudioSources.value.map((item) => ({ label: item.label, value: item.value })),
+);
+
+const audioCodeSelectOptions = computed(() =>
+  props.audioCodeOptions.map((item) => ({ label: item.label, value: item.value })),
+);
+
+const bitRateOptions = computed(() =>
+  AUDIO_BITRATE_PRESETS_KBPS.map((item) => ({ label: item.label, value: item.value })),
+);
+
+const webPcmHelp = computed(() => {
   const sdkHint =
     sdk.value > 0 && sdk.value < ANDROID_SDK_AUDIO_DUP_MIN
-      ? `当前设备 Android SDK ${sdk.value}：与 scrcpy 一致，--audio-dup / playback 需 Android 13（SDK ${ANDROID_SDK_AUDIO_DUP_MIN}）+；未勾选复制时手机会静音，仅浏览器播放。`
+      ? `本机 SDK ${sdk.value}：--audio-dup / playback 需 Android 13（SDK ${ANDROID_SDK_AUDIO_DUP_MIN}）+；未勾选复制时手机静音，仅浏览器播放。`
       : "";
 
   if (!props.videoDisabled) {
-    return ["与视频同投时通过 PCM 传声到浏览器。", sdkHint].filter(Boolean).join(" ");
+    return ["Web 投屏与视频同传时使用 PCM 到浏览器。", sdkHint].filter(Boolean).join(" ");
   }
 
-  return ["仅音频模式：PCM 经 WebSocket 到浏览器（48 kHz 立体声）。", sdkHint].filter(Boolean).join(" ");
+  return ["仅音频模式：48 kHz 立体声 PCM 经 WebSocket 播放。", sdkHint].filter(Boolean).join(" ");
+});
+
+const audioDupHelp = computed(() => {
+  if (!audioDupSupported.value && sdk.value > 0) {
+    return `需要 Android 13（SDK ${ANDROID_SDK_AUDIO_DUP_MIN}）及以上；本机仅浏览器出声。`;
+  }
+  if (audioDupSupported.value) {
+    return "开启后使用 playback 源，手机与浏览器同时出声；关闭则仅浏览器播放。";
+  }
+  return "将设备播放的音频复制回扬声器（需 Android 13+ 与 playback 源）。";
+});
+
+const audioCodeHelp = computed(() => {
+  if (props.encodersLoading) {
+    return "正在加载设备音频编码器…";
+  }
+  return "对应 --audio-code；Web 投屏以 PCM 传输，此项主要对齐桌面 scrcpy 配置。";
 });
 
 watch(audioDupSupported, (supported) => {
@@ -76,103 +108,88 @@ watch(audioDupSupported, (supported) => {
 </script>
 
 <template>
-  <fieldset
-    class="mirror-settings__group"
-    :class="{ 'mirror-settings__group--disabled': fieldsDisabled && !videoDisabled }"
-  >
-    <legend>音频</legend>
+  <NCollapseItem title="音频" name="audio" :disabled="fieldsDisabled && !videoDisabled">
+    <NForm size="small" label-placement="left">
+      <MirrorSettingRow label="传输说明" variant="banner" :help="webPcmHelp" />
 
-    <p class="mirror-settings__field-hint">
-      {{ webPcmHint }}
-    </p>
+      <MirrorSettingRow
+        v-if="!videoDisabled"
+        label="禁用音频"
+        help="对应 --no-audio；关闭后仅传输视频。"
+        variant="checkbox"
+      >
+        <template #control>
+          <NSwitch v-model:value="audio.disabled" :disabled="fieldsDisabled" />
+        </template>
+      </MirrorSettingRow>
 
-    <label
-      v-if="!videoDisabled"
-      class="mirror-settings__check"
-      :class="{ 'mirror-settings__field--disabled': fieldsDisabled }"
-    >
-      <input v-model="audio.disabled" type="checkbox" />
-      <span>禁用音频（--no-audio）</span>
-    </label>
+      <MirrorSettingRow
+        label="音频复制到设备"
+        :help="audioDupHelp"
+        variant="checkbox"
+      >
+        <template #control>
+          <NSwitch
+            v-model:value="audio.audioDup"
+            :disabled="fieldsDisabled || !audioDupSupported"
+          />
+        </template>
+      </MirrorSettingRow>
 
-    <label
-      class="mirror-settings__check"
-      :class="{ 'mirror-settings__field--disabled': fieldsDisabled || !audioDupSupported }"
-    >
-      <input
-        v-model="audio.audioDup"
-        type="checkbox"
-        :disabled="fieldsDisabled || !audioDupSupported"
-      />
-      <span>音频复制到设备（--audio-dup）</span>
-    </label>
-    <p v-if="!audioDupSupported && sdk > 0" class="mirror-settings__field-hint">
-      需要 Android 13（SDK {{ ANDROID_SDK_AUDIO_DUP_MIN }}）及以上；本机 SDK {{ sdk }} 仅能在浏览器播放，手机扬声器会静音。
-    </p>
-    <p v-else-if="audioDupSupported" class="mirror-settings__field-hint">
-      开启后切换为 playback 源，手机与浏览器同时出声；关闭则仅浏览器播放。
-    </p>
+      <MirrorSettingRow
+        label="音频源"
+        help="对应 --audio-source；output 为设备输出，playback 需 Android 13+ 且通常配合 audio-dup。"
+      >
+        <MirrorSearchableSelect
+          v-model:value="audio.source"
+          :options="sourceOptions"
+          :disabled="fieldsDisabled"
+        />
+      </MirrorSettingRow>
 
-    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': fieldsDisabled }">
-      <span>音频源（--audio-source）</span>
-      <select v-model="audio.source" :disabled="fieldsDisabled">
-        <option
-          v-for="item in filteredAudioSources"
-          :key="item.value"
-          :value="item.value"
-        >
-          {{ item.label }}
-        </option>
-      </select>
-    </label>
+      <MirrorSettingRow label="音频编码" :help="audioCodeHelp">
+        <MirrorSearchableSelect
+          v-model:value="audio.audioCode"
+          :options="audioCodeSelectOptions"
+          :disabled="fieldsDisabled || !audioCodeSelectOptions.length"
+        />
+      </MirrorSettingRow>
 
-    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': fieldsDisabled }">
-      <span>音频编码（--audio-code）</span>
-      <select v-model="audio.audioCode" :disabled="fieldsDisabled || !audioCodeOptions.length">
-        <option v-for="item in audioCodeOptions" :key="item.value" :value="item.value">
-          {{ item.label }}
-        </option>
-      </select>
-      <span v-if="encodersLoading" class="mirror-settings__field-hint">正在加载设备音频编码器…</span>
-    </label>
+      <MirrorSettingRow label="比特率" help="音频编码目标比特率（kbps），影响音质与带宽。">
+        <MirrorSearchableSelect
+          v-model:value="audio.bitRateKbps"
+          :options="bitRateOptions"
+          :disabled="fieldsDisabled"
+        />
+      </MirrorSettingRow>
 
-    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': fieldsDisabled }">
-      <span>比特率</span>
-      <select v-model.number="audio.bitRateKbps" :disabled="fieldsDisabled">
-        <option
-          v-for="item in AUDIO_BITRATE_PRESETS_KBPS"
-          :key="item.value"
-          :value="item.value"
-        >
-          {{ item.label }}
-        </option>
-      </select>
-    </label>
+      <MirrorSettingRow
+        label="缓冲 (ms)"
+        help="对应桌面 scrcpy --audio-buffer；Web 投屏当前忽略，仅保留配置项。"
+      >
+        <NInputNumber
+          v-model:value="audio.bufferMs"
+          :min="0"
+          :max="5000"
+          :step="10"
+          :disabled="fieldsDisabled"
+          style="width: 100%"
+        />
+      </MirrorSettingRow>
 
-    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': fieldsDisabled }">
-      <span>缓冲（--audio-buffer）</span>
-      <input
-        v-model.number="audio.bufferMs"
-        type="number"
-        min="0"
-        max="5000"
-        step="10"
-        :disabled="fieldsDisabled"
-      />
-      <span class="mirror-settings__field-hint">桌面 scrcpy 播放缓冲；Web 投屏当前忽略</span>
-    </label>
-
-    <label class="mirror-settings__field" :class="{ 'mirror-settings__field--disabled': fieldsDisabled }">
-      <span>输出缓冲（--audio-output-buffer）</span>
-      <input
-        v-model.number="audio.outputBufferMs"
-        type="number"
-        min="0"
-        max="5000"
-        step="10"
-        :disabled="fieldsDisabled"
-      />
-      <span class="mirror-settings__field-hint">桌面 scrcpy 输出缓冲；Web 投屏当前忽略</span>
-    </label>
-  </fieldset>
+      <MirrorSettingRow
+        label="输出缓冲 (ms)"
+        help="对应 --audio-output-buffer；Web 投屏当前忽略。"
+      >
+        <NInputNumber
+          v-model:value="audio.outputBufferMs"
+          :min="0"
+          :max="5000"
+          :step="10"
+          :disabled="fieldsDisabled"
+          style="width: 100%"
+        />
+      </MirrorSettingRow>
+    </NForm>
+  </NCollapseItem>
 </template>

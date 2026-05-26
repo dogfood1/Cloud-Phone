@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 - 2026-05-26
+
+- Mirror cast settings UI rebuilt with Naive UI (`NCollapse`, `NForm`, `NSwitch`, `NAlert`, theme provider synced with app light/dark)
+- All mirror dropdowns use `MirrorSearchableSelect`: search box fixed at the top of the menu (grouped options supported, e.g. new-display presets)
+- Settings layout: one option per row, help via `?` tooltip; removed separate in-form app search row (filter in start-app dropdown)
+- Simplified flat panel styles (`mirror-settings.css`); left cast panel uses Naive buttons/alerts
+
 ## 0.7.0 - 2026-05-26
 
 - Mirror「屏幕」settings aligned with escrcpy: grouped `--new-display` presets, custom resolution/DPI, `--flex-display`, `--no-vd-destroy-content`, `--no-vd-system-decorations`, `--display-ime-policy`

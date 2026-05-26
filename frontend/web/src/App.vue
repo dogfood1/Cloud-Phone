@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue";
 
+import AppProviders from "./components/AppProviders.vue";
 import AuthLayer from "./components/AuthLayer.vue";
 import ConsoleLayout from "./components/ConsoleLayout.vue";
 import ThemeToggle from "./components/ThemeToggle.vue";
@@ -110,33 +111,35 @@ function saveSettingsForm() {
 </script>
 
 <template>
-  <div class="app-shell">
-    <ThemeToggle v-if="showAuthLayer" class="theme-toggle--dock" />
-    <AuthLayer
-      v-if="showAuthLayer"
-      :show-login-modal="showLoginModal"
-      :show-password-change-modal="showPasswordChangeModal"
-      :state="authState"
-      @login="handleLogin"
-      @change-password="handlePasswordChange"
-    />
-    <ConsoleLayout
-      v-else
-      v-model:active-tab="activeTab"
-      v-model:selected-device="selectedDevice"
-      :devices="devices"
-      :device-loading="deviceLoading"
-      :device-error="deviceError"
-      :last-refreshed-at="lastRefreshedAt"
-      :adb-path="adbPath"
-      :screenshot-url="screenshotUrl"
-      :settings-form="settingsForm"
-      :settings-feedback="settingsFeedback"
-      :password-status-text="passwordStatusText"
-      :session-expires-at="authState.sessionExpiresAt"
-      @logout="handleLogout"
-      @save-settings="saveSettingsForm"
-      @refresh-devices="refreshDevices"
-    />
-  </div>
+  <AppProviders>
+    <div class="app-shell">
+      <ThemeToggle v-if="showAuthLayer" class="theme-toggle--dock" />
+      <AuthLayer
+        v-if="showAuthLayer"
+        :show-login-modal="showLoginModal"
+        :show-password-change-modal="showPasswordChangeModal"
+        :state="authState"
+        @login="handleLogin"
+        @change-password="handlePasswordChange"
+      />
+      <ConsoleLayout
+        v-else
+        v-model:active-tab="activeTab"
+        v-model:selected-device="selectedDevice"
+        :devices="devices"
+        :device-loading="deviceLoading"
+        :device-error="deviceError"
+        :last-refreshed-at="lastRefreshedAt"
+        :adb-path="adbPath"
+        :screenshot-url="screenshotUrl"
+        :settings-form="settingsForm"
+        :settings-feedback="settingsFeedback"
+        :password-status-text="passwordStatusText"
+        :session-expires-at="authState.sessionExpiresAt"
+        @logout="handleLogout"
+        @save-settings="saveSettingsForm"
+        @refresh-devices="refreshDevices"
+      />
+    </div>
+  </AppProviders>
 </template>
