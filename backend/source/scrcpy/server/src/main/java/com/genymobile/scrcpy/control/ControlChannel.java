@@ -4,7 +4,7 @@ import android.net.LocalSocket;
 
 import java.io.IOException;
 
-public final class ControlChannel {
+public final class ControlChannel implements ControlConnection {
 
     private final ControlMessageReader reader;
     private final DeviceMessageWriter writer;

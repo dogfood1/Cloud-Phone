@@ -6,10 +6,20 @@ export async function requestJson(url, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  const result = await response.json();
+  let result = {};
+
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error(
+      response.ok
+        ? "服务器返回了无效 JSON。"
+        : `服务器错误 (${response.status})，请确认后端已启动且无崩溃。`,
+    );
+  }
 
   if (!response.ok || result.success === false) {
-    throw new Error(result.message ?? "Request failed.");
+    throw new Error(result.message ?? result.error ?? "Request failed.");
   }
 
   return result;

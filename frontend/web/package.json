@@ -1,6 +1,6 @@
 {
   "name": "cloud-phone-web",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Frontend app for Cloud Phone",

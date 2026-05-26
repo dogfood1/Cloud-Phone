@@ -44,6 +44,7 @@ const {
   () => settingsForm.deviceListIntervalSeconds,
   () => settingsForm.screenshotIntervalSeconds,
   () => authState.authenticated,
+  () => authState.authenticated && activeTab.value === "devices" && !selectedDevice.value,
 );
 
 onMounted(async () => {
@@ -65,6 +66,12 @@ watch(
     stopDevices();
   },
 );
+
+watch(selectedDevice, (device, previousDevice) => {
+  if (!device && previousDevice) {
+    refreshDevices();
+  }
+});
 
 async function handleLogin() {
   if (await submitLogin()) {

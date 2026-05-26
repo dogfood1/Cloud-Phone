@@ -8,12 +8,12 @@ import java.util.concurrent.BlockingQueue;
 
 public final class DeviceMessageSender {
 
-    private final ControlChannel controlChannel;
+    private final ControlConnection controlChannel;
 
     private Thread thread;
     private final BlockingQueue<DeviceMessage> queue = new ArrayBlockingQueue<>(16);
 
-    public DeviceMessageSender(ControlChannel controlChannel) {
+    public DeviceMessageSender(ControlConnection controlChannel) {
         this.controlChannel = controlChannel;
     }
 

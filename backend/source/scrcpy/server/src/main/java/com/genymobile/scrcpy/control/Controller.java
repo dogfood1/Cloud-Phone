@@ -86,7 +86,7 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
     private final boolean camera;
     private final int displayId;
     private final boolean supportsInputEvents;
-    private final ControlChannel controlChannel;
+    private final ControlConnection controlChannel;
     private final CleanUp cleanUp;
     private final DeviceMessageSender sender;
     private final boolean clipboardAutosync;
@@ -110,7 +110,7 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
     // Used for resetting video encoding on RESET_VIDEO message or for sending camera controls
     private SurfaceCapture surfaceCapture;
 
-    public Controller(ControlChannel controlChannel, CleanUp cleanUp, Options options) {
+    public Controller(ControlConnection controlChannel, CleanUp cleanUp, Options options) {
         this.camera = options.getVideoSource() == VideoSource.CAMERA;
         this.controlChannel = controlChannel;
         this.cleanUp = cleanUp;
@@ -328,6 +328,17 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
             return false;
         }
 
+        return handleMessage(msg);
+    }
+
+    /**
+     * Handle a control message received from a non-socket transport (e.g. WebSocket).
+     */
+    public void handleExternalMessage(ControlMessage msg) throws IOException {
+        handleMessage(msg);
+    }
+
+    private boolean handleMessage(ControlMessage msg) throws IOException {
         int type = msg.getType();
 
         // Events for all sources (display or camera)

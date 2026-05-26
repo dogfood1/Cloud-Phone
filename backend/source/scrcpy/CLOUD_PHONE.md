@@ -11,11 +11,27 @@
 3. 通过 `adb reverse` 或 `adb forward` 建立 **视频套接字** 与 **控制套接字**
 4. 桌面客户端 (C/SDL) 接收码流解码显示，键盘鼠标事件经控制通道注入
 
-### ws-scrcpy
+### ws-scrcpy（协议参考，不修改 `projects/ws-scrcpy`）
 
-1. 使用修改版 scrcpy 服务端输出 H.264 NALU
-2. Node 服务将 ADB 隧道数据桥接到 **WebSocket**
-3. 浏览器用 MSE / WebCodecs / WASM 软解播放，并转发触控、键盘、剪贴板等
+1. 浏览器/Node 使用 **`scrcpy_initial` / `scrcpy_message` 魔数** 与 Annex-B H.264（见 `frontend/web` 与 `backend/node/.../ws-scrcpy-protocol.js`）
+2. 设备端需在 server 内嵌 **WebSocket 服务**（NetrisTV fork 实现），或通过 Node 把官方 **framed TCP** 转成 ws-scrcpy 协议
+
+### NetrisTV fork（`projects/scrcpy-ws-scrcpy`，对照用，非最终产物）
+
+基于 **scrcpy 1.19**（`versionName 1.19-ws7`），与仓库内 **官方 4.0**（`backend/source/scrcpy`）架构不同，仅作 diff 参考：
+
+| 类别 | fork 新增/改动 | 官方 4.0 |
+|------|----------------|----------|
+| 入口 | `Server` 第二参数 `web` → `WSServer` | `Options.parse` 全 `key=value`，`scrcpy(options)` |
+| 传输 | `WSServer` + `WebSocketConnection`（端口默认 **8886**） | `DesktopConnection` + `LocalSocket` / `tunnel_forward` |
+| 编码输出 | `ScreenEncoder` → `Connection.send`（可选 12 字节 PTS 头） | `SurfaceEncoder` + `Streamer`（12 字节 packet flags） |
+| 控制 | `TYPE_CHANGE_STREAM_PARAMETERS`(101)、`TYPE_PUSH_FILE`(102)、`VideoSettings` | 更多官方类型（UHID、相机等），**无** 101/102 |
+| 依赖 | `Java-WebSocket`、slf4j | 无第三方网络库 |
+| 包结构 | 扁平 `com.genymobile.scrcpy.*`（约 42 个类） | 子包 `device/` `video/` `control/` 等（约 89 个类） |
+
+**Cloud-Phone 目标**：在 **`backend/source/scrcpy`（官方 4.0）** 上移植 fork 的 WebSocket 能力与 ws-scrcpy 线协议，本地编译 `scrcpy-server`（版本号仍与客户端约定一致，如 `4.0` 或 `4.0-ws1`）。**不要**长期依赖预编译的 `1.19-ws7` jar。
+
+**当前运行时（待替换）**：`SCRCPY_SERVER_VERSION=1.19-ws7` + `projects/scrcpy-ws-scrcpy` 编出的 jar；Node `server-args.js` 在版本名含 `ws` 时走 `web DEBUG 8886` 与 `/cast/ws` 代理。
 
 ## Cloud Phone 扩展参数
 

@@ -50,4 +50,18 @@ public final class DisplayInfo {
     public String getUniqueId() {
         return uniqueId;
     }
+
+    /**
+     * ws-scrcpy compatible 24-byte display descriptor (big-endian).
+     */
+    public byte[] toWsByteArray() {
+        java.nio.ByteBuffer temp = java.nio.ByteBuffer.allocate(24);
+        temp.putInt(displayId);
+        temp.putInt(size.getWidth());
+        temp.putInt(size.getHeight());
+        temp.putInt(rotation);
+        temp.putInt(layerStack);
+        temp.putInt(flags);
+        return temp.array();
+    }
 }

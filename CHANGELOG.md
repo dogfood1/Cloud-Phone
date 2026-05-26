@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-05-26
+
+- Add WebSocket cast mode to official scrcpy 4.0 server fork (`4.0-ws1`) in `backend/source/scrcpy` (device-side WS on port 8886, ws-scrcpy wire protocol)
+- Add `tools/build-scrcpy-server.mjs`; backend auto-builds `scrcpy-server` via Gradle when missing (`ensureScrcpyServerBuilt`)
+- Proxy browser WebSocket to device; Annex-B H.264 player and touch/control over single `/cast/ws`
+- Fix redundant `cast/stop` when no backend session; only stop after successful `cast/start`
+
 ## 0.5.4 - 2026-05-25
 
 - Replace ADB screenshot MJPEG cast with scrcpy H.264 WebSocket streaming (ws-scrcpy style)

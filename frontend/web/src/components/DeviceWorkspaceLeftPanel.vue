@@ -2,6 +2,8 @@
 import { ref } from "vue";
 
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
+import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
+import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
 
 defineProps({
@@ -17,8 +19,14 @@ defineProps({
 
 const emit = defineEmits(["start-cast", "stop-cast"]);
 
+const mirrorSettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
 const modes = DEVICE_CAST_MODES;
+
+function buildCastOptions() {
+  const settings = mirrorSettingsRef.value?.getSettings?.() ?? createDefaultMirrorSettings();
+  return buildCastPayloadFromMirrorSettings(settings);
+}
 </script>
 
 <template>
@@ -33,7 +41,11 @@ const modes = DEVICE_CAST_MODES;
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
-      <MirrorCastSettings v-if="castMode === 'mirror'" :serial="device.serial" />
+      <MirrorCastSettings
+        v-if="castMode === 'mirror'"
+        ref="mirrorSettingsRef"
+        :serial="device.serial"
+      />
       <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
     </div>
 
@@ -50,7 +62,7 @@ const modes = DEVICE_CAST_MODES;
         type="button"
         class="workspace-left__btn workspace-left__btn--primary"
         :disabled="!device.connected || casting"
-        @click="emit('start-cast')"
+        @click="emit('start-cast', buildCastOptions())"
       >
         开始投屏
       </button>

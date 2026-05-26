@@ -43,11 +43,16 @@ export function getPasswordRecord() {
     return null;
   }
 
-  const decrypted = decryptValue(row.value);
-  return {
-    ...JSON.parse(decrypted),
-    updatedAt: row.updated_at,
-  };
+  try {
+    const decrypted = decryptValue(row.value);
+    return {
+      ...JSON.parse(decrypted),
+      updatedAt: row.updated_at,
+    };
+  } catch {
+    console.warn("[auth] Password record is unreadable. Treating as not configured.");
+    return null;
+  }
 }
 
 export function savePasswordRecord(record) {

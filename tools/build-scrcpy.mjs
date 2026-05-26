@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { downloadScrcpyRelease } from "./download-scrcpy.mjs";
+import { buildScrcpyServer } from "./build-scrcpy-server.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scrcpyRoot = path.join(rootDir, "backend", "source", "scrcpy");
@@ -76,7 +77,12 @@ function buildFromSource() {
 }
 
 async function main() {
-  if (forceDownload || serverOnly || !canBuildFromSource()) {
+  if (serverOnly) {
+    buildScrcpyServer();
+    return;
+  }
+
+  if (forceDownload || !canBuildFromSource()) {
     if (!forceDownload && !serverOnly && !canBuildFromSource()) {
       console.warn(
         "Meson/Ninja not found (or install_release.sh missing). Falling back to official prebuilt release.",

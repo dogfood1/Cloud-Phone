@@ -37,6 +37,12 @@ watch(
   },
   { immediate: true },
 );
+
+function getSettings() {
+  return settings;
+}
+
+defineExpose({ getSettings });
 </script>
 
 <template>

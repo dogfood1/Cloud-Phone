@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { runWithAdbLock } from "./adb-lock.js";
 import { resolveAdbPath } from "./adb-path.js";
 import { getDeviceDisplayName } from "./device-display.js";
 import { getDeviceIpAddress } from "./device-ip.js";
@@ -98,6 +99,10 @@ async function enrichConnectedDevice(adbPath, device) {
 }
 
 export async function listDevices() {
+  return runWithAdbLock(listDevicesUnsafe);
+}
+
+async function listDevicesUnsafe() {
   const adbPath = resolveAdbPath();
   const { stdout } = await execFileAsync(adbPath, ["devices", "-l"], {
     windowsHide: true,

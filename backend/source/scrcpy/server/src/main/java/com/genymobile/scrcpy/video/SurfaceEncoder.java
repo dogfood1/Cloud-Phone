@@ -3,7 +3,7 @@ package com.genymobile.scrcpy.video;
 import com.genymobile.scrcpy.AndroidVersions;
 import com.genymobile.scrcpy.AsyncProcessor;
 import com.genymobile.scrcpy.Options;
-import com.genymobile.scrcpy.device.Streamer;
+import com.genymobile.scrcpy.video.VideoSink;
 import com.genymobile.scrcpy.model.Codec;
 import com.genymobile.scrcpy.model.CodecOption;
 import com.genymobile.scrcpy.model.ConfigurationException;
@@ -37,7 +37,7 @@ public class SurfaceEncoder implements AsyncProcessor {
     private static final int MAX_CONSECUTIVE_ERRORS = 3;
 
     private final SurfaceCapture capture;
-    private final Streamer streamer;
+    private final VideoSink streamer;
     private final String encoderName;
     private final List<CodecOption> codecOptions;
     private final int videoBitRate;
@@ -54,7 +54,7 @@ public class SurfaceEncoder implements AsyncProcessor {
 
     private final CaptureControl captureControl = new CaptureControl();
 
-    public SurfaceEncoder(SurfaceCapture capture, Streamer streamer, Options options) {
+    public SurfaceEncoder(SurfaceCapture capture, VideoSink streamer, Options options) {
         this.capture = capture;
         this.streamer = streamer;
         this.videoBitRate = options.getVideoBitRate();
@@ -241,7 +241,7 @@ public class SurfaceEncoder implements AsyncProcessor {
         return 0;
     }
 
-    private void encode(MediaCodec codec, Streamer streamer) throws IOException {
+    private void encode(MediaCodec codec, VideoSink streamer) throws IOException {
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
         boolean eos;

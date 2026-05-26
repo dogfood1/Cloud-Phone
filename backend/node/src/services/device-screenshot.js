@@ -1,11 +1,16 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { runWithAdbLock } from "./adb-lock.js";
 import { resolveAdbPath } from "./adb-path.js";
 
 const execFileAsync = promisify(execFile);
 
 export async function captureDeviceScreenshot(serial) {
+  return runWithAdbLock(() => captureDeviceScreenshotUnsafe(serial));
+}
+
+async function captureDeviceScreenshotUnsafe(serial) {
   const adbPath = resolveAdbPath();
   const { stdout } = await execFileAsync(
     adbPath,

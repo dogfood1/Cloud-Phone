@@ -21,12 +21,78 @@ export async function adbPush(serial, localPath, remotePath) {
 }
 
 export async function adbForward(serial, localPort, socketName) {
+  try {
+    await runAdb(["-s", serial, "forward", "--remove", `tcp:${localPort}`]);
+  } catch {
+    // ignore
+  }
+
   await runAdb(["-s", serial, "forward", `tcp:${localPort}`, `localabstract:${socketName}`]);
+}
+
+export async function adbForwardTcp(serial, localPort, remotePort) {
+  try {
+    await runAdb(["-s", serial, "forward", "--remove", `tcp:${localPort}`]);
+  } catch {
+    // ignore
+  }
+
+  await runAdb(["-s", serial, "forward", `tcp:${localPort}`, `tcp:${remotePort}`]);
+}
+
+export async function listAdbForward(serial) {
+  try {
+    const { stdout } = await runAdb(["-s", serial, "forward", "--list"]);
+    return stdout.trim();
+  } catch {
+    return "";
+  }
+}
+
+export async function clearDeviceTunnels(serial) {
+  try {
+    await runAdb(["-s", serial, "forward", "--remove-all"]);
+  } catch {
+    // ignore
+  }
+
+  try {
+    await runAdb(["-s", serial, "reverse", "--remove-all"]);
+  } catch {
+    // ignore
+  }
 }
 
 export async function adbForwardRemove(serial, localPort) {
   try {
     await runAdb(["-s", serial, "forward", "--remove", `tcp:${localPort}`]);
+  } catch {
+    // ignore if already removed
+  }
+}
+
+export async function adbReverse(serial, localPort, socketName) {
+  try {
+    await runAdb(["-s", serial, "reverse", "--remove", `tcp:${localPort}`]);
+  } catch {
+    // ignore stale rule
+  }
+
+  await runAdb(["-s", serial, "reverse", `tcp:${localPort}`, `localabstract:${socketName}`]);
+}
+
+export async function listAdbReverse(serial) {
+  try {
+    const { stdout } = await runAdb(["-s", serial, "reverse", "--list"]);
+    return stdout.trim();
+  } catch {
+    return "";
+  }
+}
+
+export async function adbReverseRemove(serial, localPort) {
+  try {
+    await runAdb(["-s", serial, "reverse", "--remove", `tcp:${localPort}`]);
   } catch {
     // ignore if already removed
   }

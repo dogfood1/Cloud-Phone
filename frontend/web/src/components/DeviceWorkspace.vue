@@ -17,13 +17,28 @@ const props = defineProps({
 const emit = defineEmits(["close"]);
 
 const actions = DEVICE_WORKSPACE_ACTIONS;
+const CAST_NAVIGATION_IDS = new Set([
+  "recents",
+  "home",
+  "back",
+  "screen-off",
+  "power",
+  "rotate",
+  "volume",
+]);
 const isCasting = ref(false);
+const castOptions = ref({ maxSize: 1024, control: true, video: true, audio: false });
+const castViewportRef = ref(null);
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
 
-function startCast() {
+function startCast(options) {
   if (!props.device.connected) {
     return;
+  }
+
+  if (options) {
+    castOptions.value = options;
   }
 
   isCasting.value = true;
@@ -31,6 +46,23 @@ function startCast() {
 
 function stopCast() {
   isCasting.value = false;
+}
+
+function isToolbarActionDisabled(actionId) {
+  if (!CAST_NAVIGATION_IDS.has(actionId)) {
+    return true;
+  }
+
+  return !isCasting.value;
+}
+
+function handleToolbarAction(actionId) {
+  if (!isCasting.value || !CAST_NAVIGATION_IDS.has(actionId)) {
+    return;
+  }
+
+  const navigationAction = actionId === "volume" ? "volume-up" : actionId;
+  castViewportRef.value?.sendNavigation?.(navigationAction);
 }
 
 function handleClose() {
@@ -65,6 +97,8 @@ onBeforeUnmount(stopCast);
           :key="action.id"
           type="button"
           class="device-workspace__action"
+          :disabled="isToolbarActionDisabled(action.id)"
+          @click="handleToolbarAction(action.id)"
         >
           <AppIcon :name="action.icon" />
           <span>{{ action.label }}</span>
@@ -81,6 +115,8 @@ onBeforeUnmount(stopCast);
         @stop-cast="stopCast"
       />
       <DeviceCastViewport
+        ref="castViewportRef"
+        v-model:cast-options="castOptions"
         class="device-workspace__pane device-workspace__pane--right"
         :device="device"
         :casting="isCasting"

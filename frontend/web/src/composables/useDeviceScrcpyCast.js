@@ -1,17 +1,61 @@
-import { onBeforeUnmount, ref, shallowRef } from "vue";
+import { nextTick, onBeforeUnmount, ref, shallowRef, unref } from "vue";
 
-import { H264WebCodecsPlayer } from "../utils/h264-webcodecs-player.js";
+import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
+import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
 
 function buildCastWebSocketUrl(serial) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}/api/devices/${encodeURIComponent(serial)}/cast/ws`;
 }
 
-export function useDeviceScrcpyCast(serialRef, canvasRef) {
+const MAGIC_INITIAL = new TextEncoder().encode("scrcpy_initial");
+const MAGIC_MESSAGE = new TextEncoder().encode("scrcpy_message");
+
+function startsWithMagic(bytes, magic) {
+  if (bytes.length < magic.length) {
+    return false;
+  }
+
+  for (let i = 0; i < magic.length; i += 1) {
+    if (bytes[i] !== magic[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function parseInitialInfoScreenSize(bytes) {
+  // ws-scrcpy initial info layout:
+  // magic(13) + deviceName(64) + displaysCount(4) + DisplayInfo(24) ...
+  const magicSize = MAGIC_INITIAL.length;
+  const base = magicSize + 64 + 4;
+  if (bytes.length < base + 24) {
+    return null;
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getInt32(base + 4, false);
+  const height = view.getInt32(base + 8, false);
+
+  if (!width || !height) {
+    return null;
+  }
+
+  return { width, height };
+}
+
+export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   const status = ref("idle");
   const errorMessage = ref("");
   const player = shallowRef(null);
+  const screenSize = ref({ width: 0, height: 0 });
+  const sessionMeta = ref(null);
   let socket = null;
+  let stopRequest = null;
+  let unbindCanvas = null;
+  /** True after POST /cast/start succeeded (backend has a session). */
+  let backendSessionActive = false;
 
   async function startCast() {
     const serial = serialRef.value;
@@ -23,17 +67,18 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
     errorMessage.value = "";
     status.value = "starting";
 
-    if (!H264WebCodecsPlayer.isSupported()) {
+    if (!WsScrcpyAnnexBPlayer.isSupported()) {
       status.value = "error";
       errorMessage.value = "当前浏览器不支持 WebCodecs H.264 解码。";
       return;
     }
 
     try {
+      const options = unref(castOptionsRef) ?? { maxSize: 1024 };
       const response = await fetch(`/api/devices/${encodeURIComponent(serial)}/cast/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxSize: 1024 }),
+        body: JSON.stringify(options),
       });
       const payload = await response.json();
 
@@ -41,12 +86,43 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
         throw new Error(payload.message ?? payload.error ?? "投屏启动失败");
       }
 
+      sessionMeta.value = payload;
+      backendSessionActive = true;
+
+      await nextTick();
       await openWebSocket(serial);
+      unbindCanvas?.();
+      unbindCanvas = bindCanvas(canvasRef.value);
+
       status.value = "streaming";
     } catch (error) {
       status.value = "error";
       errorMessage.value = error instanceof Error ? error.message : "投屏启动失败";
-      await stopCast();
+      await stopCast({ backend: backendSessionActive });
+    }
+  }
+
+  function handleWsScrcpyBinary(nextPlayer, data) {
+    const bytes = new Uint8Array(data);
+
+    if (startsWithMagic(bytes, MAGIC_INITIAL)) {
+      const size = parseInitialInfoScreenSize(bytes);
+      if (size) {
+        screenSize.value = size;
+      }
+      return;
+    }
+
+    if (startsWithMagic(bytes, MAGIC_MESSAGE)) {
+      // clipboard / push responses etc — currently ignored by Cloud-Phone UI
+      return;
+    }
+
+    nextPlayer.pushFrame(bytes);
+
+    if (nextPlayer.lastError && status.value === "streaming") {
+      status.value = "error";
+      errorMessage.value = `H.264 解码失败：${nextPlayer.lastError}`;
     }
   }
 
@@ -61,23 +137,41 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
         return;
       }
 
-      const nextPlayer = new H264WebCodecsPlayer(canvas);
+      const nextPlayer = new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
 
       socket = new WebSocket(buildCastWebSocketUrl(serial));
       socket.binaryType = "arraybuffer";
 
-      socket.addEventListener("open", () => resolve());
+      let settled = false;
+
+      socket.addEventListener("open", () => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+
       socket.addEventListener("message", (event) => {
         if (typeof event.data === "string") {
           return;
         }
 
-        nextPlayer.append(event.data);
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+
+        handleWsScrcpyBinary(nextPlayer, event.data);
       });
+
       socket.addEventListener("error", () => {
-        reject(new Error("投屏 WebSocket 连接失败"));
+        if (!settled) {
+          settled = true;
+          reject(new Error("投屏 WebSocket 连接失败"));
+        }
       });
+
       socket.addEventListener("close", () => {
         if (status.value === "streaming") {
           status.value = "error";
@@ -88,6 +182,9 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
   }
 
   function closeWebSocket() {
+    unbindCanvas?.();
+    unbindCanvas = null;
+
     if (socket) {
       socket.close();
       socket = null;
@@ -95,25 +192,131 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
 
     player.value?.destroy();
     player.value = null;
+    sessionMeta.value = null;
   }
 
-  async function stopCast() {
+  function sendControl(buffer) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    socket.send(buffer);
+  }
+
+  function bindCanvas(canvas) {
+    if (!canvas) {
+      return () => {};
+    }
+
+    const mapPoint = (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const size = screenSize.value;
+      const scaleX = size.width / rect.width;
+      const scaleY = size.height / rect.height;
+      return {
+        x: Math.round((event.clientX - rect.left) * scaleX),
+        y: Math.round((event.clientY - rect.top) * scaleY),
+      };
+    };
+
+    const onPointerDown = (event) => {
+      if (!screenSize.value.width) {
+        return;
+      }
+      canvas.setPointerCapture(event.pointerId);
+      sendControl(
+        serializeInjectTouch({
+          action: MOTION_ACTION.DOWN,
+          point: mapPoint(event),
+          screenSize: screenSize.value,
+        }),
+      );
+    };
+
+    const onPointerMove = (event) => {
+      if ((event.buttons & 1) === 0 || !screenSize.value.width) {
+        return;
+      }
+      sendControl(
+        serializeInjectTouch({
+          action: MOTION_ACTION.MOVE,
+          point: mapPoint(event),
+          screenSize: screenSize.value,
+        }),
+      );
+    };
+
+    const onPointerUp = (event) => {
+      if (!screenSize.value.width) {
+        return;
+      }
+      sendControl(
+        serializeInjectTouch({
+          action: MOTION_ACTION.UP,
+          point: mapPoint(event),
+          screenSize: screenSize.value,
+        }),
+      );
+    };
+
+    const onWheel = (event) => {
+      event.preventDefault();
+      if (!screenSize.value.width) {
+        return;
+      }
+      sendControl(
+        serializeInjectScroll({
+          point: mapPoint(event),
+          screenSize: screenSize.value,
+          hscroll: event.deltaX > 0 ? 1 : event.deltaX < 0 ? -1 : 0,
+          vscroll: event.deltaY > 0 ? 1 : event.deltaY < 0 ? -1 : 0,
+        }),
+      );
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
+      canvas.removeEventListener("wheel", onWheel);
+    };
+  }
+
+  async function stopCast(options = {}) {
     const serial = serialRef.value;
+    const shouldStopBackend = options.backend ?? backendSessionActive;
 
     closeWebSocket();
     status.value = "idle";
     errorMessage.value = "";
+    sessionMeta.value = null;
+    backendSessionActive = false;
 
-    if (!serial) {
+    if (!serial || !shouldStopBackend) {
       return;
     }
+
+    stopRequest?.abort();
+    stopRequest = new AbortController();
 
     try {
       await fetch(`/api/devices/${encodeURIComponent(serial)}/cast/stop`, {
         method: "DELETE",
+        signal: stopRequest.signal,
       });
-    } catch {
-      // ignore cleanup errors
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+    } finally {
+      stopRequest = null;
     }
   }
 
@@ -124,7 +327,15 @@ export function useDeviceScrcpyCast(serialRef, canvasRef) {
   return {
     status,
     errorMessage,
+    screenSize,
+    sessionMeta,
     startCast,
     stopCast,
+    sendNavigation: (actionId) => {
+      const buffer = serializeNavigationAction(actionId);
+      if (buffer) {
+        sendControl(buffer);
+      }
+    },
   };
 }

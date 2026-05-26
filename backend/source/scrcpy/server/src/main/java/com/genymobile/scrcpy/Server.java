@@ -270,7 +270,11 @@ public final class Server {
         }
 
         try {
-            scrcpy(options);
+            if (options.getServerMode() == Options.ServerMode.WEB) {
+                com.genymobile.scrcpy.ws.WebSocketServerRunner.run(options);
+            } else {
+                scrcpy(options);
+            }
         } catch (ConfigurationException e) {
             // Do not print stack trace, a user-friendly error-message has already been logged
         }

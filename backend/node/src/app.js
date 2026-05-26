@@ -41,13 +41,23 @@ export function createApp() {
     }
 
     if (method === "GET" && pathname === "/api/auth/session") {
-      const authStatus = await getAuthStatus(cookies[AUTH_COOKIE_NAME]);
+      try {
+        const authStatus = await getAuthStatus(cookies[AUTH_COOKIE_NAME]);
 
-      sendJson(res, 200, {
-        success: true,
-        version: APP_VERSION,
-        ...authStatus,
-      });
+        sendJson(res, 200, {
+          success: true,
+          version: APP_VERSION,
+          ...authStatus,
+        });
+      } catch (error) {
+        sendJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "auth_session_failed",
+          message: error instanceof Error ? error.message : "Failed to read auth session.",
+        });
+      }
+
       return;
     }
 

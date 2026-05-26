@@ -22,6 +22,11 @@ import java.util.Locale;
 
 public class Options {
 
+    public enum ServerMode {
+        LOCAL,
+        WEB,
+    }
+
     private Ln.Level logLevel = Ln.Level.DEBUG;
     private int scid = -1; // 31-bit non-negative value, or -1
     private boolean video = true;
@@ -85,6 +90,10 @@ public class Options {
     private boolean sendFrameMeta = true; // send PTS so that the client may record properly
     private boolean sendDummyByte = true; // write a byte on start to detect connection issues
     private boolean sendStreamMeta = true; // write the stream metadata (codec and session)
+
+    private ServerMode serverMode = ServerMode.LOCAL;
+    private int wsPort = 8886;
+    private boolean wsListenAll = true;
 
     public Ln.Level getLogLevel() {
         return logLevel;
@@ -314,6 +323,62 @@ public class Options {
         return sendStreamMeta;
     }
 
+    public ServerMode getServerMode() {
+        return serverMode;
+    }
+
+    public int getWsPort() {
+        return wsPort;
+    }
+
+    public boolean getWsListenAll() {
+        return wsListenAll;
+    }
+
+    /** Build stream {@link Options} for a WebSocket client from ws-scrcpy {@link com.genymobile.scrcpy.ws.VideoSettings}. */
+    public Options copyForWebStream(com.genymobile.scrcpy.ws.VideoSettings settings) {
+        Options copy = new Options();
+        copy.serverMode = ServerMode.WEB;
+        copy.logLevel = logLevel;
+        copy.video = true;
+        copy.audio = false;
+        copy.control = control;
+        copy.tunnelForward = false;
+        copy.sendDeviceMeta = false;
+        copy.sendFrameMeta = false;
+        copy.sendStreamMeta = false;
+        copy.sendDummyByte = false;
+        copy.videoCodec = videoCodec;
+        copy.videoBitRate = settings.getBitRate();
+        copy.maxFps = settings.getMaxFps();
+        int streamDisplayId = settings.getDisplayId();
+        copy.displayId = streamDisplayId == Device.DISPLAY_ID_NONE ? 0 : streamDisplayId;
+        if (settings.getCrop() != null) {
+            copy.crop = settings.getCrop();
+        } else {
+            copy.crop = crop;
+        }
+        if (settings.getBounds() != null) {
+            int edge = Math.max(settings.getBounds().getWidth(), settings.getBounds().getHeight());
+            copy.maxSize = edge;
+        } else if (maxSize > 0) {
+            copy.maxSize = maxSize;
+        }
+        copy.videoCodecOptions = settings.getCodecOptions() != null ? settings.getCodecOptions() : videoCodecOptions;
+        if (settings.getEncoderName() != null) {
+            copy.videoEncoder = settings.getEncoderName();
+        } else {
+            copy.videoEncoder = videoEncoder;
+        }
+        copy.showTouches = showTouches;
+        copy.stayAwake = stayAwake;
+        copy.clipboardAutosync = clipboardAutosync;
+        copy.powerOn = powerOn;
+        copy.cleanup = cleanup;
+        copy.downsizeOnError = downsizeOnError;
+        return copy;
+    }
+
     @SuppressWarnings("MethodLength")
     public static Options parse(String... args) {
         if (args.length < 1) {
@@ -327,6 +392,28 @@ public class Options {
         }
 
         Options options = new Options();
+
+        if (args.length > 1 && "web".equalsIgnoreCase(args[1])) {
+            options.serverMode = ServerMode.WEB;
+            options.video = true;
+            options.audio = false;
+            options.control = true;
+            options.tunnelForward = false;
+            options.sendDeviceMeta = false;
+            options.sendFrameMeta = false;
+            options.sendStreamMeta = false;
+            options.sendDummyByte = false;
+            if (args.length > 2) {
+                options.logLevel = Ln.Level.valueOf(args[2].toUpperCase(Locale.ENGLISH));
+            }
+            if (args.length > 3) {
+                options.wsPort = Integer.parseInt(args[3]);
+            }
+            if (args.length > 4) {
+                options.wsListenAll = Boolean.parseBoolean(args[4]);
+            }
+            return options;
+        }
 
         for (int i = 1; i < args.length; ++i) {
             String arg = args[i];
@@ -559,6 +646,19 @@ public class Options {
                         options.sendDummyByte = false;
                         options.sendStreamMeta = false;
                     }
+                    break;
+                case "server_mode":
+                    if ("web".equalsIgnoreCase(value) || "websocket".equalsIgnoreCase(value)) {
+                        options.serverMode = ServerMode.WEB;
+                    } else {
+                        options.serverMode = ServerMode.LOCAL;
+                    }
+                    break;
+                case "ws_port":
+                    options.wsPort = Integer.parseInt(value);
+                    break;
+                case "ws_listen_all":
+                    options.wsListenAll = Boolean.parseBoolean(value);
                     break;
                 default:
                     Ln.w("Unknown server option: " + key);

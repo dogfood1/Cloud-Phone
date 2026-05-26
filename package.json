@@ -8,6 +8,8 @@
     "dev:backend": "npm --prefix backend/node run dev",
     "dev:frontend": "npm --prefix frontend/web run dev",
     "start:backend": "npm --prefix backend/node run start",
-    "start:frontend": "npm --prefix frontend/web run start"
+    "start:frontend": "npm --prefix frontend/web run start",
+    "test:scrcpy-cast": "node tools/test-scrcpy-cast.mjs",
+    "test:scrcpy-cast:direct": "node tools/test-scrcpy-cast.mjs --direct-only"
   }
 }

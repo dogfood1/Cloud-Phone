@@ -51,4 +51,5 @@ export function isScrcpyServerReady() {
   return fs.existsSync(getScrcpyServerJarPath());
 }
 
-export const SCRCPY_SERVER_VERSION = "4.0";
+// Must match backend/source/scrcpy/server/build.gradle versionName (WebSocket-enabled fork of official 4.0).
+export const SCRCPY_SERVER_VERSION = "4.0-ws1";

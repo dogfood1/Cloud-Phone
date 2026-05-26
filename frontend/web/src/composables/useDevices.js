@@ -7,6 +7,7 @@ export function useDevices(
   getDeviceIntervalSeconds,
   getScreenshotIntervalSeconds,
   getAuthenticated,
+  getGalleryPollingEnabled = () => true,
 ) {
   const devices = ref([]);
   const initialLoading = ref(false);
@@ -68,10 +69,20 @@ export function useDevices(
     refreshScreenshots();
 
     deviceTimer = window.setInterval(() => {
+      if (!getGalleryPollingEnabled()) {
+        return;
+      }
+
       refreshDevices();
     }, deviceIntervalMs);
 
-    screenshotTimer = window.setInterval(refreshScreenshots, screenshotIntervalMs);
+    screenshotTimer = window.setInterval(() => {
+      if (!getGalleryPollingEnabled()) {
+        return;
+      }
+
+      refreshScreenshots();
+    }, screenshotIntervalMs);
   }
 
   function stop() {
@@ -92,7 +103,7 @@ export function useDevices(
     error.value = "";
   }
 
-  watch([getDeviceIntervalSeconds, getScreenshotIntervalSeconds], () => {
+  watch([getDeviceIntervalSeconds, getScreenshotIntervalSeconds, getGalleryPollingEnabled], () => {
     if (getAuthenticated()) {
       start();
     }
