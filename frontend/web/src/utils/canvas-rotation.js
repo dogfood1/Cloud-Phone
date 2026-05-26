@@ -42,19 +42,54 @@ export function applyStagePreviewRotation(rotator, degrees, viewport = null) {
 }
 
 /**
- * Map a pointer on a CSS-rotated preview to device pixel coordinates.
+ * Crop pointer to the active video area inside the canvas (letterboxing), like ws-scrcpy
+ * InteractionHandler.buildTouchOnClient.
  */
-export function mapTouchToDevicePoint(event, canvas, screenSize, rotationDeg) {
+export function mapClientToVideoLocal(clientX, clientY, canvas, videoSize) {
   const rect = canvas.getBoundingClientRect();
+  let touchX = clientX - rect.left;
+  let touchY = clientY - rect.top;
+  let clientWidth = canvas.clientWidth || rect.width || 1;
+  let clientHeight = canvas.clientHeight || rect.height || 1;
+  const { width: videoWidth, height: videoHeight } = videoSize;
 
-  if (!rect.width || !rect.height || !screenSize.width || !screenSize.height) {
-    return { x: 0, y: 0 };
+  if (!videoWidth || !videoHeight) {
+    return { x: touchX, y: touchY, width: clientWidth, height: clientHeight };
   }
 
-  let nx = (event.clientX - rect.left) / rect.width;
-  let ny = (event.clientY - rect.top) / rect.height;
+  const ratio = videoWidth / videoHeight;
+  const eps = 1e5;
+  const shouldBe = Math.round(eps * ratio);
+  const haveNow = Math.round((eps * clientWidth) / clientHeight);
 
-  switch (normalizeRotationDeg(rotationDeg)) {
+  if (shouldBe > haveNow) {
+    const realHeight = Math.ceil(clientWidth / ratio);
+    const top = (clientHeight - realHeight) / 2;
+    touchY -= top;
+    clientHeight = realHeight;
+  } else if (shouldBe < haveNow) {
+    const realWidth = Math.ceil(clientHeight * ratio);
+    const left = (clientWidth - realWidth) / 2;
+    touchX -= left;
+    clientWidth = realWidth;
+  }
+
+  return { x: touchX, y: touchY, width: clientWidth, height: clientHeight };
+}
+
+/**
+ * Map screen coordinates to normalized [0,1] on the unrotated canvas.
+ * Uses inverse of the rotator CSS transform (rotate + scale).
+ */
+export function clientToCanvasNormalized(event, canvas, rotator = null, videoSize = null) {
+  const wrapper = rotator ?? canvas.parentElement;
+  const deg = wrapper ? normalizeRotationDeg(Number(wrapper.dataset?.rotation || 0)) : 0;
+  const size = videoSize ?? { width: canvas.clientWidth || 1, height: canvas.clientHeight || 1 };
+  const local = mapClientToVideoLocal(event.clientX, event.clientY, canvas, size);
+  let nx = local.x / (local.width || 1);
+  let ny = local.y / (local.height || 1);
+
+  switch (deg) {
     case 90:
       [nx, ny] = [ny, 1 - nx];
       break;
@@ -68,6 +103,19 @@ export function mapTouchToDevicePoint(event, canvas, screenSize, rotationDeg) {
     default:
       break;
   }
+
+  return { nx, ny };
+}
+
+/**
+ * Map a pointer on the preview stage to device pixel coordinates.
+ */
+export function mapTouchToDevicePoint(event, canvas, screenSize, _rotationDeg, rotator = null) {
+  if (!screenSize.width || !screenSize.height) {
+    return { x: 0, y: 0 };
+  }
+
+  const { nx, ny } = clientToCanvasNormalized(event, canvas, rotator, screenSize);
 
   return {
     x: Math.round(Math.min(1, Math.max(0, nx)) * screenSize.width),

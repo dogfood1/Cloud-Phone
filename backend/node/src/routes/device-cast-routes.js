@@ -151,13 +151,34 @@ export async function handleCastWebSocket(ws, serial) {
   ws.on("message", prefetchClientMessage);
 
   try {
+    logCastInfo(serial, "ws.session.begin", {
+      webCast: Boolean(session.webCast),
+      localPort: session.localPort,
+      serverExited: session.serverExited ?? false,
+      shellPid: session.shellProcess?.pid ?? null,
+    });
+
     await ensureCastVideoPipe(serial);
+
+    logCastInfo(serial, "ws.session.pipe_ready", {
+      webCast: Boolean(session.webCast),
+      serverExited: session.serverExited ?? false,
+      shellPid: session.shellProcess?.pid ?? null,
+    });
 
     // ws-scrcpy server listens at ws://127.0.0.1:<localPort>/
     if (session.webCast) {
       ws.off("message", prefetchClientMessage);
-      await proxyWebSocket(ws, `ws://127.0.0.1:${session.localPort}/`, {
+
+      const remoteUrl = `ws://127.0.0.1:${session.localPort}/`;
+      logCastInfo(serial, "ws.proxy.attach", {
+        remoteUrl,
+        prefetchedMessages: prefetchedClientMessages.length,
+      });
+
+      await proxyWebSocket(ws, remoteUrl, {
         prefetchedClientMessages,
+        serial,
       });
       return;
     }
@@ -165,6 +186,7 @@ export async function handleCastWebSocket(ws, serial) {
     ws.off("message", prefetchClientMessage);
 
     // fallback to Cloud-Phone legacy bridge
+    logCastInfo(serial, "ws.legacy_bridge", { prefetchedMessages: prefetchedClientMessages.length });
     attachWebSocketClient(session, ws);
     await waitForCastSession(session);
     // legacy path sends ready/session/codec JSON etc (kept for compatibility)

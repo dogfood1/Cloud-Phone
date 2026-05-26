@@ -18,6 +18,7 @@ export const MOTION_ACTION = {
   DOWN: 0,
   UP: 1,
   MOVE: 2,
+  HOVER_MOVE: 7,
 };
 
 export const KEY_ACTION = {

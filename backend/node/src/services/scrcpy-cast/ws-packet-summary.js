@@ -1,0 +1,169 @@
+/** Summarize ws-scrcpy WebSocket binary frames for cast debug logs. */
+
+const MAGIC_INITIAL = Buffer.from("scrcpy_initial");
+const MAGIC_MESSAGE = Buffer.from("scrcpy_message");
+const MAGIC_AUDIO = Buffer.from("scrcpy_audio");
+
+const CONTROL_TYPE_NAMES = {
+  0: "INJECT_KEYCODE",
+  1: "INJECT_TEXT",
+  2: "INJECT_TOUCH_EVENT",
+  3: "INJECT_SCROLL_EVENT",
+  4: "BACK_OR_SCREEN_ON",
+  5: "EXPAND_NOTIFICATION_PANEL",
+  6: "EXPAND_SETTINGS_PANEL",
+  7: "COLLAPSE_PANELS",
+  8: "GET_CLIPBOARD",
+  9: "SET_CLIPBOARD",
+  10: "SET_DISPLAY_POWER",
+  11: "ROTATE_DEVICE",
+  16: "START_APP",
+  17: "RESET_VIDEO",
+  101: "CHANGE_STREAM_PARAMETERS",
+};
+
+const MOTION_ACTION_NAMES = {
+  0: "DOWN",
+  1: "UP",
+  2: "MOVE",
+  7: "HOVER_MOVE",
+  9: "HOVER_ENTER",
+  10: "HOVER_EXIT",
+};
+
+function toBuffer(data) {
+  if (Buffer.isBuffer(data)) {
+    return data;
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data);
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+  }
+
+  return Buffer.from(data);
+}
+
+function startsWithMagic(buffer, magic) {
+  return buffer.length >= magic.length && buffer.subarray(0, magic.length).equals(magic);
+}
+
+/** Match WsControlFilter.looksLikeAnnexB — only at payload start, not inside touch coords. */
+function startsWithAnnexB(buffer) {
+  if (buffer.length < 3) {
+    return false;
+  }
+
+  if (buffer[0] !== 0x00 || buffer[1] !== 0x00) {
+    return false;
+  }
+
+  if (buffer[2] === 0x01) {
+    return true;
+  }
+
+  return buffer.length >= 4 && buffer[2] === 0x00 && buffer[3] === 0x01;
+}
+
+function isKnownControlType(type) {
+  return CONTROL_TYPE_NAMES[type] !== undefined;
+}
+
+function summarizeTouch(buffer) {
+  if (buffer.length < 32) {
+    return {
+      controlType: "INJECT_TOUCH_EVENT",
+      touchBytes: buffer.length,
+      touchFormat: buffer.length === 28 ? "ws-scrcpy-legacy-28" : "short",
+    };
+  }
+
+  return {
+    controlType: "INJECT_TOUCH_EVENT",
+    action: MOTION_ACTION_NAMES[buffer[1]] ?? buffer[1],
+    pointerId: buffer.readBigInt64BE(2).toString(),
+    x: buffer.readInt32BE(10),
+    y: buffer.readInt32BE(14),
+    screenW: buffer.readUInt16BE(18),
+    screenH: buffer.readUInt16BE(20),
+    pressure: Math.round((buffer.readUInt16BE(22) / 0xffff) * 1000) / 1000,
+    actionButton: buffer.readUInt32BE(24),
+    buttons: buffer.readUInt32BE(28),
+    touchFormat: "scrcpy-4.0-32",
+  };
+}
+
+/**
+ * @param {Buffer | ArrayBuffer | ArrayBufferView} data
+ */
+export function summarizeWsPacket(data) {
+  const buffer = toBuffer(data);
+  const size = buffer.length;
+
+  if (!size) {
+    return { kind: "empty", size: 0 };
+  }
+
+  if (startsWithMagic(buffer, MAGIC_INITIAL)) {
+    return { kind: "scrcpy_initial", size };
+  }
+
+  if (startsWithMagic(buffer, MAGIC_MESSAGE)) {
+    return { kind: "scrcpy_message", size };
+  }
+
+  if (startsWithMagic(buffer, MAGIC_AUDIO)) {
+    return { kind: "scrcpy_audio", size };
+  }
+
+  if (startsWithAnnexB(buffer)) {
+    return { kind: "video_annexb", size };
+  }
+
+  const type = buffer[0];
+
+  if (type === 2) {
+    return { kind: "control", size, ...summarizeTouch(buffer) };
+  }
+
+  if (isKnownControlType(type)) {
+    const typeName = CONTROL_TYPE_NAMES[type];
+    const summary = { kind: "control", size, controlType: typeName };
+
+    if (type === 0 && size >= 14) {
+      summary.keyAction = buffer[1];
+      summary.keycode = buffer.readUInt32BE(2);
+    }
+
+    if (type === 10 && size >= 2) {
+      summary.powerMode = buffer[1];
+    }
+
+    return summary;
+  }
+
+  return { kind: "unknown", size, firstByte: type };
+}
+
+export function shouldLogPacketSummary(summary, counters, direction) {
+  if (summary.kind === "video_annexb") {
+    const key = direction === "client_to_remote" ? "clientVideo" : "remoteVideo";
+    counters[key] = (counters[key] ?? 0) + 1;
+    const count = counters[key];
+
+    return count <= 2 || count % 400 === 0;
+  }
+
+  if (summary.kind === "scrcpy_audio") {
+    const key = direction === "client_to_remote" ? "clientAudio" : "remoteAudio";
+    counters[key] = (counters[key] ?? 0) + 1;
+    const count = counters[key];
+
+    return count <= 2 || count % 200 === 0;
+  }
+
+  return true;
+}

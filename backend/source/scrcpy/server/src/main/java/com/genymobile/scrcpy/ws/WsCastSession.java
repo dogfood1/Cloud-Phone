@@ -144,6 +144,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
     }
 
     if (!started || controlChannel == null) {
+      Ln.w("Dropping control type " + type + " (pipeline not started yet)");
       return;
     }
 

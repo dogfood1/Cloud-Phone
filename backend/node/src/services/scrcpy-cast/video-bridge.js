@@ -14,6 +14,7 @@ import {
 } from "./stream-stats.js";
 import { ScrcpyVideoDemuxer } from "./video-demuxer.js";
 import { extractH264SpsPpsNals } from "./h264-config.js";
+import { summarizeWsPacket } from "./ws-packet-summary.js";
 
 const ANNEXB_START_CODE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
@@ -292,12 +293,12 @@ export function attachWebSocketClient(session, ws) {
 
   // ws-scrcpy protocol uses a single WebSocket for both video (binary) and control messages (binary).
   ws.on("message", (data) => {
-    if (!data || !session.controlSocket) {
+    if (!data) {
       return;
     }
 
-    // Client control messages are binary buffers in scrcpy control message format.
     if (typeof data === "string") {
+      logCastWarn(session.serial, "ws.legacy.text_ignored", { length: data.length });
       return;
     }
 
@@ -307,10 +308,21 @@ export function attachWebSocketClient(session, ws) {
       return;
     }
 
+    const summary = summarizeWsPacket(buffer);
+
+    if (!session.controlSocket) {
+      logCastWarn(session.serial, "ws.legacy.control_missing", summary);
+      return;
+    }
+
     try {
+      logCastInfo(session.serial, "ws.legacy.control_out", summary);
       session.controlSocket.write(buffer);
-    } catch {
-      // ignore
+    } catch (error) {
+      logCastWarn(session.serial, "ws.legacy.control_write_failed", {
+        message: error instanceof Error ? error.message : "unknown",
+        ...summary,
+      });
     }
   });
 

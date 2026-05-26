@@ -90,6 +90,27 @@ export function useDeviceWorkspaceToolbar({
     return action.kind === "cast-navigation" && action.pressHold === true;
   }
 
+  function isActionPressed(action) {
+    if (!usesPressHold(action)) {
+      return false;
+    }
+
+    for (const pressActionId of activePresses.value.values()) {
+      if (action.id === "volume") {
+        if (pressActionId === "volume-up" || pressActionId === "volume-down") {
+          return true;
+        }
+        continue;
+      }
+
+      if (pressActionId === action.id) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   function sendPressPhase(pressActionId, phase) {
     castViewportRef.value?.sendNavigationPress?.(pressActionId, phase);
   }
@@ -202,7 +223,12 @@ export function useDeviceWorkspaceToolbar({
   }
 
   function onToolbarPointerDown(action, event) {
-    if (!usesPressHold(action) || isActionDisabled(action)) {
+    if (
+      !usesPressHold(action) ||
+      isActionDisabled(action) ||
+      event.button !== 0 ||
+      event.isPrimary === false
+    ) {
       return;
     }
 
@@ -229,6 +255,10 @@ export function useDeviceWorkspaceToolbar({
 
   function onToolbarPointerUp(action, event) {
     if (!usesPressHold(action)) {
+      return;
+    }
+
+    if (event.type === "pointerup" && event.button !== 0) {
       return;
     }
 
@@ -275,6 +305,7 @@ export function useDeviceWorkspaceToolbar({
     actionTitle,
     isActionDisabled,
     usesPressHold,
+    isActionPressed,
     onToolbarPointerDown,
     onToolbarPointerUp,
     handleToolbarClick,

@@ -156,7 +156,16 @@ export async function ensureCastVideoPipe(serial) {
   // ws-scrcpy modified server streams over its own WebSocket server, no scrcpy TCP sockets.
   if (session.webCast ?? SCRCPY_WEB_CAST_MODE) {
     const { ensureServerShell } = await import("./shell-launcher.js");
+    logCastInfo(serial, "video.pipe.web_cast", {
+      localPort: session.localPort,
+      serverExited: session.serverExited ?? false,
+    });
     await ensureServerShell(session, session.castOptions ?? {});
+    logCastInfo(serial, "video.pipe.web_cast_ready", {
+      localPort: session.localPort,
+      shellPid: session.shellProcess?.pid ?? null,
+      serverExited: session.serverExited ?? false,
+    });
     return session;
   }
 

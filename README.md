@@ -39,7 +39,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 修复关屏后无法再次点亮（正确读取亮屏状态；亮屏不再重复发送电源键）
 - 工具栏旋转同步「预览旋转」；亮屏 WAKEUP+HOME 唤醒序列与视频采集重置，缓解黑屏可点无画面
 - 投屏顶栏图标与布局重设计（Lucide 风格、上图标下文字）
-- 同步前端与后端版本号到 `0.7.7`
+- 修复投屏画布触摸无法控机：触摸坐标使用解码视频帧尺寸（与 scrcpy `PositionMapper` 一致）；悬停/按下/拖动/抬起按 scrcpy SDK 鼠标协议注入；WebSocket 代理与控制调试日志
+- 同步前端与后端版本号到 `0.7.8`
 
 ### 启动方式
 ```powershell
@@ -101,7 +102,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Fix screen-on after turn-off (read `displayScreenOn` via unref; omit duplicate POWER wake on client)
 - Toolbar rotate syncs preview rotation (°); display wake sequence + capture reset for black-screen-after-on
 - Mirror cast toolbar icons and layout refresh (Lucide-style, icon above label)
-- Sync frontend and backend versions to `0.7.7`
+- Fix cast canvas touch not controlling device: use decoded video frame size for injection; scrcpy SDK mouse hover/press/release; WebSocket proxy and control debug logging
+- Sync frontend and backend versions to `0.7.8`
 
 ### Getting Started
 ```powershell

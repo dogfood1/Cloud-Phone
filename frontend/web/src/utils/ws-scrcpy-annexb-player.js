@@ -41,6 +41,10 @@ export class WsScrcpyAnnexBPlayer {
     this.hadIdr = false;
     this.timestampUs = 0;
     this.lastError = "";
+    /** Encoded video frame size — must match scrcpy PositionMapper.videoSize for touch. */
+    this.videoFrameSize = { width: 0, height: 0 };
+    /** @type {((size: { width: number, height: number }) => void) | null} */
+    this.onVideoFrameSize = null;
 
     this.resizeObserver = null;
     if (this.container) {
@@ -85,6 +89,16 @@ export class WsScrcpyAnnexBPlayer {
     const viewHeight = this.canvas.height;
     const frameWidth = frame.displayWidth;
     const frameHeight = frame.displayHeight;
+
+    if (
+      frameWidth > 0 &&
+      frameHeight > 0 &&
+      (this.videoFrameSize.width !== frameWidth || this.videoFrameSize.height !== frameHeight)
+    ) {
+      this.videoFrameSize = { width: frameWidth, height: frameHeight };
+      this.onVideoFrameSize?.(this.videoFrameSize);
+    }
+
     const scale = Math.min(viewWidth / frameWidth, viewHeight / frameHeight);
     const drawWidth = Math.round(frameWidth * scale);
     const drawHeight = Math.round(frameHeight * scale);

@@ -15,6 +15,8 @@ const MOTION_ACTION = {
   DOWN: 0,
   UP: 1,
   MOVE: 2,
+  /** scrcpy mouse_sdk — pointer over screen without press */
+  HOVER_MOVE: 7,
 };
 
 const KEY_ACTION = {
@@ -56,8 +58,43 @@ function encodeUtf8(text) {
 
 export { MOTION_ACTION };
 
-export function serializeInjectTouch({ action, point, screenSize, pointerId = 0n, pressure = 1 }) {
-  const buffer = new ArrayBuffer(28);
+/** scrcpy control_msg.h SC_POINTER_ID_MOUSE */
+export const POINTER_ID_MOUSE = -1n;
+
+/** scrcpy control_msg.h — mouse / primary button */
+export const BUTTON_PRIMARY = 1;
+
+/** scrcpy 4.0 inject_touch_event is 32 bytes (includes actionButton). */
+export function touchPhaseFields(action, pressure) {
+  switch (action) {
+    case MOTION_ACTION.DOWN:
+      return { actionButton: BUTTON_PRIMARY, buttons: BUTTON_PRIMARY, pressure: pressure ?? 1 };
+    case MOTION_ACTION.MOVE:
+      return { actionButton: 0, buttons: BUTTON_PRIMARY, pressure: pressure ?? 1 };
+    case MOTION_ACTION.UP:
+      return { actionButton: BUTTON_PRIMARY, buttons: 0, pressure: 0 };
+    case MOTION_ACTION.HOVER_MOVE:
+      return { actionButton: 0, buttons: 0, pressure: 1 };
+    default:
+      return { actionButton: 0, buttons: 0, pressure: pressure ?? 0 };
+  }
+}
+
+/**
+ * scrcpy 4.0 INJECT_TOUCH_EVENT (32 bytes).
+ * ws-scrcpy v1.19 used 28 bytes without actionButton; incompatible with this server.
+ */
+export function serializeInjectTouch({
+  action,
+  point,
+  screenSize,
+  pointerId = 0n,
+  pressure,
+  actionButton,
+  buttons,
+}) {
+  const phase = touchPhaseFields(action, pressure);
+  const buffer = new ArrayBuffer(32);
   const view = new DataView(buffer);
   view.setUint8(0, CONTROL_MSG_TYPE.INJECT_TOUCH_EVENT);
   view.setUint8(1, action);
@@ -66,8 +103,10 @@ export function serializeInjectTouch({ action, point, screenSize, pointerId = 0n
   writeU32BE(view, 14, Math.round(point.y));
   writeU16BE(view, 18, screenSize.width);
   writeU16BE(view, 20, screenSize.height);
-  view.setUint16(22, Math.round(Math.min(1, Math.max(0, pressure)) * 0xffff), false);
-  view.setUint32(24, 1, false); // buttons
+  const pressureValue = phase.pressure ?? 0;
+  view.setUint16(22, Math.round(Math.min(1, Math.max(0, pressureValue)) * 0xffff), false);
+  writeU32BE(view, 24, actionButton ?? phase.actionButton);
+  writeU32BE(view, 28, buttons ?? phase.buttons);
   return new Uint8Array(buffer);
 }
 

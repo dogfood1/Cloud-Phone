@@ -36,6 +36,7 @@ const {
   actionTitle,
   isActionDisabled,
   usesPressHold,
+  isActionPressed,
   onToolbarPointerDown,
   onToolbarPointerUp,
   handleToolbarClick,
@@ -173,7 +174,10 @@ onBeforeUnmount(() => {
           :key="action.id"
           type="button"
           class="device-workspace__action"
-          :class="{ 'device-workspace__action--hold': usesPressHold(action) }"
+          :class="{
+            'device-workspace__action--hold': usesPressHold(action),
+            'device-workspace__action--pressed': isActionPressed(action),
+          }"
           :disabled="isActionDisabled(action)"
           :title="actionTitle(action)"
           @pointerdown="onToolbarPointerDown(action, $event)"

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.8 - 2026-05-26
+
+- Fix mirror cast canvas touch not reaching device: touch `screenW/H` must match encoded video size (from decoder), not physical display from `scrcpy_initial`
+- Server `PositionMapper` scales coordinates when client and stream video sizes differ instead of dropping events
+- Cast pointer control aligned with scrcpy SDK mouse: `HOVER_MOVE` while hovering, `DOWN`/`MOVE`/`UP` while pressed, `POINTER_ID_MOUSE`, scrcpy 4.0 32-byte touch wire format
+- ws-scrcpy-style interaction handler (`setPointerCapture`, coordinate fallback, touch state machine)
+- WebSocket proxy: fix `remoteWs.OPEN` crash, queue client control until device WS connects, cast packet debug summaries
+
 ## 0.7.7 - 2026-05-26
 
 - Redesign mirror cast toolbar icons (Lucide-style strokes) and vertical icon+label layout

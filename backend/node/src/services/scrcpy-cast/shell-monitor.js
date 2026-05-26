@@ -20,7 +20,13 @@ export function attachShellMonitor(session) {
     const output = trimProcessOutput(chunk);
 
     if (output) {
-      logCastInfo(serial, "server.stdout", { output });
+      if (/\bERROR\b/i.test(output)) {
+        logCastError(serial, "server.stdout", { output });
+      } else if (/\bWARN\b/i.test(output)) {
+        logCastWarn(serial, "server.stdout", { output });
+      } else {
+        logCastInfo(serial, "server.stdout", { output });
+      }
     }
   });
 

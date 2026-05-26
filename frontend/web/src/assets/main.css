@@ -619,6 +619,7 @@ h2 {
   justify-content: center;
   gap: 0.35rem;
   min-width: 3.75rem;
+  min-height: 3.25rem;
   padding: 0.55rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -628,11 +629,19 @@ h2 {
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
     color 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.device-workspace__action-icon,
+.device-workspace__action-label {
+  pointer-events: none;
+  user-select: none;
 }
 
 .device-workspace__action-icon {
@@ -646,7 +655,8 @@ h2 {
   color: var(--text);
   transition:
     background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    transform 0.12s ease;
 }
 
 .device-workspace__action-icon .app-icon--toolbar {
@@ -686,13 +696,16 @@ h2 {
   user-select: none;
 }
 
-.device-workspace__action--hold:active:not(:disabled) {
+.device-workspace__action--hold:active:not(:disabled),
+.device-workspace__action--hold.device-workspace__action--pressed:not(:disabled) {
   border-color: var(--success);
   background: var(--success-soft);
   color: var(--success);
 }
 
-.device-workspace__action--hold:active:not(:disabled) .device-workspace__action-icon {
+.device-workspace__action--hold:active:not(:disabled) .device-workspace__action-icon,
+.device-workspace__action--hold.device-workspace__action--pressed:not(:disabled)
+  .device-workspace__action-icon {
   background: color-mix(in srgb, var(--success) 28%, transparent);
   color: var(--success);
   transform: scale(0.94);
@@ -776,6 +789,7 @@ h2 {
 .device-cast-viewport__canvas--interactive {
   touch-action: none;
   cursor: pointer;
+  user-select: none;
 }
 
 .device-cast-viewport__overlay {
@@ -802,6 +816,7 @@ h2 {
   background: rgb(8 12 20 / 65%);
   color: var(--muted);
   font-size: 0.75rem;
+  pointer-events: none;
 }
 
 .device-cast-viewport__placeholder {

@@ -33,13 +33,21 @@ public final class PositionMapper {
 
     public Point map(Position position) {
         Size clientVideoSize = position.getScreenSize();
+        Point point = position.getPoint();
+
         if (!videoSize.equals(clientVideoSize)) {
-            // The client sends a click relative to a video with wrong dimensions,
-            // the device may have been rotated since the event was generated, so ignore the event
-            return null;
+            // ws-scrcpy clients may send physical display size from scrcpy_initial while the
+            // stream is scaled (max_size). Scale coordinates instead of dropping the event.
+            if (clientVideoSize.getWidth() > 0 && clientVideoSize.getHeight() > 0
+                    && videoSize.getWidth() > 0 && videoSize.getHeight() > 0) {
+                point = new Point(
+                        point.getX() * videoSize.getWidth() / clientVideoSize.getWidth(),
+                        point.getY() * videoSize.getHeight() / clientVideoSize.getHeight());
+            } else {
+                return null;
+            }
         }
 
-        Point point = position.getPoint();
         if (videoToDeviceMatrix != null) {
             point = videoToDeviceMatrix.apply(point);
         }

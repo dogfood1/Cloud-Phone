@@ -5,9 +5,6 @@ import { isScrcpyAudioPacket, WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-aud
 import { WsScrcpyAudioPlayback } from "../utils/ws-scrcpy-audio-playback.js";
 import { isNewDisplayEnabled, resolveStartAppPackage } from "../utils/mirror-screen-utils.js";
 import {
-  MOTION_ACTION,
-  serializeInjectScroll,
-  serializeInjectTouch,
   KEY_ACTION,
   serializeDisplayWakeActions,
   serializeNavigationActions,
@@ -16,10 +13,8 @@ import {
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
-import {
-  applyStagePreviewRotation,
-  mapTouchToDevicePoint,
-} from "../utils/canvas-rotation.js";
+import { applyStagePreviewRotation } from "../utils/canvas-rotation.js";
+import { attachCastInteraction } from "../utils/scrcpy-cast-interaction.js";
 
 function isAudioOnlyCast(castOptions) {
   return castOptions?.mirror?.video?.disabled === true;
@@ -53,26 +48,6 @@ function startsWithMagic(bytes, magic) {
   }
 
   return true;
-}
-
-function parseInitialInfoScreenSize(bytes) {
-  // ws-scrcpy initial info layout:
-  // magic(13) + deviceName(64) + displaysCount(4) + DisplayInfo(24) ...
-  const magicSize = MAGIC_INITIAL.length;
-  const base = magicSize + 64 + 4;
-  if (bytes.length < base + 24) {
-    return null;
-  }
-
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const width = view.getInt32(base + 4, false);
-  const height = view.getInt32(base + 8, false);
-
-  if (!width || !height) {
-    return null;
-  }
-
-  return { width, height };
 }
 
 export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef) {
@@ -125,7 +100,13 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     await nextTick();
     await openWebSocket(serial);
     unbindCanvas?.();
-    unbindCanvas = bindCanvas(canvasRef.value);
+    unbindCanvas = attachCastInteraction({
+      canvas: canvasRef.value,
+      getScreenSize: getEffectiveScreenSize,
+      getRotator: () => rotatorRef?.value ?? null,
+      hasScreenInfo: () => screenSize.value.width > 0,
+      sendControl,
+    });
     applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
     status.value = "streaming";
   }
@@ -165,10 +146,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     const bytes = new Uint8Array(data);
 
     if (startsWithMagic(bytes, MAGIC_INITIAL)) {
-      const size = parseInitialInfoScreenSize(bytes);
-      if (size) {
-        screenSize.value = size;
-      }
+      // Physical display size from initial info — do not use for touch injection.
+      // scrcpy PositionMapper expects the encoded video frame size (see onVideoFrameSize).
       queueStartAppAfterConnect(500);
       return;
     }
@@ -197,6 +176,29 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     }
   }
 
+  function applyControlVideoSize(size) {
+    if (!size?.width || !size?.height) {
+      return;
+    }
+
+    if (
+      screenSize.value.width === size.width &&
+      screenSize.value.height === size.height
+    ) {
+      return;
+    }
+
+    screenSize.value = { width: size.width, height: size.height };
+  }
+
+  function getEffectiveScreenSize() {
+    if (screenSize.value.width > 0 && screenSize.value.height > 0) {
+      return screenSize.value;
+    }
+
+    return { width: 0, height: 0 };
+  }
+
   function openWebSocket(serial) {
     return new Promise((resolve, reject) => {
       closeWebSocket();
@@ -213,6 +215,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       const nextPlayer = audioOnly ? new WsScrcpyAudioCanvas(canvas) : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
 
+      if (!audioOnly && typeof nextPlayer.onVideoFrameSize !== "undefined") {
+        nextPlayer.onVideoFrameSize = applyControlVideoSize;
+      }
+
       audioPlayback?.destroy();
       audioPlayback =
         !audioOnly && isCastAudioEnabled(castOptions) && WsScrcpyAudioPlayback.isSupported()
@@ -224,6 +230,19 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
       let settled = false;
 
+      const settleReady = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve();
+      };
+
+      const readyTimeout = setTimeout(() => {
+        settleReady();
+      }, 12_000);
+
       socket.addEventListener("open", () => {
         const castOptions = unref(castOptionsRef) ?? {};
         sendControl(
@@ -232,10 +251,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
           ),
         );
         queueStartAppAfterConnect(1200);
-        if (!settled) {
-          settled = true;
-          resolve();
-        }
       });
 
       socket.addEventListener("message", (event) => {
@@ -243,15 +258,17 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
           return;
         }
 
-        if (!settled) {
-          settled = true;
-          resolve();
-        }
-
         handleWsScrcpyBinary(nextPlayer, event.data);
+
+        if (!settled && screenSize.value.width > 0 && screenSize.value.height > 0) {
+          clearTimeout(readyTimeout);
+          settleReady();
+        }
       });
 
       socket.addEventListener("error", () => {
+        clearTimeout(readyTimeout);
+
         if (!settled) {
           settled = true;
           reject(new Error("投屏 WebSocket 连接失败"));
@@ -259,6 +276,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       });
 
       socket.addEventListener("close", () => {
+        clearTimeout(readyTimeout);
+
         if (status.value === "streaming") {
           status.value = "error";
           errorMessage.value = "投屏连接已断开";
@@ -351,87 +370,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       degrees,
       viewportRef?.value ?? null,
     );
-  }
-
-  function bindCanvas(canvas) {
-    if (!canvas) {
-      return () => {};
-    }
-
-    const mapPoint = (event) => {
-      const size =
-        screenSize.value.width > 0
-          ? screenSize.value
-          : { width: 1080, height: 1920 };
-      const rotationDeg = unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0;
-      return mapTouchToDevicePoint(event, canvas, size, rotationDeg);
-    };
-
-    const onPointerDown = (event) => {
-      canvas.setPointerCapture(event.pointerId);
-      sendControl(
-        serializeInjectTouch({
-          action: MOTION_ACTION.DOWN,
-          point: mapPoint(event),
-          screenSize: screenSize.value,
-        }),
-      );
-    };
-
-    const onPointerMove = (event) => {
-      if ((event.buttons & 1) === 0 || !screenSize.value.width) {
-        return;
-      }
-      sendControl(
-        serializeInjectTouch({
-          action: MOTION_ACTION.MOVE,
-          point: mapPoint(event),
-          screenSize: screenSize.value,
-        }),
-      );
-    };
-
-    const onPointerUp = (event) => {
-      if (!screenSize.value.width) {
-        return;
-      }
-      sendControl(
-        serializeInjectTouch({
-          action: MOTION_ACTION.UP,
-          point: mapPoint(event),
-          screenSize: screenSize.value,
-        }),
-      );
-    };
-
-    const onWheel = (event) => {
-      event.preventDefault();
-      if (!screenSize.value.width) {
-        return;
-      }
-      sendControl(
-        serializeInjectScroll({
-          point: mapPoint(event),
-          screenSize: screenSize.value,
-          hscroll: event.deltaX > 0 ? 1 : event.deltaX < 0 ? -1 : 0,
-          vscroll: event.deltaY > 0 ? 1 : event.deltaY < 0 ? -1 : 0,
-        }),
-      );
-    };
-
-    canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("pointercancel", onPointerUp);
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerUp);
-      canvas.removeEventListener("wheel", onWheel);
-    };
   }
 
   async function stopCast(options = {}) {
