@@ -4,7 +4,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import AppIcon from "./AppIcon.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
-import { DEVICE_WORKSPACE_ACTIONS } from "../utils/device-workspace-actions.js";
+import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
 import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
@@ -22,21 +22,26 @@ const props = defineProps({
 
 const emit = defineEmits(["close"]);
 
-const actions = DEVICE_WORKSPACE_ACTIONS;
-const CAST_NAVIGATION_IDS = new Set([
-  "recents",
-  "home",
-  "back",
-  "screen-off",
-  "power",
-  "rotate",
-  "volume",
-]);
 const isCasting = ref(false);
 const castBusy = ref(false);
 const castHint = ref("");
 const castOptions = ref(buildCastPayloadFromMirrorSettings(createDefaultMirrorSettings()));
 const castViewportRef = ref(null);
+
+const {
+  actions,
+  actionLabel,
+  actionTitle,
+  isActionDisabled,
+  handleToolbarAction,
+} = useDeviceWorkspaceToolbar({
+  device: props.device,
+  isCasting,
+  castViewportRef,
+  onHint: (message) => {
+    castHint.value = message;
+  },
+});
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
 
@@ -127,39 +132,6 @@ function handleCastFailed() {
   void stopCast();
 }
 
-function isToolbarActionDisabled(actionId) {
-  if (!CAST_NAVIGATION_IDS.has(actionId)) {
-    return true;
-  }
-
-  return !isCasting.value;
-}
-
-function handleToolbarAction(actionId) {
-  if (!isCasting.value || !CAST_NAVIGATION_IDS.has(actionId)) {
-    return;
-  }
-
-  if (actionId === "screen-off") {
-    const viewport = castViewportRef.value;
-    const screenOn = viewport?.displayScreenOn?.value ?? true;
-    viewport?.sendNavigation?.(screenOn ? "screen-off" : "screen-on");
-    return;
-  }
-
-  const navigationAction = actionId === "volume" ? "volume-up" : actionId;
-  castViewportRef.value?.sendNavigation?.(navigationAction);
-}
-
-const screenOffActionLabel = computed(() => {
-  if (!isCasting.value) {
-    return "关闭屏幕";
-  }
-
-  const screenOn = castViewportRef.value?.displayScreenOn?.value ?? true;
-  return screenOn ? "关闭屏幕" : "点亮屏幕";
-});
-
 async function handleClose() {
   await stopCast();
   emit("close");
@@ -194,11 +166,12 @@ onBeforeUnmount(() => {
           :key="action.id"
           type="button"
           class="device-workspace__action"
-          :disabled="isToolbarActionDisabled(action.id)"
-          @click="handleToolbarAction(action.id)"
+          :disabled="isActionDisabled(action)"
+          :title="actionTitle(action)"
+          @click="handleToolbarAction(action.id, $event)"
         >
           <AppIcon :name="action.icon" />
-          <span>{{ action.id === "screen-off" ? screenOffActionLabel : action.label }}</span>
+          <span>{{ actionLabel(action) }}</span>
         </button>
       </div>
     </header>

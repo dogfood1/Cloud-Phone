@@ -135,32 +135,49 @@ export function serializeSetClipboard(text, paste = true, sequence = 0n) {
   return new Uint8Array(buffer);
 }
 
-export function serializeNavigationAction(actionId) {
+function serializeKeyTap(keycode) {
+  return [
+    serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode }),
+    serializeInjectKeycode({ action: KEY_ACTION.UP, keycode }),
+  ];
+}
+
+/** scrcpy toolbar: one logical press = DOWN then UP (or paired control msgs). */
+export function serializeNavigationActions(actionId) {
   switch (actionId) {
     case "home":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.HOME });
+      return serializeKeyTap(ANDROID_KEYCODE.HOME);
     case "recents":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.APP_SWITCH });
+      return serializeKeyTap(ANDROID_KEYCODE.APP_SWITCH);
     case "back":
-      return serializeBackOrScreenOn(KEY_ACTION.DOWN);
+      return [
+        serializeBackOrScreenOn(KEY_ACTION.DOWN),
+        serializeBackOrScreenOn(KEY_ACTION.UP),
+      ];
     case "power":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.POWER });
+      return serializeKeyTap(ANDROID_KEYCODE.POWER);
     case "volume-up":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.VOLUME_UP });
+      return serializeKeyTap(ANDROID_KEYCODE.VOLUME_UP);
     case "volume-down":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.VOLUME_DOWN });
+      return serializeKeyTap(ANDROID_KEYCODE.VOLUME_DOWN);
     case "rotate":
-      return serializeRotateDevice();
+      return [serializeRotateDevice()];
     case "screen-off":
-      return serializeSetScreenPowerMode(false);
+      return [serializeSetScreenPowerMode(false)];
     case "screen-on":
-      return serializeSetScreenPowerMode(true);
+      return [serializeSetScreenPowerMode(true)];
     case "wake-screen":
-      return serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.POWER });
+      return [serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode: ANDROID_KEYCODE.POWER })];
     case "wake-screen-up":
-      return serializeInjectKeycode({ action: KEY_ACTION.UP, keycode: ANDROID_KEYCODE.POWER });
+      return [serializeInjectKeycode({ action: KEY_ACTION.UP, keycode: ANDROID_KEYCODE.POWER })];
     default:
-      return null;
+      return [];
   }
+}
+
+/** @deprecated Prefer serializeNavigationActions for toolbar keys. */
+export function serializeNavigationAction(actionId) {
+  const buffers = serializeNavigationActions(actionId);
+  return buffers[0] ?? null;
 }
 

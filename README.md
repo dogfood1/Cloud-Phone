@@ -34,7 +34,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 投屏中锁定镜像参数；修复触摸点关闭残留、关屏/亮屏切换、视频+音频同传；WebSocket 软重配避免管线崩溃
 - 镜像「屏幕」对齐 escrcpy：分组虚拟屏预设、`--new-display`、IME/装饰选项；`--start-app` 在新建虚拟屏上启动（非主屏）
 - 镜像音频默认开启，修复未勾「禁用视频」时整组音频误灰及「禁用音频」开关无法关闭的问题
-- 同步前端与后端版本号到 `0.7.2`
+- 镜像投屏顶栏：多任务/主屏/返回等导航键发送完整 DOWN+UP；设备在线可截屏下载；Shift+点击降低音量
+- 同步前端与后端版本号到 `0.7.3`
 
 ### 启动方式
 ```powershell
@@ -91,7 +92,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Cast settings locked during session; fix show_touches, screen power toggle, video+audio PCM; soft stream reconfigure avoids pipeline crash
 - Mirror screen settings (escrcpy-aligned): grouped new-display presets, IME/decorations; `--start-app` on virtual display, not main screen
 - Mirror audio enabled by default; fix grayed-out audio panel and locked「disable audio」switch without toggling video-only mode
-- Sync frontend and backend versions to `0.7.2`
+- Mirror cast toolbar: recents/home/back/power/volume/rotate send full DOWN+UP key pairs; screenshot download when device online; Shift+click for volume-down
+- Sync frontend and backend versions to `0.7.3`
 
 ### Getting Started
 ```powershell

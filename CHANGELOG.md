@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3 - 2026-05-26
+
+- Mirror cast toolbar: navigation keys (recents, home, back, power, volume, rotate) send scrcpy-style DOWN+UP pairs so buttons work reliably
+- Toolbar refactor: `useDeviceWorkspaceToolbar`, action `kind` metadata; screenshot downloads PNG when device is online (no cast required); Shift+click volume for volume-down
+
 ## 0.7.2 - 2026-05-26
 
 - Fix mirror audio section stuck disabled on load: default `audio.disabled` to false (web cast ships audio with video)

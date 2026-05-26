@@ -8,7 +8,7 @@ import {
   MOTION_ACTION,
   serializeInjectScroll,
   serializeInjectTouch,
-  serializeNavigationAction,
+  serializeNavigationActions,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
@@ -490,18 +490,25 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
         displayScreenOn.value = turnOn;
 
         if (turnOn) {
-          sendControl(serializeNavigationAction("screen-on"));
-          sendControl(serializeNavigationAction("wake-screen"));
-          sendControl(serializeNavigationAction("wake-screen-up"));
+          for (const buffer of serializeNavigationActions("screen-on")) {
+            sendControl(buffer);
+          }
+          for (const buffer of serializeNavigationActions("wake-screen")) {
+            sendControl(buffer);
+          }
+          for (const buffer of serializeNavigationActions("wake-screen-up")) {
+            sendControl(buffer);
+          }
         } else {
-          sendControl(serializeNavigationAction("screen-off"));
+          for (const buffer of serializeNavigationActions("screen-off")) {
+            sendControl(buffer);
+          }
         }
 
         return;
       }
 
-      const buffer = serializeNavigationAction(actionId);
-      if (buffer) {
+      for (const buffer of serializeNavigationActions(actionId)) {
         sendControl(buffer);
       }
     },

@@ -149,42 +149,42 @@ export function serializeInjectText(text) {
   return buffer;
 }
 
-export function serializeNavigationAction(actionId) {
+function serializeKeyTap(keycode) {
+  return [
+    serializeInjectKeycode({ action: KEY_ACTION.DOWN, keycode }),
+    serializeInjectKeycode({ action: KEY_ACTION.UP, keycode }),
+  ];
+}
+
+export function serializeNavigationActions(actionId) {
   switch (actionId) {
     case "home":
-      return serializeInjectKeycode({
-        action: KEY_ACTION.DOWN,
-        keycode: ANDROID_KEYCODE.HOME,
-      });
+      return serializeKeyTap(ANDROID_KEYCODE.HOME);
     case "recents":
-      return serializeInjectKeycode({
-        action: KEY_ACTION.DOWN,
-        keycode: ANDROID_KEYCODE.APP_SWITCH,
-      });
+      return serializeKeyTap(ANDROID_KEYCODE.APP_SWITCH);
     case "back":
-      return serializeBackOrScreenOn(KEY_ACTION.DOWN);
+      return [
+        serializeBackOrScreenOn(KEY_ACTION.DOWN),
+        serializeBackOrScreenOn(KEY_ACTION.UP),
+      ];
     case "power":
-      return serializeInjectKeycode({
-        action: KEY_ACTION.DOWN,
-        keycode: ANDROID_KEYCODE.POWER,
-      });
+      return serializeKeyTap(ANDROID_KEYCODE.POWER);
     case "volume-up":
-      return serializeInjectKeycode({
-        action: KEY_ACTION.DOWN,
-        keycode: ANDROID_KEYCODE.VOLUME_UP,
-      });
+      return serializeKeyTap(ANDROID_KEYCODE.VOLUME_UP);
     case "volume-down":
-      return serializeInjectKeycode({
-        action: KEY_ACTION.DOWN,
-        keycode: ANDROID_KEYCODE.VOLUME_DOWN,
-      });
+      return serializeKeyTap(ANDROID_KEYCODE.VOLUME_DOWN);
     case "rotate":
-      return serializeRotateDevice();
+      return [serializeRotateDevice()];
     case "screen-off":
-      return serializeSetDisplayPower(false);
+      return [serializeSetDisplayPower(false)];
     case "screen-on":
-      return serializeSetDisplayPower(true);
+      return [serializeSetDisplayPower(true)];
     default:
-      return null;
+      return [];
   }
+}
+
+export function serializeNavigationAction(actionId) {
+  const buffers = serializeNavigationActions(actionId);
+  return buffers[0] ?? null;
 }
