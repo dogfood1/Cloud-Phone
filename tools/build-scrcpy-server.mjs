@@ -16,12 +16,46 @@ const binDir = path.join(rootDir, "backend", "bin", "scrcpy", platformKey);
 const serverBinPath = path.join(binDir, "scrcpy-server");
 const gradlew = process.platform === "win32" ? "gradlew.bat" : "gradlew";
 
+function listProgramFilesJavaHomes() {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const javaRoot = "C:\\Program Files\\Java";
+  if (!fs.existsSync(javaRoot)) {
+    return [];
+  }
+
+  const versionRank = (name) => {
+    const match = name.match(/jdk-(\d+)/i);
+    return match ? Number(match[1]) : 0;
+  };
+
+  return fs
+    .readdirSync(javaRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^jdk-/i.test(entry.name))
+    .sort((a, b) => versionRank(b.name) - versionRank(a.name))
+    .map((entry) => path.join(javaRoot, entry.name));
+}
+
 const JAVA_HOME_CANDIDATES = [
-  process.env.JAVA_HOME,
   process.env.CLOUD_PHONE_JAVA_HOME,
+  process.env.JAVA_HOME,
+  ...listProgramFilesJavaHomes(),
   "C:\\Program Files\\Android\\Android Studio\\jbr",
   path.join(process.env.LOCALAPPDATA ?? "", "Programs", "Android", "Android Studio", "jbr"),
 ].filter(Boolean);
+
+function javaMajorVersion(javaHome) {
+  const releaseFile = path.join(javaHome, "release");
+  if (!fs.existsSync(releaseFile)) {
+    return 0;
+  }
+
+  const text = fs.readFileSync(releaseFile, "utf8");
+  const match = text.match(/JAVA_VERSION="?(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
 
 function resolveJavaHome() {
   for (const candidate of JAVA_HOME_CANDIDATES) {
@@ -29,11 +63,19 @@ function resolveJavaHome() {
       process.platform === "win32"
         ? path.join(candidate, "bin", "java.exe")
         : path.join(candidate, "bin", "java");
-    if (fs.existsSync(javaBin)) {
-      return candidate;
+    if (!fs.existsSync(javaBin)) {
+      continue;
     }
+
+    const major = javaMajorVersion(candidate);
+    if (major > 0 && major < 17) {
+      continue;
+    }
+
+    return candidate;
   }
-  return process.env.JAVA_HOME ?? null;
+
+  return null;
 }
 
 function resolveAndroidHome() {
@@ -52,6 +94,10 @@ function run(command, args, options = {}) {
   const javaHome = resolveJavaHome();
   if (javaHome) {
     env.JAVA_HOME = javaHome;
+  } else if (!options.allowMissingJava) {
+    throw new Error(
+      "JDK 17+ required. Set CLOUD_PHONE_JAVA_HOME or install JDK 17 under Program Files\\Java",
+    );
   }
   const androidHome = resolveAndroidHome();
   if (androidHome) {

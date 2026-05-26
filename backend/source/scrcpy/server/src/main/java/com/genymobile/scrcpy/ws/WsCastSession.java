@@ -5,7 +5,10 @@ import com.genymobile.scrcpy.CleanUp;
 import com.genymobile.scrcpy.Options;
 import com.genymobile.scrcpy.control.ControlMessage;
 import com.genymobile.scrcpy.control.Controller;
+import com.genymobile.scrcpy.device.Device;
 import com.genymobile.scrcpy.model.ConfigurationException;
+import com.genymobile.scrcpy.model.NewDisplay;
+import com.genymobile.scrcpy.video.NewDisplayCapture;
 import com.genymobile.scrcpy.util.Ln;
 import com.genymobile.scrcpy.util.Settings;
 import com.genymobile.scrcpy.util.SettingsException;
@@ -41,6 +44,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
   private WsPcmAudioProcessor pcmAudioProcessor;
   private CleanUp cleanUp;
   private boolean started;
+  private Options activeStreamOptions;
 
   WsCastSession(Options baseOptions, VideoSettings videoSettings, WsServer server) {
     this.baseOptions = baseOptions;
@@ -80,19 +84,31 @@ public final class WsCastSession implements WsSocketBroadcaster {
     if (socket != null) {
       clients.add(socket);
     }
-    if (incoming != null && !incoming.equals(videoSettings)) {
-      videoSettings = incoming;
+
+    // ws-scrcpy always sends type 101 after connect; defer pipeline until then so
+    // --new-display / --start-app use the correct display id (not main display 0).
+    if (incoming != null) {
+      boolean changed = !incoming.equals(videoSettings);
+      if (changed) {
+        videoSettings = incoming;
+      }
       if (started) {
-        softReconfigureStream();
+        if (changed) {
+          softReconfigureStream();
+        }
         server.broadcastInitialInfo();
         return;
       }
-    }
-    if (!started) {
       startPipeline();
-    } else {
-      server.broadcastInitialInfo();
+      return;
     }
+
+    if (!started) {
+      Ln.d("Web cast client joined, waiting for stream parameters (type 101)");
+      return;
+    }
+
+    server.broadcastInitialInfo();
   }
 
   void leave(WebSocket socket) {
@@ -149,12 +165,10 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
     applyShowTouchesSystemSetting(streamOptions.getShowTouches());
 
+    activeStreamOptions = streamOptions;
+
     if (useVideo) {
-      surfaceCapture = new ScreenCapture(controller, streamOptions);
-      streamer = new WsStreamer(clients, streamOptions);
-      surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
-      controller.setSurfaceCapture(surfaceCapture);
-      surfaceEncoder.start(videoTerminationListener());
+      startVideoEncoder(streamOptions);
     }
 
     controller.start(controlTerminationListener());
@@ -166,6 +180,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
     }
 
     scheduleTurnScreenOffIfRequested(streamOptions);
+    scheduleStartAppIfRequested(streamOptions);
     started = true;
     server.broadcastInitialInfo();
   }
@@ -174,10 +189,131 @@ public final class WsCastSession implements WsSocketBroadcaster {
     Options streamOptions = baseOptions.copyForWebStream(videoSettings);
     applyShowTouchesSystemSetting(streamOptions.getShowTouches());
     syncAudioProcessor(streamOptions, streamOptions.getVideo());
-    if (streamOptions.getVideo() && controller != null) {
-      controller.requestResetVideo();
+
+    if (requiresControlRestart(activeStreamOptions, streamOptions)) {
+      restartControl(streamOptions);
     }
+
+    if (streamOptions.getVideo()) {
+      if (requiresVideoCaptureRestart(activeStreamOptions, streamOptions)) {
+        restartVideoCapture(streamOptions);
+      } else if (surfaceEncoder != null) {
+        surfaceEncoder.requestCaptureReset();
+      } else {
+        startVideoEncoder(streamOptions);
+      }
+    } else {
+      stopVideoEncoder();
+    }
+
+    activeStreamOptions = streamOptions;
     scheduleTurnScreenOffIfRequested(streamOptions);
+    scheduleStartAppIfRequested(streamOptions);
+  }
+
+  private static boolean requiresControlRestart(Options previous, Options next) {
+    return requiresVideoCaptureRestart(previous, next);
+  }
+
+  private void restartControl(Options streamOptions) {
+    if (controller != null) {
+      controller.stop();
+    }
+    controller = new Controller(controlChannel, cleanUp, streamOptions);
+    controller.start(controlTerminationListener());
+  }
+
+  private static boolean requiresVideoCaptureRestart(Options previous, Options next) {
+    if (previous == null) {
+      return true;
+    }
+
+    NewDisplay prevNd = previous.getNewDisplay();
+    NewDisplay nextNd = next.getNewDisplay();
+    boolean prevHasNd = prevNd != null;
+    boolean nextHasNd = nextNd != null;
+    if (prevHasNd != nextHasNd) {
+      return true;
+    }
+
+    if (prevHasNd && nextHasNd) {
+      if (!java.util.Objects.equals(prevNd.getSize(), nextNd.getSize()) || prevNd.getDpi() != nextNd.getDpi()) {
+        return true;
+      }
+    }
+
+    if (previous.getDisplayId() != next.getDisplayId()) {
+      return true;
+    }
+
+    if (!java.util.Objects.equals(previous.getCrop(), next.getCrop())) {
+      return true;
+    }
+
+    if (previous.getFlexDisplay() != next.getFlexDisplay()) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private static SurfaceCapture createSurfaceCapture(Controller controller, Options options)
+      throws ConfigurationException, IOException {
+    if (options.getNewDisplay() != null) {
+      Ln.i("Web cast using new virtual display");
+      return new NewDisplayCapture(controller, options);
+    }
+
+    if (options.getDisplayId() == Device.DISPLAY_ID_NONE) {
+      throw new ConfigurationException("No display id for screen capture");
+    }
+
+    return new ScreenCapture(controller, options);
+  }
+
+  private void startVideoEncoder(Options streamOptions) throws IOException, ConfigurationException {
+    stopVideoEncoder();
+    surfaceCapture = createSurfaceCapture(controller, streamOptions);
+    streamer = new WsStreamer(clients, streamOptions);
+    surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
+    controller.setSurfaceCapture(surfaceCapture);
+    surfaceEncoder.start(videoTerminationListener());
+  }
+
+  private void stopVideoEncoder() {
+    if (surfaceEncoder != null) {
+      surfaceEncoder.stop();
+      surfaceEncoder = null;
+    }
+    surfaceCapture = null;
+    streamer = null;
+  }
+
+  private void restartVideoCapture(Options streamOptions) throws IOException, ConfigurationException {
+    startVideoEncoder(streamOptions);
+  }
+
+  private void scheduleStartAppIfRequested(Options streamOptions) {
+    String app = streamOptions.getStartApp();
+    if (app == null || app.isEmpty() || controller == null) {
+      return;
+    }
+
+    boolean onNewDisplay = streamOptions.getNewDisplay() != null;
+    long delay = onNewDisplay ? 3500 : 600;
+    Ln.i("Scheduling --start-app \"" + app + "\" on "
+        + (onNewDisplay ? "new virtual display" : "display " + streamOptions.getDisplayId())
+        + " in " + delay + "ms");
+    SCHEDULER.schedule(() -> {
+      if (started && controller != null) {
+        controller.requestStartApp(app);
+      }
+    }, delay, TimeUnit.MILLISECONDS);
+    SCHEDULER.schedule(() -> {
+      if (started && controller != null) {
+        controller.requestStartApp(app);
+      }
+    }, delay + 2500, TimeUnit.MILLISECONDS);
   }
 
   private AsyncProcessor.TerminationListener videoTerminationListener() {
@@ -266,10 +402,8 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
   private void stopPipeline() {
     started = false;
-    if (surfaceEncoder != null) {
-      surfaceEncoder.stop();
-      surfaceEncoder = null;
-    }
+    activeStreamOptions = null;
+    stopVideoEncoder();
     stopAudioProcessor();
     if (controller != null) {
       controller.stop();
@@ -280,7 +414,5 @@ public final class WsCastSession implements WsSocketBroadcaster {
       cleanUp = null;
     }
     controlChannel = null;
-    surfaceCapture = null;
-    streamer = null;
   }
 }

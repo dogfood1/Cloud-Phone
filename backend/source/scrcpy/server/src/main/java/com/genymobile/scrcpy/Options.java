@@ -77,6 +77,9 @@ public class Options {
     private boolean vdSystemDecorations = true;
     private boolean flexDisplay;
 
+    /** Package or scrcpy --start-app selector from web stream extras. */
+    private String startApp;
+
     private boolean keepActive;
 
     private Orientation.Lock captureOrientationLock = Orientation.Lock.Unlocked;
@@ -266,6 +269,10 @@ public class Options {
         return newDisplay;
     }
 
+    public String getStartApp() {
+        return startApp;
+    }
+
     public Orientation getCaptureOrientation() {
         return captureOrientation;
     }
@@ -359,7 +366,9 @@ public class Options {
         copy.videoBitRate = settings.getBitRate();
         copy.maxFps = settings.getMaxFps();
         int streamDisplayId = settings.getDisplayId();
-        copy.displayId = streamDisplayId == Device.DISPLAY_ID_NONE ? 0 : streamDisplayId;
+        copy.displayId = streamDisplayId == Device.DISPLAY_ID_NONE
+            ? Device.DISPLAY_ID_NONE
+            : streamDisplayId;
         if (settings.getCrop() != null) {
             copy.crop = settings.getCrop();
         } else {
@@ -451,10 +460,14 @@ public class Options {
                 }
                 break;
             case "new_display":
-                if (!value.isEmpty()) {
-                    copy.newDisplay = parseNewDisplay(value);
-                    copy.displayId = Device.DISPLAY_ID_NONE;
+                if ("default".equals(value)) {
+                    value = "";
                 }
+                copy.newDisplay = parseNewDisplay(value);
+                copy.displayId = Device.DISPLAY_ID_NONE;
+                break;
+            case "vd_system_decorations":
+                copy.vdSystemDecorations = Boolean.parseBoolean(value);
                 break;
             case "display_id":
                 copy.displayId = Integer.parseInt(value);
@@ -485,6 +498,11 @@ public class Options {
                 break;
             case "display_ime_policy":
                 copy.displayImePolicy = parseDisplayImePolicy(value);
+                break;
+            case "start_app":
+                if (!value.isEmpty()) {
+                    copy.startApp = value;
+                }
                 break;
             case "video":
                 copy.video = Boolean.parseBoolean(value);

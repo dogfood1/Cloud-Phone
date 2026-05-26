@@ -1,4 +1,5 @@
 import { resolveAudioStreamParams } from "./mirror-audio-platform.js";
+import { appendScreenStreamExtras } from "./mirror-screen-utils.js";
 import { captureOrientationServerValue } from "./mirror-video-config.js";
 
 /**
@@ -76,14 +77,7 @@ export function buildStreamExtrasFromMirror(mirror = {}) {
     parts.push(`crop=${crop}`);
   }
 
-  if (screen.useNewDisplay) {
-    const w = Number(screen.newDisplayWidth) || 1920;
-    const h = Number(screen.newDisplayHeight) || 1080;
-    const dpi = Number(screen.newDisplayDpi) || 420;
-    parts.push(`new_display=${w}x${h}/${dpi}`);
-  } else if (screen.displayId !== undefined && screen.displayId !== "") {
-    // displayId sent via VideoSettings.displayId field
-  }
+  appendScreenStreamExtras(parts, screen);
 
   parts.push(`show_touches=${Boolean(device.showTouches)}`);
 
@@ -104,19 +98,6 @@ export function buildStreamExtrasFromMirror(mirror = {}) {
   }
 
   parts.push(`power_on=${device.noPowerOn ? false : device.powerOn !== false}`);
-
-  if (screen.flexDisplay) {
-    parts.push("flex_display=true");
-  }
-
-  if (screen.noVdDestroyContent) {
-    parts.push("vd_destroy_content=false");
-  }
-
-  const imePolicy = String(screen.displayImePolicy ?? "").trim();
-  if (imePolicy) {
-    parts.push(`display_ime_policy=${imePolicy}`);
-  }
 
   return parts.join(",");
 }

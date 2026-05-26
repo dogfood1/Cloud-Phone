@@ -363,6 +363,11 @@ public class SurfaceEncoder implements AsyncProcessor {
         thread.start();
     }
 
+    /** Request encoder loop restart (safe before {@link SurfaceCapture#init} completes). */
+    public void requestCaptureReset() {
+        captureControl.reset(CaptureControl.RESET_REASON_CLIENT_RESET);
+    }
+
     @Override
     public void stop() {
         if (thread != null) {

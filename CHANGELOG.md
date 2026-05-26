@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 - 2026-05-26
+
+- Mirror「屏幕」settings aligned with escrcpy: grouped `--new-display` presets, custom resolution/DPI, `--flex-display`, `--no-vd-destroy-content`, `--no-vd-system-decorations`, `--display-ime-policy`
+- Web cast: use `NewDisplayCapture` when `new_display` is in stream extras; defer pipeline start until ws type 101; recreate `Controller` on display config change so `--start-app` launches on the virtual display (not main display 0)
+- Stream extras: `start_app`, `new_display` (incl. main-size empty value), `vd_system_decorations`; server schedules start-app after virtual display is ready (5s wait + retries)
+- Frontend: `serializeStartApp` control message; auto start app after connect; `build-scrcpy-server.mjs` auto-picks JDK 17+ from Program Files\\Java
+- Fix compile error in `WsCastSession.restartControl`; fix type-101 soft reconfigure NPE via `SurfaceEncoder.requestCaptureReset`
+
 ## 0.6.9 - 2026-05-26
 
 - Fix web cast startup crash: soft-reconfigure on ws type 101 instead of full pipeline restart; video+audio PCM with delayed audio start

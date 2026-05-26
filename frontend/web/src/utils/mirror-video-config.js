@@ -4,6 +4,7 @@ import {
   resolveVideoEncoderName,
   sortVideoEncoders,
 } from "./mirror-encoder-utils.js";
+import { isNewDisplayEnabled } from "./mirror-screen-utils.js";
 import { buildStreamExtrasFromMirror } from "./mirror-stream-extras.js";
 
 const RESOLUTION_MAX_SIZE = Object.fromEntries(
@@ -60,8 +61,9 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
   const maxSize =
     Number(castOptions.maxSize) || maxSizeFromMirrorVideo(video) || 0;
 
-  const displayId = screen.useNewDisplay
-    ? 0
+  // scrcpy uses display id NONE (-1) with --new-display; server applies new_display from codec extras.
+  const displayId = isNewDisplayEnabled(screen)
+    ? -1
     : Number(screen.displayId ?? 0) || 0;
 
   const encoderList = sortVideoEncoders(castOptions.videoEncoders ?? mirror.videoEncoders ?? []);

@@ -825,10 +825,10 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
             return displayId;
         }
 
-        // Mirroring a new virtual display id (using --new-display-id feature)
+        // Mirroring a new virtual display (--new-display): app must launch on that display.
         try {
-            // Wait for at most 1 second until a virtual display id is known
-            DisplayData data = waitDisplayData(1000);
+            long timeoutMs = 5000;
+            DisplayData data = waitDisplayData(timeoutMs);
             if (data != null) {
                 return data.virtualDisplayId;
             }
@@ -886,11 +886,26 @@ public class Controller implements AsyncProcessor, VirtualDisplayListener {
         resetVideo();
     }
 
-    private void resetVideo() {
-        if (surfaceCapture != null) {
-            Ln.i("Video capture reset");
-            surfaceCapture.getCaptureControl().reset(CaptureControl.RESET_REASON_CLIENT_RESET);
+    /** Launch an app on the mirrored / virtual display (scrcpy --start-app). */
+    public void requestStartApp(String name) {
+        if (name != null && !name.isEmpty()) {
+            startAppAsync(name);
         }
+    }
+
+    private void resetVideo() {
+        if (surfaceCapture == null) {
+            return;
+        }
+
+        CaptureControl captureControl = surfaceCapture.getCaptureControl();
+        if (captureControl == null) {
+            Ln.d("Video capture reset skipped (capture not initialized yet)");
+            return;
+        }
+
+        Ln.i("Video capture reset");
+        captureControl.reset(CaptureControl.RESET_REASON_CLIENT_RESET);
     }
 
     private void resizeDisplay(int width, int height) {

@@ -7,6 +7,7 @@ const CONTROL_MSG_TYPE = {
   SET_CLIPBOARD: 9,
   SET_SCREEN_POWER_MODE: 10,
   ROTATE_DEVICE: 11,
+  START_APP: 16,
 };
 
 const MOTION_ACTION = {
@@ -103,6 +104,23 @@ export function serializeSetScreenPowerMode(on) {
 
 export function serializeRotateDevice() {
   return new Uint8Array([CONTROL_MSG_TYPE.ROTATE_DEVICE]);
+}
+
+/** scrcpy control message: 1-byte tiny length + UTF-8 app name (package or ?name). */
+export function serializeStartApp(name) {
+  const bytes = encodeUtf8(name);
+  const length = Math.min(bytes.length, 255);
+
+  if (length === 0) {
+    return null;
+  }
+
+  const buffer = new ArrayBuffer(2 + length);
+  const view = new DataView(buffer);
+  view.setUint8(0, CONTROL_MSG_TYPE.START_APP);
+  view.setUint8(1, length);
+  new Uint8Array(buffer, 2).set(bytes.subarray(0, length));
+  return new Uint8Array(buffer);
 }
 
 export function serializeSetClipboard(text, paste = true, sequence = 0n) {

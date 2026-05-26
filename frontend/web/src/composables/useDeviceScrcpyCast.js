@@ -3,7 +3,14 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { isScrcpyAudioPacket, WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
 import { WsScrcpyAudioPlayback } from "../utils/ws-scrcpy-audio-playback.js";
-import { MOTION_ACTION, serializeInjectScroll, serializeInjectTouch, serializeNavigationAction } from "../utils/ws-scrcpy-control.js";
+import { isNewDisplayEnabled, resolveStartAppPackage } from "../utils/mirror-screen-utils.js";
+import {
+  MOTION_ACTION,
+  serializeInjectScroll,
+  serializeInjectTouch,
+  serializeNavigationAction,
+  serializeStartApp,
+} from "../utils/ws-scrcpy-control.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
 
 function isAudioOnlyCast(castOptions) {
@@ -72,6 +79,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
   let audioPlayback = null;
   /** True after POST /cast/start succeeded (backend has a session). */
   let backendSessionActive = false;
+  let startAppTimer = null;
+  let startAppSent = false;
   const displayScreenOn = ref(true);
 
   async function beginCast(payload) {
@@ -152,6 +161,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
       if (size) {
         screenSize.value = size;
       }
+      queueStartAppAfterConnect(500);
       return;
     }
 
@@ -213,6 +223,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
             videoSettingsFromCastOptions(castOptions, sessionMeta.value),
           ),
         );
+        queueStartAppAfterConnect(1200);
         if (!settled) {
           settled = true;
           resolve();
@@ -248,7 +259,51 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef) {
     });
   }
 
+  function clearStartAppTimer() {
+    if (startAppTimer) {
+      clearTimeout(startAppTimer);
+      startAppTimer = null;
+    }
+  }
+
+  function queueStartAppAfterConnect(delayMs) {
+    const screen = unref(castOptionsRef)?.mirror?.screen ?? {};
+    const packageName = resolveStartAppPackage(screen);
+
+    if (!packageName || startAppSent) {
+      return;
+    }
+
+    const newDisplay = isNewDisplayEnabled(screen);
+    const baseDelay = delayMs ?? (newDisplay ? 2800 : 900);
+
+    const sendOnce = () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      const buffer = serializeStartApp(packageName);
+
+      if (buffer) {
+        sendControl(buffer);
+      }
+    };
+
+    clearStartAppTimer();
+    startAppTimer = setTimeout(() => {
+      startAppTimer = null;
+      startAppSent = true;
+      sendOnce();
+
+      if (newDisplay) {
+        setTimeout(sendOnce, 2500);
+      }
+    }, baseDelay);
+  }
+
   function closeWebSocket() {
+    clearStartAppTimer();
+    startAppSent = false;
     unbindCanvas?.();
     unbindCanvas = null;
 

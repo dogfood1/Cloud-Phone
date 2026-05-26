@@ -35,6 +35,7 @@ export function createDefaultMirrorSettings() {
     screen: {
       displayId: "",
       useNewDisplay: false,
+      newDisplaySelect: "",
       newDisplayWidth: 1920,
       newDisplayHeight: 1080,
       newDisplayDpi: 420,
@@ -42,6 +43,7 @@ export function createDefaultMirrorSettings() {
       newDisplayApp: "",
       flexDisplay: false,
       noVdDestroyContent: false,
+      noVdSystemDecorations: false,
       displayImePolicy: "",
     },
   };

@@ -36,8 +36,12 @@ export const ESCRCPY_SERVER_KEY_MAP = {
   "--no-power-on": "power_on",
   "--flex-display": "flex_display",
   "--no-vd-destroy-content": "vd_destroy_content",
+  "--no-vd-system-decorations": "vd_system_decorations",
   "--display-ime-policy": "display_ime_policy",
 };
 
 /** Re-export presets used by mirror UI (aligned with escrcpy launch presets). */
-export { NEW_DISPLAY_PRESETS } from "../utils/mirror-cast-constants.js";
+export {
+  NEW_DISPLAY_PRESET_GROUPS,
+  NEW_DISPLAY_PRESETS,
+} from "../utils/mirror-screen-constants.js";
