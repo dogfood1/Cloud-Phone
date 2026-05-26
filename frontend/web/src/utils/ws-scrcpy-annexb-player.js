@@ -1,8 +1,8 @@
 /**
- * Minimal ws-scrcpy compatible WebCodecs player.
+ * ws-scrcpy compatible WebCodecs player (Annex-B H.264).
  *
- * Input frames: Uint8Array of Annex-B NAL units with 0x00000001 start codes.
- * The player buffers SPS/PPS (+ optional SEI) until first IDR, then decodes.
+ * Wire format: each WebSocket binary message is one or more Annex-B NAL units
+ * (0x00000001 start codes). Logic aligned with NetrisTV/ws-scrcpy WebCodecsPlayer.
  */
 
 import { codecFromSps } from "./h264-nal-utils.js";
@@ -17,25 +17,12 @@ function isStartCodeAt(bytes, offset) {
   );
 }
 
-function findFirstNalType(bytes) {
-  for (let i = 0; i + 5 <= bytes.length; i += 1) {
-    if (isStartCodeAt(bytes, i)) {
-      return bytes[i + 4] & 0x1f;
-    }
+function nalTypeAt(bytes, offset) {
+  if (!isStartCodeAt(bytes, offset)) {
+    return null;
   }
-  return null;
-}
 
-function isIdr(bytes) {
-  for (let i = 0; i + 5 <= bytes.length; i += 1) {
-    if (isStartCodeAt(bytes, i)) {
-      const type = bytes[i + 4] & 0x1f;
-      if (type === 5) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return bytes[offset + 4] & 0x1f;
 }
 
 export class WsScrcpyAnnexBPlayer {
@@ -48,10 +35,11 @@ export class WsScrcpyAnnexBPlayer {
     this.ctx = canvas.getContext("2d");
     this.container = canvas.parentElement;
     this.decoder = null;
-    this.bufferParts = [];
-    this.hasSps = false;
-    this.hasPps = false;
+    this.buffer = null;
+    this.bufferedSps = false;
+    this.bufferedPps = false;
     this.hadIdr = false;
+    this.timestampUs = 0;
     this.lastError = "";
 
     this.resizeObserver = null;
@@ -110,20 +98,47 @@ export class WsScrcpyAnnexBPlayer {
     this.lastError = "";
   }
 
-  #maybeConfigureFromSps(spsNal) {
+  #appendToBuffer(data) {
+    if (this.buffer) {
+      const merged = new Uint8Array(this.buffer.length + data.length);
+      merged.set(this.buffer);
+      merged.set(data, this.buffer.length);
+      this.buffer = merged;
+    } else {
+      this.buffer = data.slice();
+    }
+
+    return this.buffer;
+  }
+
+  #configureFromSps(bytes) {
+    if (!this.decoder || this.decoder.state === "closed") {
+      return;
+    }
+
+    if (this.decoder.state === "configured") {
+      return;
+    }
+
+    if (!isStartCodeAt(bytes, 0) || bytes.length < 9) {
+      return;
+    }
+
+    const startCodeLen = 4;
+    let nextStart = bytes.length;
+    for (let i = startCodeLen; i + 4 <= bytes.length; i += 1) {
+      if (isStartCodeAt(bytes, i)) {
+        nextStart = i;
+        break;
+      }
+    }
+
+    const spsNal = bytes.subarray(startCodeLen, nextStart);
+    if (spsNal.length < 4) {
+      return;
+    }
+
     try {
-      if (!this.decoder || this.decoder.state === "closed") {
-        return;
-      }
-
-      if (this.decoder.state === "configured") {
-        return;
-      }
-
-      if (!spsNal || spsNal.length < 4) {
-        return;
-      }
-
       const codec = codecFromSps(spsNal);
       this.decoder.configure({ codec, optimizeForLatency: true });
     } catch (error) {
@@ -142,61 +157,50 @@ export class WsScrcpyAnnexBPlayer {
       return;
     }
 
-    const nalType = findFirstNalType(bytes);
+    const nalType = nalTypeAt(bytes, 0);
+    const isIdr = nalType === 5;
+
     if (nalType === 7) {
-      this.hasSps = true;
-      // Extract the first SPS NAL (without the Annex-B start code prefix).
-      const startCodeLen = isStartCodeAt(bytes, 0) ? 4 : 3;
-      let nextStart = bytes.length;
-      for (let i = startCodeLen; i + 4 <= bytes.length; i += 1) {
-        if (i + 3 < bytes.length) {
-          if (
-            bytes[i] === 0x00 &&
-            bytes[i + 1] === 0x00 &&
-            ((bytes[i + 2] === 0x01) || (bytes[i + 2] === 0x00 && i + 3 < bytes.length && bytes[i + 3] === 0x01))
-          ) {
-            nextStart = i;
-            break;
-          }
-        }
+      this.#configureFromSps(bytes);
+      this.bufferedSps = true;
+      this.#appendToBuffer(bytes);
+      this.hadIdr = false;
+      return;
+    }
+
+    if (nalType === 8) {
+      this.bufferedPps = true;
+      this.#appendToBuffer(bytes);
+      return;
+    }
+
+    if (nalType === 6) {
+      if (!this.bufferedSps || !this.bufferedPps) {
+        return;
       }
-      const spsNal = bytes.subarray(startCodeLen, nextStart);
-      this.#maybeConfigureFromSps(spsNal);
-    } else if (nalType === 8) {
-      this.hasPps = true;
     }
 
-    // Buffer until we have SPS+PPS and first IDR.
-    this.bufferParts.push(bytes);
-    this.hadIdr = this.hadIdr || isIdr(bytes);
+    const merged = this.#appendToBuffer(bytes);
+    this.hadIdr = this.hadIdr || isIdr;
 
-    if (!this.hasSps || !this.hasPps || !this.hadIdr) {
+    if (!merged || this.decoder.state !== "configured" || !this.hadIdr) {
       return;
     }
 
-    if (this.decoder.state !== "configured") {
-      return;
-    }
-
-    const total = this.bufferParts.reduce((sum, part) => sum + part.length, 0);
-    const merged = new Uint8Array(total);
-    let offset = 0;
-    for (const part of this.bufferParts) {
-      merged.set(part, offset);
-      offset += part.length;
-    }
-    this.bufferParts.length = 0;
-    this.hasSps = false;
-    this.hasPps = false;
+    const chunkData = merged;
+    this.buffer = null;
+    this.bufferedPps = false;
+    this.bufferedSps = false;
 
     try {
       this.decoder.decode(
         new EncodedVideoChunk({
           type: "key",
-          timestamp: 0,
-          data: merged,
+          timestamp: this.timestampUs,
+          data: chunkData,
         }),
       );
+      this.timestampUs += 33_333;
     } catch (error) {
       this.lastError = error?.message ?? String(error);
     }
@@ -220,7 +224,6 @@ export class WsScrcpyAnnexBPlayer {
     }
 
     this.decoder = null;
-    this.bufferParts = [];
+    this.buffer = null;
   }
 }
-

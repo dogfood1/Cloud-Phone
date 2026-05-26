@@ -143,20 +143,33 @@ export async function handleCastWebSocket(ws, serial) {
     return;
   }
 
+  const prefetchedClientMessages = [];
+  const prefetchClientMessage = (data) => {
+    prefetchedClientMessages.push(data);
+  };
+
+  ws.on("message", prefetchClientMessage);
+
   try {
     await ensureCastVideoPipe(serial);
 
     // ws-scrcpy server listens at ws://127.0.0.1:<localPort>/
     if (session.webCast) {
-      proxyWebSocket(ws, `ws://127.0.0.1:${session.localPort}/`);
+      ws.off("message", prefetchClientMessage);
+      await proxyWebSocket(ws, `ws://127.0.0.1:${session.localPort}/`, {
+        prefetchedClientMessages,
+      });
       return;
     }
+
+    ws.off("message", prefetchClientMessage);
 
     // fallback to Cloud-Phone legacy bridge
     attachWebSocketClient(session, ws);
     await waitForCastSession(session);
     // legacy path sends ready/session/codec JSON etc (kept for compatibility)
   } catch (error) {
+    ws.off("message", prefetchClientMessage);
     logCastError(serial, "ws.failed", {
       message: error instanceof Error ? error.message : "unknown",
     });

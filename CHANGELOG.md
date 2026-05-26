@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.2 - 2026-05-26
+
+- Fix web cast black screen: align Annex-B WebCodecs player with ws-scrcpy (decode P-frames after first IDR, not only the first keyframe)
+- Fix WebSocket proxy race: prefetch client messages during shell startup, queue until device WS is open, retry device connect
+
 ## 0.6.1 - 2026-05-26
 
 - Make custom scrcpy WebSocket server report version `4.0` for compatibility with the official scrcpy desktop client
