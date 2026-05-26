@@ -32,6 +32,7 @@ const leftPanelRef = ref(null);
 const {
   actions,
   actionLabel,
+  actionIcon,
   actionTitle,
   isActionDisabled,
   usesPressHold,
@@ -180,8 +181,10 @@ onBeforeUnmount(() => {
           @pointercancel="onToolbarPointerUp(action, $event)"
           @click="handleToolbarClick(action, $event)"
         >
-          <AppIcon :name="action.icon" />
-          <span>{{ actionLabel(action) }}</span>
+          <span class="device-workspace__action-icon" aria-hidden="true">
+            <AppIcon :name="actionIcon(action)" variant="toolbar" />
+          </span>
+          <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
         </button>
       </div>
     </header>

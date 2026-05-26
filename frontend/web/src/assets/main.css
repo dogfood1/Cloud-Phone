@@ -614,29 +614,71 @@ h2 {
 
 .device-workspace__action {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  min-width: 4.5rem;
-  padding: 0.5rem 0.85rem;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 3.75rem;
+  padding: 0.55rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: var(--bg-muted);
-  color: var(--text);
-  font-size: 0.84rem;
-  font-weight: 600;
+  background: var(--surface, var(--bg-muted));
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.2;
   white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.device-workspace__action .app-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
+.device-workspace__action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.device-workspace__action:hover {
-  border-color: var(--line-strong);
+.device-workspace__action-icon .app-icon--toolbar {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.device-workspace__action-label {
+  max-width: 4.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-workspace__action:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
   background: var(--success-soft);
   color: var(--success);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--success) 20%, transparent);
+}
+
+.device-workspace__action:hover:not(:disabled) .device-workspace__action-icon {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+}
+
+.device-workspace__action:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.device-workspace__action:disabled .device-workspace__action-icon {
+  background: transparent;
 }
 
 .device-workspace__action--hold {
@@ -644,10 +686,16 @@ h2 {
   user-select: none;
 }
 
-.device-workspace__action--hold:active {
+.device-workspace__action--hold:active:not(:disabled) {
   border-color: var(--success);
   background: var(--success-soft);
   color: var(--success);
+}
+
+.device-workspace__action--hold:active:not(:disabled) .device-workspace__action-icon {
+  background: color-mix(in srgb, var(--success) 28%, transparent);
+  color: var(--success);
+  transform: scale(0.94);
 }
 
 .device-workspace__split {

@@ -45,6 +45,15 @@ export function useDeviceWorkspaceToolbar({
     return action.label;
   }
 
+  function actionIcon(action) {
+    if (action.id === "screen-off") {
+      const screenOn = readExposedBoolean(castViewportRef.value?.displayScreenOn);
+      return screenOn ? "screen-off" : "screen-on";
+    }
+
+    return action.icon;
+  }
+
   function isActionDisabled(action) {
     if (action.kind === "screenshot") {
       return !device.connected || screenshotBusy.value;
@@ -262,6 +271,7 @@ export function useDeviceWorkspaceToolbar({
     actions,
     screenshotBusy,
     actionLabel,
+    actionIcon,
     actionTitle,
     isActionDisabled,
     usesPressHold,

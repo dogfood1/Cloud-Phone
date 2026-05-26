@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.7 - 2026-05-26
+
+- Redesign mirror cast toolbar icons (Lucide-style strokes) and vertical icon+label layout
+- Dynamic screen on/off icons; toolbar icon variant with heavier stroke and hover chip
+
 ## 0.7.6 - 2026-05-26
 
 - Toolbar rotate updates left-panel「预览旋转」(°) (+90° clockwise); CSS rotator wrapper with touch remap
