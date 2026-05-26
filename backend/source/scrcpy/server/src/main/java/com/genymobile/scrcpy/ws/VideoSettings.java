@@ -132,8 +132,14 @@ public class VideoSettings {
         data.get(textBuffer);
         String codecOptionsValue = new String(textBuffer, StandardCharsets.UTF_8);
         if (!codecOptionsValue.isEmpty()) {
-          videoSettings.codecOptions = CodecOption.parse(codecOptionsValue);
+          // Stream extras (capture_orientation, show_touches, …) share this string but are
+          // not MediaCodec keys — keep the raw string for Options.applyVideoStreamExtras().
           videoSettings.codecOptionsString = codecOptionsValue;
+          try {
+            videoSettings.codecOptions = CodecOption.parse(codecOptionsValue);
+          } catch (Exception e) {
+            videoSettings.codecOptions = null;
+          }
         }
       }
     }

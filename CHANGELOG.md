@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.6 - 2026-05-26
+
+- Fix mirror display orientation ignored on web cast: tolerate stream extras in VideoSettings codecOptions (capture_orientation, show_touches, etc.) instead of failing MediaCodec parse
+- Clarify UI: capture orientation vs preview-only canvas rotation
+
 ## 0.6.5 - 2026-05-26
 
 - Fix video encoder list stuck loading during cast: use `adb exec-out` for `list_encoders`, drop global adb lock, add timeouts, logcat fallback, and generic encoder fallback

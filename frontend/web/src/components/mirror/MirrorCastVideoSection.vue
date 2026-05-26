@@ -101,7 +101,7 @@ const resolutionHint = computed(() => {
     </label>
 
     <label class="mirror-settings__field">
-      <span>显示方向</span>
+      <span>显示方向（采集）</span>
       <select v-model="video.captureOrientation">
         <option
           v-for="item in MIRROR_CAPTURE_ORIENTATIONS"
@@ -111,7 +111,10 @@ const resolutionHint = computed(() => {
           {{ item.label }}
         </option>
       </select>
-      <span class="mirror-settings__field-hint">非 0° 时将锁定设备端采集方向</span>
+      <span class="mirror-settings__field-hint">
+        对应 scrcpy --display-orientation：旋转编码后的画面（不是只转浏览器预览）。
+        0° = 跟随设备旋转；90°/180°/270° = 锁定采集方向。需先开始投屏再改，约 1 秒后生效。
+      </span>
     </label>
 
     <label class="mirror-settings__field">
@@ -123,7 +126,9 @@ const resolutionHint = computed(() => {
     <label class="mirror-settings__field">
       <span>预览旋转 (°)</span>
       <input v-model.number="video.rotationDeg" type="number" min="0" max="360" step="90" />
-      <span class="mirror-settings__field-hint">仅旋转浏览器画布，不影响设备采集</span>
+      <span class="mirror-settings__field-hint">
+        只旋转浏览器里的预览画布；要旋转投屏视频本身请改「显示方向（采集）」。
+      </span>
     </label>
 
     <p v-if="casting" class="mirror-settings__field-hint">
