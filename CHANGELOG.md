@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2 - 2026-05-27
+
+- Device workspace toolbar Terminal (`终端`): interactive ADB shell in a modal via WebSocket `GET /api/devices/:serial/terminal/ws` (upgrade); backend bridges `adb shell -tt` with `TERM=xterm-256color`
+- Frontend uses xterm.js (`@xterm/xterm`, `@xterm/addon-fit`) for ANSI colors, Tab/arrows/special keys, auto-resize (`stty cols/rows`); unified device WebSocket upgrade handler (cast + terminal)
+
 ## 0.8.1 - 2026-05-27
 
 - App manager: resolve app display names via scrcpy-server `PackageManager.getApplicationLabel()` (`list_all_apps`, same approach as `scrcpy --list-apps`) so labels work on devices where `dumpsys` omits `application-label`

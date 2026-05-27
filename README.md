@@ -47,7 +47,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 投屏录屏：有画面保存 MP4，仅音频保存 MP3；投屏结束自动保存；修复禁用视频时无音频（server `started` 时序）
 - 设备工作区顶栏「文件管理」：设备在线即可打开（无需投屏）；文件系统根为 `/`，默认打开 `/storage/emulated/0`；地址栏显示真实绝对路径；后退/前进/向上/刷新；无权限时提示「权限不足」；接口 `GET /api/devices/:serial/files?path=...`
 - 设备工作区顶栏「应用管理」：列出已安装应用（应用名称经 scrcpy-server 获取、包名、系统/冻结标记）；点击应用弹窗查看详情（版本/SDK/数据目录等）；卸载二次确认；用户级冻结/解冻（`pm disable-user` / `pm enable`）；导出 APK；打开 `dataDir` 于文件管理器；支持本地上传 APK 安装（`PUT /api/devices/:serial/apps/install`）；相关接口 `GET/DELETE .../apps`、`GET .../apps/:pkg`、`POST .../apps/:pkg/state`、`GET .../apk`
-- 同步前端与后端版本号到 `0.8.1`
+- 设备工作区顶栏「终端」：设备在线即可打开 ADB Shell 交互终端（xterm.js，支持 Tab/方向键与 ANSI 彩色）；WebSocket `.../terminal/ws` 桥接 `adb shell -tt`
+- 同步前端与后端版本号到 `0.8.2`
 
 ### 启动方式
 ```powershell
@@ -117,7 +118,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Cast recording: MP4 with video cast, MP3 with audio-only; auto-save when cast ends; fix no audio when video disabled (server `started` race)
 - Device workspace toolbar Files: when the device is online (no cast required); filesystem root `/`, default open `/storage/emulated/0`; real absolute paths in the address bar; back/forward/up/refresh; permission errors surfaced clearly; `GET /api/devices/:serial/files?path=...`
 - Device workspace toolbar App manager: app labels via scrcpy-server `PackageManager` (`list_all_apps`); list shows label + package name + system/frozen badges; detail modal (version/SDK/data dir, etc.); uninstall with confirmation; user-level freeze/unfreeze; export APK; open `dataDir` in file explorer; local APK install via `PUT /api/devices/:serial/apps/install`; APIs `GET/DELETE .../apps`, `GET .../apps/:pkg`, `POST .../apps/:pkg/state`, `GET .../apk` (no icon endpoint)
-- Sync frontend and backend versions to `0.8.1`
+- Device workspace toolbar Terminal: interactive ADB shell (xterm.js; Tab/arrows/ANSI colors) when device is online; WebSocket `.../terminal/ws` bridges `adb shell -tt`
+- Sync frontend and backend versions to `0.8.2`
 
 ### Getting Started
 ```powershell

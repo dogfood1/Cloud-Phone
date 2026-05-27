@@ -5,6 +5,7 @@ import AppIcon from "./AppIcon.vue";
 import DeviceAppManager from "./DeviceAppManager.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceFileExplorer from "./DeviceFileExplorer.vue";
+import DeviceTerminal from "./DeviceTerminal.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
@@ -33,6 +34,7 @@ const leftPanelRef = ref(null);
 const filesExplorerOpen = ref(false);
 const filesExplorerPath = ref(null);
 const appsManagerOpen = ref(false);
+const terminalOpen = ref(false);
 
 const {
   actions,
@@ -65,6 +67,9 @@ const {
   },
   onOpenApps: () => {
     appsManagerOpen.value = true;
+  },
+  onOpenTerminal: () => {
+    terminalOpen.value = true;
   },
 });
 
@@ -298,5 +303,6 @@ function handleOpenAppDataInFiles(devicePath) {
       @close="appsManagerOpen = false"
       @open-files="handleOpenAppDataInFiles"
     />
+    <DeviceTerminal :device="device" :open="terminalOpen" @close="terminalOpen = false" />
   </section>
 </template>

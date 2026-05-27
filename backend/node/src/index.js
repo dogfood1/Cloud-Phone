@@ -1,11 +1,11 @@
 import { serverConfig } from "./config/env.js";
 import { createApp } from "./app.js";
-import { setupCastWebSocket } from "./ws/cast-websocket-server.js";
+import { setupDeviceWebSocket } from "./ws/device-websocket-server.js";
 
 const { host, backendPort } = serverConfig;
 
 const server = createApp();
-setupCastWebSocket(server);
+setupDeviceWebSocket(server);
 
 process.on("unhandledRejection", (reason) => {
   console.error("[backend] unhandledRejection:", reason);

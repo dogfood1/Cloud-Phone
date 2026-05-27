@@ -19,6 +19,7 @@ export function useDeviceWorkspaceToolbar({
   onHint,
   onOpenFiles,
   onOpenApps,
+  onOpenTerminal,
 }) {
   const screenshotBusy = ref(false);
   const recordBusy = ref(false);
@@ -109,15 +110,15 @@ export function useDeviceWorkspaceToolbar({
       return !device.connected || screenshotBusy.value;
     }
 
-    if (action.kind === "planned") {
-      return true;
-    }
-
     if (action.kind === "apps") {
       return !device.connected;
     }
 
     if (action.kind === "files") {
+      return !device.connected;
+    }
+
+    if (action.kind === "terminal") {
       return !device.connected;
     }
 
@@ -155,10 +156,6 @@ export function useDeviceWorkspaceToolbar({
   }
 
   function actionTitle(action) {
-    if (action.kind === "planned") {
-      return "即将推出";
-    }
-
     if (action.kind === "apps") {
       if (!device.connected) {
         return "设备未在线";
@@ -173,6 +170,14 @@ export function useDeviceWorkspaceToolbar({
       }
 
       return action.title ?? "浏览设备文件";
+    }
+
+    if (action.kind === "terminal") {
+      if (!device.connected) {
+        return "设备未在线";
+      }
+
+      return action.title ?? "打开 ADB Shell 终端";
     }
 
     if (action.kind === "record") {
@@ -491,6 +496,11 @@ export function useDeviceWorkspaceToolbar({
 
     if (action.kind === "apps") {
       onOpenApps?.();
+      return;
+    }
+
+    if (action.kind === "terminal") {
+      onOpenTerminal?.();
       return;
     }
 
