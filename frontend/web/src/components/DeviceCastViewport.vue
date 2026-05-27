@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, toRef, watch } from "vue";
+import { computed, nextTick, ref, toRef, watch } from "vue";
 
 import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
 
@@ -44,6 +44,8 @@ const {
   toggleCastRecording,
   resumeCastAudio,
   sendCameraControl,
+  pasteClipboardToDevice,
+  copyClipboardFromDevice,
 } = useDeviceScrcpyCast(
   serialRef,
   canvasRef,
@@ -103,6 +105,8 @@ defineExpose({
   toggleCastRecording,
   resumeCastAudio,
   sendCameraControl,
+  pasteClipboardToDevice,
+  copyClipboardFromDevice,
 });
 </script>
 
@@ -111,7 +115,6 @@ defineExpose({
     <div
       v-show="isStreaming || isStarting"
       class="device-cast-viewport__stage"
-      aria-hidden="true"
       @pointerdown="onViewportPointerDown"
     >
       <div ref="rotatorRef" class="device-cast-viewport__rotator">

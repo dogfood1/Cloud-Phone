@@ -839,6 +839,10 @@ h2 {
   isolation: isolate;
 }
 
+.device-cast-viewport:focus {
+  outline: none;
+}
+
 .device-cast-viewport__stage {
   position: absolute;
   inset: 0;

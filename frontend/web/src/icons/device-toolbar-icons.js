@@ -28,6 +28,16 @@ export const DEVICE_TOOLBAR_ICONS = {
   ],
   "volume-up": ["M11 5 6 9H3v6h3l5 4V5z", "M16 11h6", "M19 8v6"],
   "volume-down": ["M11 5 6 9H3v6h3l5 4V5z", "M16 12h6"],
+  "clipboard-paste": [
+    "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2",
+    "M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z",
+    "M9 12h6",
+    "M9 16h6",
+  ],
+  "clipboard-copy": [
+    "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2",
+    "M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z",
+  ],
   camera: "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   record: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   "record-active": "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",

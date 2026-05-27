@@ -1,58 +1,34 @@
 import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
-import { isScrcpyAudioPacket, WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
+import { WsScrcpyAudioCanvas, isScrcpyAudioPacket } from "../utils/ws-scrcpy-audio-canvas.js";
 import { WsScrcpyAudioPlayback } from "../utils/ws-scrcpy-audio-playback.js";
 import { isNewDisplayEnabled, resolveStartAppPackage } from "../utils/mirror-screen-utils.js";
 import {
+  COPY_KEY,
   KEY_ACTION,
   serializeCameraControl,
   serializeDisplayWakeActions,
+  serializeGetClipboard,
+  serializeInjectText,
   serializeNavigationActions,
   serializeNavigationPress,
   serializeResetVideo,
+  serializeSetClipboard,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
+import { readSystemClipboard, writeSystemClipboard } from "../utils/cast-clipboard.js";
+import { attachCastKeyboard } from "../utils/scrcpy-cast-keyboard.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
 import { applyStagePreviewRotation } from "../utils/canvas-rotation.js";
 import { attachCastInteraction } from "../utils/scrcpy-cast-interaction.js";
-import { CastAudioMp3Recorder, isCastAudioRecordingSupported } from "../utils/cast-audio-mp3-recorder.js";
-import { downloadRecordingBlob } from "../utils/cast-recording-utils.js";
-import { CastVideoRecorder, isCastVideoRecordingSupported } from "../utils/cast-video-recorder.js";
-
-function isAudioOnlyCast(castOptions) {
-  return castOptions?.mirror?.video?.disabled === true;
-}
-
-function isCastAudioEnabled(castOptions) {
-  if (isAudioOnlyCast(castOptions)) {
-    return true;
-  }
-
-  return castOptions?.audio === true;
-}
-
-function buildCastWebSocketUrl(serial) {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/api/devices/${encodeURIComponent(serial)}/cast/ws`;
-}
-
-const MAGIC_INITIAL = new TextEncoder().encode("scrcpy_initial");
-const MAGIC_MESSAGE = new TextEncoder().encode("scrcpy_message");
-
-function startsWithMagic(bytes, magic) {
-  if (bytes.length < magic.length) {
-    return false;
-  }
-
-  for (let i = 0; i < magic.length; i += 1) {
-    if (bytes[i] !== magic[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
+import {
+  buildCastWebSocketUrl,
+  handleWsScrcpyBinary,
+  isAudioOnlyCast,
+  isCastAudioEnabled,
+} from "../utils/scrcpy-cast-helpers.js";
+import { useScrcpyCastRecording } from "./useScrcpyCastRecording.js";
 
 export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef) {
   const status = ref("idle");
@@ -63,148 +39,24 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   let socket = null;
   let stopRequest = null;
   let unbindCanvas = null;
+  let unbindKeyboard = null;
+  let clipboardSequence = 0n;
+  let lastOutboundClipboard = "";
   let audioPlayback = null;
   /** True after POST /cast/start succeeded (backend has a session). */
   let backendSessionActive = false;
   let startAppTimer = null;
   let startAppSent = false;
   const displayScreenOn = ref(true);
-  const isRecording = ref(false);
-  const recordingElapsedMs = ref(0);
-  const castVideoRecordingSupported = isCastVideoRecordingSupported();
-  const castAudioRecordingSupported = isCastAudioRecordingSupported();
-  const videoRecorder = new CastVideoRecorder();
-  const audioRecorder = new CastAudioMp3Recorder();
-  let recordingDisplayName = "";
-  /** @type {"video" | "audio" | null} */
-  let recordingMode = null;
 
-  function isAudioOnlyRecording() {
-    return isAudioOnlyCast(unref(castOptionsRef));
-  }
-
-  function resolveCastAudioCapture() {
-    const currentPlayer = player.value;
-
-    if (typeof currentPlayer?.beginPcmRecording === "function") {
-      return currentPlayer;
-    }
-
-    if (currentPlayer?.playback) {
-      return currentPlayer.playback;
-    }
-
-    return audioPlayback;
-  }
-
-  function isCastRecordingSupported(castOptions = unref(castOptionsRef)) {
-    if (isAudioOnlyCast(castOptions)) {
-      return castAudioRecordingSupported;
-    }
-
-    return castVideoRecordingSupported;
-  }
-
-  function assertCanRecord() {
-    if (status.value !== "streaming") {
-      throw new Error("请先开始投屏后再录屏。");
-    }
-
-    if (isAudioOnlyRecording()) {
-      if (!castAudioRecordingSupported) {
-        throw new Error("当前浏览器不支持音频录制。");
-      }
-
-      if (!resolveCastAudioCapture()) {
-        throw new Error("设备音频通道未就绪。");
-      }
-
-      return;
-    }
-
-    if (!castVideoRecordingSupported) {
-      throw new Error("当前浏览器不支持 MP4 录屏，请使用 Chrome 或 Edge。");
-    }
-
-    if (!canvasRef.value) {
-      throw new Error("投屏画布未就绪。");
-    }
-  }
-
-  async function startCastRecording(displayName) {
-    assertCanRecord();
-    recordingDisplayName = displayName || serialRef.value || "recording";
-
-    let started = false;
-
-    if (isAudioOnlyRecording()) {
-      started = await audioRecorder.start(resolveCastAudioCapture(), {
-        displayName: recordingDisplayName,
-        onElapsed(ms) {
-          recordingElapsedMs.value = ms;
-        },
-      });
-      recordingMode = "audio";
-    } else {
-      started = videoRecorder.start(canvasRef.value, {
-        displayName: recordingDisplayName,
-        onElapsed(ms) {
-          recordingElapsedMs.value = ms;
-        },
-      });
-      recordingMode = "video";
-    }
-
-    if (!started) {
-      recordingMode = null;
-      throw new Error("录屏已在进行中。");
-    }
-
-    isRecording.value = true;
-    recordingElapsedMs.value = 0;
-  }
-
-  async function stopCastRecording(save = true) {
-    const activeMode =
-      recordingMode ??
-      (audioRecorder.isActive ? "audio" : videoRecorder.isActive ? "video" : null);
-    const wasActive =
-      isRecording.value || videoRecorder.isActive || audioRecorder.isActive;
-
-    if (!wasActive) {
-      return null;
-    }
-
-    isRecording.value = false;
-    recordingMode = null;
-
-    const blob =
-      activeMode === "audio" ? await audioRecorder.stop() : await videoRecorder.stop();
-    recordingElapsedMs.value = 0;
-
-    if (save && blob?.size) {
-      const extension = activeMode === "audio" ? "mp3" : "mp4";
-      downloadRecordingBlob(
-        blob,
-        recordingDisplayName || serialRef.value || "recording",
-        extension,
-      );
-    } else if (save && activeMode === "audio" && !blob?.size) {
-      throw new Error("MP3 保存失败，未生成有效音频文件。");
-    }
-
-    return blob;
-  }
-
-  async function toggleCastRecording(displayName) {
-    if (isRecording.value) {
-      await stopCastRecording(true);
-      return false;
-    }
-
-    await startCastRecording(displayName);
-    return true;
-  }
+  const recording = useScrcpyCastRecording({
+    castOptionsRef,
+    canvasRef,
+    player,
+    getAudioPlayback: () => audioPlayback,
+    status,
+    serialRef,
+  });
 
   async function beginCast(payload) {
     const serial = serialRef.value;
@@ -239,9 +91,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
     await nextTick();
     await openWebSocket(serial);
-    unbindCanvas?.();
     const castOptions = unref(castOptionsRef) ?? {};
     unbindCanvas?.();
+
+    const interactionEnabled = castOptions.castMode !== "camera";
 
     unbindCanvas = attachCastInteraction({
       canvas: canvasRef.value,
@@ -249,8 +102,18 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       getRotator: () => rotatorRef?.value ?? null,
       hasScreenInfo: () => getEffectiveScreenSize().width > 0,
       sendControl,
-      interactionEnabled: castOptions.castMode !== "camera",
+      interactionEnabled,
     });
+
+    unbindKeyboard?.();
+    const keyboardRoot = viewportRef?.value ?? canvasRef.value;
+    unbindKeyboard =
+      interactionEnabled && keyboardRoot
+        ? attachCastKeyboard({
+            root: keyboardRoot,
+            sendControl,
+          })
+        : null;
     applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
     status.value = "streaming";
 
@@ -299,40 +162,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     }
 
     await audioPlayback?.resumeForUserPlayback?.();
-  }
-
-  function handleWsScrcpyBinary(nextPlayer, data) {
-    const bytes = new Uint8Array(data);
-
-    if (startsWithMagic(bytes, MAGIC_INITIAL)) {
-      // Physical display size from initial info — do not use for touch injection.
-      // scrcpy PositionMapper expects the encoded video frame size (see onVideoFrameSize).
-      queueStartAppAfterConnect(500);
-      return;
-    }
-
-    if (startsWithMagic(bytes, MAGIC_MESSAGE)) {
-      // clipboard / push responses etc — currently ignored by Cloud-Phone UI
-      return;
-    }
-
-    if (isScrcpyAudioPacket(bytes)) {
-      if (typeof nextPlayer.pushPcm === "function") {
-        nextPlayer.pushPcm(bytes);
-      } else {
-        audioPlayback?.pushPcm(bytes);
-      }
-      return;
-    }
-
-    if (typeof nextPlayer.pushFrame === "function") {
-      nextPlayer.pushFrame(bytes);
-    }
-
-    if (nextPlayer.lastError && status.value === "streaming") {
-      status.value = "error";
-      errorMessage.value = `H.264 解码失败：${nextPlayer.lastError}`;
-    }
   }
 
   function applyControlVideoSize(size) {
@@ -403,10 +232,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       }, 12_000);
 
       socket.addEventListener("open", () => {
-        const castOptions = unref(castOptionsRef) ?? {};
+        const options = unref(castOptionsRef) ?? {};
         sendControl(
           serializeChangeStreamParameters(
-            videoSettingsFromCastOptions(castOptions, sessionMeta.value),
+            videoSettingsFromCastOptions(options, sessionMeta.value),
           ),
         );
 
@@ -418,7 +247,21 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
           return;
         }
 
-        handleWsScrcpyBinary(player.value, event.data);
+        handleWsScrcpyBinary(
+          {
+            player: player.value,
+            audioPlayback,
+            status,
+            errorMessage,
+            onInitialInfo: () => queueStartAppAfterConnect(500),
+            onDeviceMessage: (message) => {
+              if (message.type === "clipboard" && message.text != null) {
+                void handleDeviceClipboard(message.text);
+              }
+            },
+          },
+          event.data,
+        );
 
         if (!settled) {
           const bytes = new Uint8Array(event.data);
@@ -500,6 +343,9 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     startAppSent = false;
     unbindCanvas?.();
     unbindCanvas = null;
+    unbindKeyboard?.();
+    unbindKeyboard = null;
+    lastOutboundClipboard = "";
 
     if (socket) {
       socket.close();
@@ -522,21 +368,64 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     socket.send(buffer);
   }
 
-  function sendCameraControl(payload) {
-    const buffer = serializeCameraControl(payload);
+  function sendInjectText(text) {
+    const value = String(text ?? "");
+
+    if (!value) {
+      return;
+    }
+
+    for (let offset = 0; offset < value.length; offset += 300) {
+      const chunk = value.slice(offset, offset + 300);
+      const buffer = serializeInjectText(chunk);
+
+      if (buffer) {
+        sendControl(buffer);
+      }
+    }
+  }
+
+  function sendSetClipboardToDevice(text, paste = true) {
+    const value = String(text ?? "");
+    lastOutboundClipboard = value;
+    clipboardSequence += 1n;
+    const buffer = serializeSetClipboard(value, paste, clipboardSequence);
 
     if (buffer) {
       sendControl(buffer);
     }
   }
 
-  function pushVideoStreamSettings() {
-    const castOptions = unref(castOptionsRef) ?? {};
-    sendControl(
-      serializeChangeStreamParameters(
-        videoSettingsFromCastOptions(castOptions, sessionMeta.value),
-      ),
-    );
+  async function handleDeviceClipboard(text) {
+    const value = String(text ?? "");
+
+    if (!value || value === lastOutboundClipboard) {
+      return;
+    }
+
+    await writeSystemClipboard(value);
+  }
+
+  async function pasteClipboardToDevice() {
+    const text = await readSystemClipboard();
+
+    if (text == null) {
+      throw new Error("无法读取系统剪贴板，请允许浏览器剪贴板权限。");
+    }
+
+    sendSetClipboardToDevice(text, true);
+  }
+
+  function copyClipboardFromDevice(copyKey = COPY_KEY.COPY) {
+    sendControl(serializeGetClipboard(copyKey));
+  }
+
+  function sendCameraControl(payload) {
+    const buffer = serializeCameraControl(payload);
+
+    if (buffer) {
+      sendControl(buffer);
+    }
   }
 
   function applyPreviewRotation(degrees) {
@@ -551,7 +440,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     const serial = serialRef.value;
     const shouldStopBackend = options.backend ?? backendSessionActive;
 
-    await stopCastRecording(true);
+    await recording.stopCastRecording(true);
     closeWebSocket();
     status.value = "idle";
     errorMessage.value = "";
@@ -587,8 +476,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   );
 
   watch(status, (next, prev) => {
-    if (prev === "streaming" && next !== "streaming" && isRecording.value) {
-      void stopCastRecording(true);
+    if (prev === "streaming" && next !== "streaming" && recording.isRecording.value) {
+      void recording.stopCastRecording(true);
     }
   });
 
@@ -639,17 +528,20 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     },
     displayScreenOn,
     applyPreviewRotation,
-    isRecording,
-    recordingElapsedMs,
-    castVideoRecordingSupported,
-    castAudioRecordingSupported,
-    isCastRecordingSupported,
-    startCastRecording,
-    stopCastRecording,
-    toggleCastRecording,
+    isRecording: recording.isRecording,
+    recordingElapsedMs: recording.recordingElapsedMs,
+    castVideoRecordingSupported: recording.castVideoRecordingSupported,
+    castAudioRecordingSupported: recording.castAudioRecordingSupported,
+    isCastRecordingSupported: recording.isCastRecordingSupported,
+    startCastRecording: recording.startCastRecording,
+    stopCastRecording: recording.stopCastRecording,
+    toggleCastRecording: recording.toggleCastRecording,
     resumeCastAudio,
     sendCameraControl,
     sendControl,
+    sendInjectText,
+    pasteClipboardToDevice,
+    copyClipboardFromDevice,
     getEffectiveScreenSize,
   };
 }

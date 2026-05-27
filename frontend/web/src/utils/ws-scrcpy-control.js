@@ -4,6 +4,7 @@ const CONTROL_MSG_TYPE = {
   INJECT_TOUCH_EVENT: 2,
   INJECT_SCROLL_EVENT: 3,
   BACK_OR_SCREEN_ON: 4,
+  GET_CLIPBOARD: 8,
   SET_CLIPBOARD: 9,
   SET_SCREEN_POWER_MODE: 10,
   ROTATE_DEVICE: 11,
@@ -25,6 +26,12 @@ const MOTION_ACTION = {
 const KEY_ACTION = {
   DOWN: 0,
   UP: 1,
+};
+
+const COPY_KEY = {
+  NONE: 0,
+  COPY: 1,
+  CUT: 2,
 };
 
 const ANDROID_KEYCODE = {
@@ -192,6 +199,10 @@ export function serializeStartApp(name) {
   return new Uint8Array(buffer);
 }
 
+export function serializeGetClipboard(copyKey = COPY_KEY.NONE) {
+  return new Uint8Array([CONTROL_MSG_TYPE.GET_CLIPBOARD, copyKey]);
+}
+
 export function serializeSetClipboard(text, paste = true, sequence = 0n) {
   const bytes = encodeUtf8(text);
   const buffer = new ArrayBuffer(10 + 4 + bytes.length);
@@ -204,7 +215,7 @@ export function serializeSetClipboard(text, paste = true, sequence = 0n) {
   return new Uint8Array(buffer);
 }
 
-export { KEY_ACTION };
+export { COPY_KEY, KEY_ACTION };
 
 /** Toolbar hold: one phase (DOWN or UP) per browser pointer event. */
 export function serializeNavigationPress(actionId, keyAction) {

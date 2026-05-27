@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.2 - 2026-05-27
+
+- 全局键盘捕获：投屏画面获得焦点后，所有按键（按下/抬起）直接通过 scrcpy `INJECT_KEYCODE` 透传到设备，包含 Shift/Ctrl/Alt/Meta 等修饰键状态
+- 内置常见键位映射（字母、数字、功能键 F1–F12、方向键、符号键、小键盘等）
+- 移除底部文本输入框，不再需要点击输入框；直接点击投屏画面聚焦后即可打字
+
+### Global keyboard capture for cast viewport
+- All keydown/keyup events forwarded to device as scrcpy INJECT_KEYCODE when viewport is focused
+- Full modifier state (Shift, Ctrl, Alt, Meta, CapsLock, NumLock) included in each key event
+- Removed text input overlay; click viewport to focus then type directly
+
 ## 0.9.1 - 2026-05-27
 
 - Remove OTG cast mode and all related web UHID / virtual AOA plumbing (Pointer Lock capture, `otg/input/ws`, `scrcpy-otg` backend service, OTG settings UI and styles); cast modes are mirror and camera only
