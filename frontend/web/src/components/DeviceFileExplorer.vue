@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 
 import AppIcon from "./AppIcon.vue";
+import { useDeviceFileTransfer } from "../composables/useDeviceFileTransfer.js";
 import { fetchDeviceFiles } from "../utils/device-files-api.js";
 import { formatFileSize } from "../utils/device-files-format.js";
 import {
@@ -40,9 +41,27 @@ const entries = ref([]);
 const navHistory = ref([DEVICE_FILES_DEFAULT_OPEN]);
 const navIndex = ref(0);
 
+const serialRef = computed(() => props.device?.serial ?? "");
+
+const {
+  transferBusy,
+  uploadInputRef,
+  downloadEntry,
+  triggerUpload,
+  onUploadSelected,
+} = useDeviceFileTransfer(serialRef, currentPath, {
+  setError: (msg) => {
+    errorMessage.value = msg;
+  },
+  onDone: () => {
+    void loadDirectory(currentPath.value);
+  },
+});
+
 const canGoBack = computed(() => navIndex.value > 0);
 const canGoForward = computed(() => navIndex.value < navHistory.value.length - 1);
 const isEmpty = computed(() => !loading.value && !errorMessage.value && entries.value.length === 0);
+const navDisabled = computed(() => loading.value || transferBusy.value);
 
 const backButtonTitle = computed(() => (canGoBack.value ? "后退" : "没有可后退的记录"));
 const forwardButtonTitle = computed(() => (canGoForward.value ? "前进" : "没有可前进的记录"));
@@ -105,7 +124,7 @@ function handleBackdropClick(event) {
 }
 
 function goBack() {
-  if (!canGoBack.value || loading.value) {
+  if (!canGoBack.value || navDisabled.value) {
     return;
   }
 
@@ -114,7 +133,7 @@ function goBack() {
 }
 
 function goForward() {
-  if (!canGoForward.value || loading.value) {
+  if (!canGoForward.value || navDisabled.value) {
     return;
   }
 
@@ -123,7 +142,7 @@ function goForward() {
 }
 
 function goUp() {
-  if (loading.value) {
+  if (navDisabled.value) {
     return;
   }
 
@@ -242,7 +261,7 @@ watch(
           <button
             type="button"
             class="device-files__nav-btn"
-            :disabled="!canGoBack || loading"
+            :disabled="!canGoBack || navDisabled"
             :title="backButtonTitle"
             @click="goBack"
           >
@@ -251,7 +270,7 @@ watch(
           <button
             type="button"
             class="device-files__nav-btn"
-            :disabled="!canGoForward || loading"
+            :disabled="!canGoForward || navDisabled"
             :title="forwardButtonTitle"
             @click="goForward"
           >
@@ -260,7 +279,7 @@ watch(
           <button
             type="button"
             class="device-files__nav-btn"
-            :disabled="loading"
+            :disabled="navDisabled"
             :title="upButtonTitle"
             @click="goUp"
           >
@@ -269,12 +288,27 @@ watch(
           <button
             type="button"
             class="device-files__nav-btn"
-            :disabled="loading"
+            :disabled="navDisabled"
             title="刷新"
             @click="loadDirectory(currentPath)"
           >
             <AppIcon name="refresh" />
           </button>
+          <button
+            type="button"
+            class="device-files__nav-btn"
+            :disabled="navDisabled"
+            title="上传文件到当前目录"
+            @click="triggerUpload"
+          >
+            <AppIcon name="upload" />
+          </button>
+          <input
+            ref="uploadInputRef"
+            type="file"
+            class="visually-hidden"
+            @change="onUploadSelected"
+          />
           <form class="device-files__address" @submit.prevent="goToAddress">
             <label class="visually-hidden" for="device-files-path">路径</label>
             <input
@@ -284,9 +318,9 @@ watch(
               class="device-files__address-input"
               spellcheck="false"
               autocomplete="off"
-              :disabled="loading"
+              :disabled="navDisabled"
             />
-            <button type="submit" class="device-files__address-go" :disabled="loading">
+            <button type="submit" class="device-files__address-go" :disabled="navDisabled">
               前往
             </button>
           </form>
@@ -296,10 +330,13 @@ watch(
           <span class="device-files__col device-files__col--name">名称</span>
           <span class="device-files__col device-files__col--size">大小</span>
           <span class="device-files__col device-files__col--modified">修改时间</span>
+          <span class="device-files__col device-files__col--actions">操作</span>
         </div>
 
         <div class="device-files__body">
-          <p v-if="loading" class="device-files__status">正在读取目录…</p>
+          <p v-if="loading || transferBusy" class="device-files__status">
+            {{ transferBusy ? "正在传输文件…" : "正在读取目录…" }}
+          </p>
           <p v-else-if="errorMessage" class="device-files__status device-files__status--error">
             {{ errorMessage }}
           </p>
@@ -330,6 +367,18 @@ watch(
                   {{ entry.modified || "—" }}
                 </span>
               </button>
+              <div class="device-files__col device-files__col--actions">
+                <button
+                  v-if="entry.type === 'file'"
+                  type="button"
+                  class="device-files__action-btn"
+                  title="下载到电脑"
+                  :disabled="navDisabled"
+                  @click="downloadEntry(entry)"
+                >
+                  <AppIcon name="download" />
+                </button>
+              </div>
             </li>
           </ul>
         </div>

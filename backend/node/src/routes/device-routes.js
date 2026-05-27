@@ -1,7 +1,6 @@
 import { handleDeviceAppsRoute } from "./device-apps-routes.js";
+import { handleDeviceFilesRoute } from "./device-files-routes.js";
 import { APP_VERSION } from "../config/version.js";
-import { DEVICE_FILES_DEFAULT_OPEN } from "../services/device-file-path.js";
-import { listDeviceFiles } from "../services/device-files.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
 import { listDeviceCameras } from "../services/device-cameras.js";
 import { listDeviceEncoders } from "../services/device-video-encoders.js";
@@ -15,7 +14,10 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
   const mirrorOptionsMatch = pathname.match(/^\/api\/devices\/([^/]+)\/mirror-options$/);
   const videoEncodersMatch = pathname.match(/^\/api\/devices\/([^/]+)\/video-encoders$/);
   const camerasMatch = pathname.match(/^\/api\/devices\/([^/]+)\/cameras$/);
-  const filesMatch = pathname.match(/^\/api\/devices\/([^/]+)\/files$/);
+
+  if (await handleDeviceFilesRoute(req, res, method, pathname, url)) {
+    return true;
+  }
 
   if (method === "GET" && camerasMatch) {
     const serial = decodeURIComponent(camerasMatch[1]);
@@ -100,31 +102,6 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
         version: APP_VERSION,
         error: "Failed to load mirror options.",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-
-    return true;
-  }
-
-  if (method === "GET" && filesMatch) {
-    const serial = decodeURIComponent(filesMatch[1]);
-    const requestedPath = url.searchParams.get("path") ?? DEVICE_FILES_DEFAULT_OPEN;
-
-    try {
-      const listing = await listDeviceFiles(serial, requestedPath);
-
-      sendJson(res, 200, {
-        success: true,
-        version: APP_VERSION,
-        serial,
-        ...listing,
-      });
-    } catch (error) {
-      sendJson(res, 500, {
-        success: false,
-        version: APP_VERSION,
-        error: "device_files_failed",
-        message: error instanceof Error ? error.message : "无法读取设备目录",
       });
     }
 

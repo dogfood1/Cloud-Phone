@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.4 - 2026-05-27
+
+- 设备文件管理支持上传与下载：顶栏上传到当前目录，文件行下载到电脑（`adb push` / `adb pull`）
+- 新增 API：`PUT .../files/upload?path=`、`GET .../files/download?path=`
+- 上传/下载图标改为 Lucide `file-up` / `file-down` 风格
+
+### Device file upload & download
+- File explorer: upload to current directory, per-file download via new REST endpoints
+- Lucide-style file-up / file-down toolbar icons
+
 ## 0.9.3 - 2026-05-27
 
 - 重写 README：中英文分离，中文为主文件，英文独立到 README.EN.md；顶部互相跳转

@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里。**
 
-当前版本：**v0.9.3** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.9.4** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -154,7 +154,9 @@ images/readme/
 
 - 根目录 `/`，默认打开 `/storage/emulated/0`；地址栏显示真实绝对路径
 - 后退 / 前进 / 向上 / 刷新；无权限时提示「权限不足」
-- `GET /api/devices/:serial/files?path=...`
+- **上传**：将本地文件推到当前目录（`PUT .../files/upload?path=`）
+- **下载**：将设备上的文件保存到电脑（`GET .../files/download?path=`）
+- `GET /api/devices/:serial/files?path=...` 列出目录
 
 ### 应用管理
 
@@ -246,6 +248,8 @@ Cloud-Phone/
 | GET | `/api/devices/:serial/video-encoders` | 音视频编码器列表 |
 | GET | `/api/devices/:serial/cameras` | 摄像头列表 |
 | GET | `/api/devices/:serial/files?path=` | 目录列表 |
+| GET | `/api/devices/:serial/files/download?path=` | 下载文件 |
+| PUT | `/api/devices/:serial/files/upload?path=` | 上传到设备 |
 | GET/DELETE | `/api/devices/:serial/apps` | 应用列表 / 卸载 |
 | GET | `/api/devices/:serial/apps/:pkg` | 应用详情 |
 | POST | `/api/devices/:serial/apps/:pkg/state` | 冻结/解冻 |

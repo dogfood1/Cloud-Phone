@@ -27,6 +27,20 @@ const paths = {
     "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm5 13h.01",
   refresh:
     "M21 12a9 9 0 0 1-15 6.7L3 21V16m0-4a9 9 0 0 1 15-6.7L21 3v5h-5",
+  /** Lucide file-up — upload to device */
+  upload: [
+    "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7",
+    "M14 2v4a2 2 0 0 0 2 2h4",
+    "M12 11v6",
+    "M9 14l3-3 3 3",
+  ],
+  /** Lucide file-down — download from device */
+  download: [
+    "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7",
+    "M14 2v4a2 2 0 0 0 2 2h4",
+    "M12 15V9",
+    "M9 12l3 3 3-3",
+  ],
   shield:
     "M12 3 4 7v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V7l-8-4Z",
   wifi: "M5 9a14 14 0 0 1 14 0M8.5 12.5a9 9 0 0 1 7 0M12 16h.01",

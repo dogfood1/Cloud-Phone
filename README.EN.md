@@ -157,7 +157,9 @@ Images are embedded in the corresponding feature sections below.
 - Real absolute path in the address bar
 - Back / forward / up / refresh
 - “Permission denied” errors are surfaced clearly
-- `GET /api/devices/:serial/files?path=...`
+- **Upload** local files to the current directory (`PUT .../files/upload?path=`)
+- **Download** device files to the host (`GET .../files/download?path=`)
+- `GET /api/devices/:serial/files?path=...` lists a directory
 
 ### Apps
 
@@ -245,6 +247,8 @@ images/qr/             sponsorship QR codes
 | GET | `/api/devices/:serial/video-encoders` | Encoders |
 | GET | `/api/devices/:serial/cameras` | Cameras |
 | GET | `/api/devices/:serial/files?path=` | List files |
+| GET | `/api/devices/:serial/files/download?path=` | Download file |
+| PUT | `/api/devices/:serial/files/upload?path=` | Upload to device |
 | GET/DELETE | `/api/devices/:serial/apps` | Apps / uninstall |
 | GET | `/api/devices/:serial/apps/:pkg` | App detail |
 | POST | `/api/devices/:serial/apps/:pkg/state` | Freeze/unfreeze |
