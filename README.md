@@ -6,7 +6,7 @@
 
 当前版本：**v0.9.1** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
-[English](#english) · **中文**
+[English](README.EN.md) · **中文**
 
 </div>
 
@@ -26,7 +26,7 @@
 - [社区准则](#社区准则)
 - [致谢](#致谢)
 - [赞助](#赞助)
-- [English](#english)
+- [English](README.EN.md)
 
 ---
 
@@ -59,8 +59,6 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 
 ## 截图
 
-把演示图放到 `images/readme/`（目录可自行创建），文件名与下面一致即可在 README 里显示。
-
 | 位置 | 建议文件名 | 放什么 |
 |---|---|---|
 | 设备画廊 | `images/readme/gallery.png` | 多设备卡片、在线数、实时截图 |
@@ -80,15 +78,15 @@ images/readme/
 └── terminal.png
 ```
 
-> 占位示例（替换为你的截图路径）  
-> ![设备画廊](images/readme/gallery.png)  
-> ![镜像投屏](images/readme/mirror-cast.png)
+图片已插入到下方对应功能小节中；这里仅列出文件名与建议用途。
 
 ---
 
 ## 功能一览
 
 ### 设备画廊
+
+![设备画廊](images/readme/gallery.png)
 
 - 左侧 Tab：**设备**、**设置**
 - 自动发现 ADB 设备（内置 `platform-tools`），展示型号、厂商、IP、Android 版本、序列号、产品名
@@ -103,6 +101,8 @@ images/readme/
 - 浅色/深色主题，偏好持久化
 
 ### 设备工作区 · 镜像投屏（默认）
+
+![镜像投屏](images/readme/mirror-cast.png)
 
 **左侧参数**（Naive UI 折叠分组；下拉带顶部搜索 `MirrorSearchableSelect`）：
 
@@ -131,11 +131,15 @@ images/readme/
 
 ### 设备工作区 · 摄像头投屏（Android 12+）
 
+![摄像头投屏](images/readme/camera-cast.png)
+
 - 左侧「摄像头」：朝向、摄像头 ID、采集尺寸、宽高比、帧率、高速模式、手电筒、变焦、编码与音频
 - `GET /api/devices/:serial/cameras` 列出设备摄像头
 - 投屏中可开关手电、变焦；**摄像头模式不注入画布触摸**（避免误触）
 
 ### 文件管理
+
+![文件管理](images/readme/files.png)
 
 - 根目录 `/`，默认打开 `/storage/emulated/0`；地址栏显示真实绝对路径
 - 后退 / 前进 / 向上 / 刷新；无权限时提示「权限不足」
@@ -143,12 +147,16 @@ images/readme/
 
 ### 应用管理
 
+![应用管理](images/readme/apps.png)
+
 - 列表：应用名（经 scrcpy-server `PackageManager` 取 label）、包名、系统/冻结标记
 - 详情弹窗：版本、SDK、数据目录等
 - 卸载（二次确认）、用户级冻结/解冻、导出 APK、在文件管理中打开 `dataDir`
 - 本地上传 APK 安装：`PUT .../apps/install`
 
 ### 终端
+
+![终端](images/readme/terminal.png)
 
 - xterm.js：Tab、方向键、ANSI 彩色；自动 `stty` 行列
 - `WebSocket .../terminal/ws` 桥接 `adb shell -tt`
@@ -309,228 +317,4 @@ scrcpy 本体遵循 **Apache License 2.0**（见 `backend/source/scrcpy/LICENSE`
 
 ---
 
-<br/>
 
-<div align="center">
-
-# English
-
-**Manage real Android devices in the browser: cast, control, files, apps, and shell.**
-
-[中文](#cloud-phone) · **English**
-
-</div>
-
----
-
-## Table of contents
-
-- [What it is](#what-it-is)
-- [Highlights](#highlights)
-- [Screenshots (placeholders)](#screenshots-placeholders)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [Project layout](#project-layout)
-- [API overview](#api-overview)
-- [Building scrcpy](#building-scrcpy)
-- [Environment](#environment)
-- [Community guidelines](#community-guidelines)
-- [Acknowledgements](#acknowledgements)
-- [Sponsorship](#sponsorship)
-
----
-
-## What it is
-
-Cloud Phone is a **local** web console for Android devices already connected via ADB. A Node backend pushes a customized **scrcpy 4.0** server with WebSocket streaming; the Vue frontend decodes H.264 with **WebCodecs** and speaks the **ws-scrcpy** wire protocol. Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is standalone.
-
-**Good fit:** developers with USB/Wi‑Fi ADB, need rich cast options, files, apps, and shell in one UI.  
-**Not a fit:** cloud phones without ADB, or headless SaaS expectations.
-
----
-
-## Highlights
-
-- Browser cast with low-latency H.264 + touch/mouse injection (scrcpy 4.0)
-- Official scrcpy **4.0** server fork with WebSocket on port **8886**
-- Mirror + **camera** cast modes (OTG/UHID removed in v0.9.1)
-- Files, app manager, and terminal **without** an active cast session
-- Toolbar: navigation keys (press/hold), clipboard, record (MP4/MP3), screenshot flash
-- `npm run dev` waits for backend health before Vite; light/dark theme
-
----
-
-## Screenshots (placeholders)
-
-Add images under `images/readme/`:
-
-| File | Content |
-|---|---|
-| `gallery.png` | Device gallery |
-| `mirror-cast.png` | Mirror cast + settings |
-| `camera-cast.png` | Camera cast |
-| `files.png` | File explorer |
-| `apps.png` | App manager |
-| `terminal.png` | ADB terminal |
-
----
-
-## Features
-
-### Device gallery
-
-- Tabs: **Devices**, **Settings**
-- Live ADB metadata + periodic screenshots (defaults: list **1s**, shots **5s**)
-- Online/offline counts, manual refresh, open **device workspace**
-
-### Settings & auth
-
-- Configurable refresh intervals
-- Session login (change default `admin` password)
-- Persisted light/dark theme
-
-### Device workspace · Mirror cast
-
-- Left panel: video / audio / device / screen groups (Naive UI, searchable selects)
-- WebSocket cast: `POST .../cast/start`, `WS .../cast/ws`
-- Hot-reload stream params via WebSocket type **101**; form locked while casting
-- Touch mapped to **decoded video size**; scrcpy SDK mouse protocol
-- Toolbar: recents, home, back, screen off, power, rotate, volume menu, clipboard, record, screenshot, files, apps, terminal
-- Audio-only mode (no video) with waveform + MP3 recording (Android 11+)
-
-### Camera cast (Android 12+)
-
-- Facing, camera id, size, aspect, fps, torch, zoom, encoder, audio
-- `GET .../cameras`; torch/zoom controls; no canvas touch injection
-
-### Files
-
-- Root `/`, default `/storage/emulated/0`, back/forward/up/refresh
-- `GET .../files?path=`
-
-### Apps
-
-- Labels via scrcpy-server; detail, uninstall, freeze/unfreeze, APK export/install
-- Open `dataDir` in file explorer
-
-### Terminal
-
-- xterm.js + `WS .../terminal/ws` → `adb shell -tt`
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
-
----
-
-## Quick start
-
-**Requirements:** Node.js 18+, authorized ADB device, Chromium with WebCodecs.
-
-```powershell
-cd Cloud-Phone
-copy .env.example .env
-npm run dev
-# http://localhost:5173
-```
-
-```powershell
-npm run dev:backend   # port 3000
-npm run dev:frontend  # port 5173
-```
-
-```powershell
-cd frontend/web && npm run start
-```
-
-If the server JAR is missing:
-
-```powershell
-node tools/build-scrcpy-server.mjs
-```
-
----
-
-## Project layout
-
-```text
-backend/node/          API + WebSocket
-backend/source/scrcpy/ scrcpy 4.0 + WebSocket fork
-frontend/web/          Vue 3 + Vite
-tools/                 build & dev scripts
-images/qr/             sponsorship QR codes
-```
-
----
-
-## API overview
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/health` | Health |
-| GET | `/api/devices` | List devices |
-| GET | `/api/devices/:serial/screenshot` | Screenshot |
-| GET | `.../mirror-options` | Mirror options |
-| GET | `.../video-encoders` | Encoders |
-| GET | `.../cameras` | Cameras |
-| GET | `.../files?path=` | List files |
-| GET/DELETE | `.../apps` | Apps / uninstall |
-| PUT | `.../apps/install` | Install APK |
-| POST/DELETE | `.../cast/start\|stop` | Cast session |
-| WS | `.../cast/ws` | Cast stream |
-| WS | `.../terminal/ws` | Shell |
-| * | `/api/scrcpy/*` | scrcpy sessions |
-
----
-
-## Building scrcpy
-
-```powershell
-node tools/build-scrcpy-server.mjs
-node tools/build-scrcpy.mjs
-node tools/sync-scrcpy-source.mjs
-```
-
-Details: [backend/source/scrcpy/CLOUD_PHONE.md](backend/source/scrcpy/CLOUD_PHONE.md).
-
----
-
-## Environment
-
-| Variable | Default |
-|---|---|
-| `HOST` | `0.0.0.0` |
-| `BACKEND_PORT` | `3000` |
-| `FRONTEND_PORT` | `5173` |
-
----
-
-## Community guidelines
-
-Behavior aligns with [LINUX DO guidelines](https://linux.do/guidelines): be sincere and kind, not arrogant or destructive; no harassment, illegal content, or spam; when posting on LINUX DO, do not paste raw AI-polished text (use screenshots per their rules). Write clear, reproducible issues and focused PRs here.
-
----
-
-## Acknowledgements
-
-Thanks to [scrcpy](https://github.com/Genymobile/scrcpy), [ws-scrcpy](https://github.com/NetrisTV/ws-scrcpy), [escrcpy](https://github.com/viarotel-org/escrcpy), [Vue](https://github.com/vuejs/core), [Vite](https://github.com/vitejs/vite), [Naive UI](https://github.com/tusen-ai/naive-ui), [xterm.js](https://github.com/xtermjs/xterm.js), [@breezystack/lamejs](https://github.com/breezystack/lamejs), [ws](https://github.com/websockets/ws), [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket), and Android **platform-tools**.
-
----
-
-## Sponsorship
-
-Optional support — scan if this project saved you time:
-
-<table align="center">
-<tr>
-<td align="center"><b>WeChat</b><br/><img src="images/qr/wx.jpg" width="220" alt="WeChat QR"/></td>
-<td align="center"><b>Alipay</b><br/><img src="images/qr/zfb.png" width="220" alt="Alipay QR"/></td>
-</tr>
-</table>
-
-The project remains free and open source.
-
----
-
-<div align="center">
-[↑ Back to 中文](#cloud-phone)
-
-</div>

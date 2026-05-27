@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.3 - 2026-05-27
+
+- 重写 README：中英文分离，中文为主文件，英文独立到 README.EN.md；顶部互相跳转
+- 各功能截图（设备画廊、镜像投屏、摄像头投屏、文件管理、应用管理、终端）插入到对应功能小节下方
+- 截图文件路径统一为 `images/readme/*.png`，赞助二维码放在文末
+- 新增 LINUX DO 社区准则节；完善致谢表格，补充所有依赖项目链接
+
+### README rewrite
+- Split Chinese/English: `README.md` (Chinese) + `README.EN.md` (English)
+- Feature screenshots embedded in corresponding sections
+- Added LINUX DO community guidelines section
+- Completed acknowledgements with all dependency links and sponsorship QR codes
+
 ## 0.9.2 - 2026-05-27
 
 - 全局键盘捕获：投屏画面获得焦点后，所有按键（按下/抬起）直接通过 scrcpy `INJECT_KEYCODE` 透传到设备，包含 Shift/Ctrl/Alt/Meta 等修饰键状态
