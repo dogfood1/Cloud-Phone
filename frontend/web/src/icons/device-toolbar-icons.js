@@ -20,7 +20,10 @@ export const DEVICE_TOOLBAR_ICONS = {
     "M12 7v5M9.5 9.5 12 7 14.5 9.5",
   ],
   power: ["M12 2v8", "M5.34 5.34a8 8 0 1 0 11.32 0"],
-  rotate: ["M21 12a9 9 0 0 0-9-9 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0-2.5 2.5H3", "M3 12h4"],
+  rotate: [
+    "M19 4v4h-4",
+    "M19 8a7 7 0 1 0 2.1 5.4",
+  ],
   volume: [
     "M11 5 6 9H3v6h3l5 4V5z",
     "M15.5 8.5a5 5 0 0 1 0 7",
@@ -49,5 +52,9 @@ export const DEVICE_TOOLBAR_ICONS = {
   "chevron-left": "M15 18l-6-6 6-6",
   "chevron-right": "M9 18l6-6-6-6",
   apps: ["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z"],
-  terminal: ["M12 19h8", "M8 16l-4-4 4-4", "M4 19h.01", "M4 15h.01"],
+  terminal: [
+    "M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
+    "M7 10l3 3-3 3",
+    "M12 16h5",
+  ],
 };

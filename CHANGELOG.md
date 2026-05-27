@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.7 - 2026-05-27
+
+- 改进工具栏图标：终端与旋转更清晰、比例更协调
+
+### Toolbar icons
+- Improve terminal and rotate icons for better legibility
+
 ## 0.9.6 - 2026-05-27
 
 - 新增 `scripts/` 三平台自动安装向导（Linux / macOS / Windows），命令行伪图形菜单
