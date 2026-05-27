@@ -1,16 +1,22 @@
-const STATE_LABELS = {
-  device: "在线",
-  offline: "离线",
-  unauthorized: "未授权",
-  bootloader: "Bootloader",
-  recovery: "Recovery",
-  sideload: "侧载",
-  downloading: "下载中",
-  "no permissions": "无权限",
-};
+import { i18n } from "../i18n/index.js";
+
+const KNOWN_STATES = new Set([
+  "device",
+  "offline",
+  "unauthorized",
+  "bootloader",
+  "recovery",
+  "sideload",
+  "downloading",
+  "no permissions",
+]);
 
 export function getDeviceStateLabel(state) {
-  return STATE_LABELS[state] ?? state ?? "未知";
+  if (state && KNOWN_STATES.has(state)) {
+    return i18n.global.t(`devices.state.${state}`);
+  }
+
+  return state ?? i18n.global.t("devices.state.unknown");
 }
 
 export function formatAndroidVersion(device) {
@@ -46,6 +52,8 @@ export function formatManufacturerLine(device) {
 }
 
 export function sortDevices(devices) {
+  const locale = i18n.global.locale.value;
+
   return [...devices].sort((left, right) => {
     if (left.connected !== right.connected) {
       return left.connected ? -1 : 1;
@@ -53,7 +61,7 @@ export function sortDevices(devices) {
 
     return String(left.displayName ?? left.serial).localeCompare(
       String(right.displayName ?? right.serial),
-      "zh-CN",
+      locale,
     );
   });
 }
@@ -70,16 +78,16 @@ export function summarizeDevices(devices) {
 
 export function formatRefreshTime(value) {
   if (!value) {
-    return "尚未刷新";
+    return i18n.global.t("devices.refreshNever");
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "未知时间";
+    return i18n.global.t("common.dateUnknown");
   }
 
-  return new Intl.DateTimeFormat("zh-CN", {
+  return new Intl.DateTimeFormat(i18n.global.locale.value, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

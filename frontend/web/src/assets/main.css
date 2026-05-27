@@ -1165,6 +1165,30 @@ h2 {
   max-width: 28rem;
 }
 
+.settings-form__hint {
+  margin: -0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.field__select {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0.85rem 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.field__select:focus-visible {
+  outline: none;
+}
+
 .settings-meta {
   display: grid;
   gap: 0.85rem;

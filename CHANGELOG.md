@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 - 2026-05-27
+
+- 设置页新增界面语言切换，支持简体中文、English、繁體中文、日本語、한국어
+- 接入 `vue-i18n`：设置、侧栏、主题、登录/改密、设备画廊等核心界面文案多语言化
+- 语言偏好写入 `localStorage`，切换即时生效；日期与设备状态标签随 locale 格式化
+
+### Settings i18n & language switcher
+- Language selector on Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR)
+- `vue-i18n` for shell UI: settings, sidebar, theme, auth, device gallery
+- Persisted locale; date/device labels follow active language
+
 ## 0.9.8 - 2026-05-27
 
 - 首页左侧“设置”图标改为图标库实现（`lucide-vue-next`），统一线稿风格并提升清晰度

@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell.**
 
-Current version: **v0.9.8** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
+Current version: **v0.10.0** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -62,6 +62,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - Toolbar: navigation keys (press/hold), clipboard, record (MP4/MP3), screenshot flash
 - Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
 - `npm run dev` waits for backend health before Vite; light/dark theme
+- **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 
 ---
 
@@ -109,6 +110,7 @@ Images are embedded in the corresponding feature sections below.
 ### Settings & auth
 
 - Configure list/screenshot refresh intervals (defaults: list 1s / screenshots 5s)
+- **UI language**: Simplified Chinese, English, Traditional Chinese, Japanese, Korean (Settings dropdown, persisted locally)
 - Session login (default password `admin`, please change it) and password change dialog
 - Session expiry info
 - Light/dark theme toggle with persisted preference

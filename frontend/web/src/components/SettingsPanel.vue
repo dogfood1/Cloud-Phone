@@ -1,4 +1,7 @@
 <script setup>
+import { useI18n } from "vue-i18n";
+
+import { useLocale } from "../composables/useLocale.js";
 import { formatDate } from "../utils/format-date.js";
 
 defineProps({
@@ -21,20 +24,35 @@ defineProps({
 });
 
 defineEmits(["save"]);
+
+const { t } = useI18n();
+const { locale, localeOptions } = useLocale();
 </script>
 
 <template>
   <section class="settings-view">
     <header class="panel-header">
       <div>
-        <p class="eyebrow">设置</p>
-        <h2>显示与刷新</h2>
-        <p class="panel-header__desc">配置画廊截图刷新频率，并查看当前会话信息。</p>
+        <p class="eyebrow">{{ t("settings.eyebrow") }}</p>
+        <h2>{{ t("settings.title") }}</h2>
+        <p class="panel-header__desc">{{ t("settings.desc") }}</p>
       </div>
     </header>
     <form class="settings-form settings-card" @submit.prevent="$emit('save')">
       <label class="field">
-        <span>设备列表刷新间隔（秒）</span>
+        <span>{{ t("settings.language") }}</span>
+        <div class="field__control">
+          <select v-model="locale" class="field__select" :aria-label="t('settings.language')">
+            <option v-for="item in localeOptions" :key="item.code" :value="item.code">
+              {{ item.label }}
+            </option>
+          </select>
+        </div>
+      </label>
+      <p class="settings-form__hint">{{ t("settings.languageHint") }}</p>
+
+      <label class="field">
+        <span>{{ t("settings.deviceInterval") }}</span>
         <div class="field__control">
           <input
             v-model.number="settingsForm.deviceListIntervalSeconds"
@@ -47,7 +65,7 @@ defineEmits(["save"]);
         </div>
       </label>
       <label class="field">
-        <span>截图刷新间隔（秒）</span>
+        <span>{{ t("settings.screenshotInterval") }}</span>
         <div class="field__control">
           <input
             v-model.number="settingsForm.screenshotIntervalSeconds"
@@ -59,17 +77,17 @@ defineEmits(["save"]);
           />
         </div>
       </label>
-      <p class="settings-form__hint">设备列表默认每 1 秒、截图默认每 5 秒刷新；后台更新时保留上一帧画面。</p>
+      <p class="settings-form__hint">{{ t("settings.intervalHint") }}</p>
       <p v-if="settingsFeedback" class="feedback">{{ settingsFeedback }}</p>
-      <button class="primary-button" type="submit">保存设置</button>
+      <button class="primary-button" type="submit">{{ t("settings.save") }}</button>
     </form>
     <dl class="settings-meta">
       <div>
-        <dt>密码状态</dt>
+        <dt>{{ t("settings.passwordStatus") }}</dt>
         <dd>{{ passwordStatusText }}</dd>
       </div>
       <div>
-        <dt>会话到期</dt>
+        <dt>{{ t("settings.sessionExpiry") }}</dt>
         <dd>{{ formatDate(sessionExpiresAt) }}</dd>
       </div>
     </dl>

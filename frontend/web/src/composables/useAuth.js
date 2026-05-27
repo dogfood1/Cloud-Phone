@@ -1,6 +1,11 @@
 import { computed, reactive } from "vue";
 
+import { i18n } from "../i18n/index.js";
 import { getErrorMessage, requestJson } from "../utils/api.js";
+
+function t(key, params) {
+  return i18n.global.t(key, params);
+}
 
 export function useAuth() {
   const state = reactive({
@@ -10,7 +15,7 @@ export function useAuth() {
     passwordConfigured: false,
     passwordUpdatedAt: null,
     sessionExpiresAt: null,
-    sessionStateText: "正在检查会话",
+    sessionStateText: "",
     loginPassword: "",
     currentPassword: "",
     nextPassword: "",
@@ -21,8 +26,10 @@ export function useAuth() {
     changeFeedback: "",
   });
 
+  state.sessionStateText = t("auth.sessionChecking");
+
   const passwordStatusText = computed(() =>
-    state.passwordConfigured ? "已更新" : "默认密码",
+    state.passwordConfigured ? t("auth.passwordUpdated") : t("auth.passwordDefault"),
   );
   const showAuthLayer = computed(() => !state.authenticated);
   const showPasswordChangeModal = computed(
@@ -38,11 +45,13 @@ export function useAuth() {
     try {
       const result = await requestJson("/api/auth/session");
       syncAuthState(result);
-      state.sessionStateText = result.authenticated ? "本地会话有效" : "会话缺失或已过期";
+      state.sessionStateText = result.authenticated
+        ? t("auth.sessionValid")
+        : t("auth.sessionMissing");
       return result.authenticated;
     } catch (error) {
-      state.sessionStateText = "认证状态读取失败";
-      state.loginFeedback = getErrorMessage(error, "暂时无法检查认证状态。");
+      state.sessionStateText = t("auth.sessionReadFailed");
+      state.loginFeedback = getErrorMessage(error, t("auth.sessionCheckFailed"));
       return false;
     } finally {
       state.booting = false;
@@ -51,7 +60,7 @@ export function useAuth() {
 
   async function submitLogin() {
     if (!state.loginPassword) {
-      state.loginFeedback = "请输入登录密码。";
+      state.loginFeedback = t("auth.enterPassword");
       return false;
     }
 
@@ -68,16 +77,16 @@ export function useAuth() {
 
       if (result.requiresPasswordChange) {
         state.currentPassword = state.loginPassword;
-        state.sessionStateText = "默认密码已通过验证";
+        state.sessionStateText = t("auth.defaultVerified");
         return false;
       }
 
       state.loginPassword = "";
-      state.sessionStateText = "已进入控制台";
+      state.sessionStateText = t("auth.enteredConsole");
       return true;
     } catch (error) {
-      state.sessionStateText = "登录失败";
-      state.loginFeedback = getErrorMessage(error, "密码验证失败。");
+      state.sessionStateText = t("auth.loginFailed");
+      state.loginFeedback = getErrorMessage(error, t("auth.loginFailedDefault"));
       return false;
     } finally {
       state.loginPending = false;
@@ -86,17 +95,17 @@ export function useAuth() {
 
   async function submitPasswordChange() {
     if (!state.currentPassword) {
-      state.changeFeedback = "请先使用默认密码登录后再修改。";
+      state.changeFeedback = t("auth.changeNeedLogin");
       return false;
     }
 
     if (state.nextPassword.length < 6) {
-      state.changeFeedback = "新密码至少需要 6 位。";
+      state.changeFeedback = t("auth.passwordTooShort");
       return false;
     }
 
     if (state.nextPassword !== state.confirmPassword) {
-      state.changeFeedback = "两次输入的新密码不一致。";
+      state.changeFeedback = t("auth.passwordMismatch");
       return false;
     }
 
@@ -113,14 +122,14 @@ export function useAuth() {
       });
 
       syncAuthState(result);
-      state.sessionStateText = "密码已更新";
+      state.sessionStateText = t("auth.passwordChanged");
       state.loginPassword = "";
       state.currentPassword = "";
       state.nextPassword = "";
       state.confirmPassword = "";
       return true;
     } catch (error) {
-      state.changeFeedback = getErrorMessage(error, "密码更新失败。");
+      state.changeFeedback = getErrorMessage(error, t("auth.changeFailedDefault"));
       return false;
     } finally {
       state.changePending = false;
@@ -134,7 +143,7 @@ export function useAuth() {
       state.authenticated = false;
       state.requiresPasswordChange = false;
       state.sessionExpiresAt = null;
-      state.sessionStateText = "会话已退出";
+      state.sessionStateText = t("auth.sessionLoggedOut");
     }
   }
 

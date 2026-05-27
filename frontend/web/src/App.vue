@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import AppProviders from "./components/AppProviders.vue";
 import AuthLayer from "./components/AuthLayer.vue";
@@ -25,6 +26,8 @@ const {
   submitPasswordChange,
   logout,
 } = useAuth();
+
+const { t } = useI18n();
 
 const activeTab = ref("devices");
 const selectedDevice = ref(null);
@@ -102,7 +105,10 @@ function saveSettingsForm() {
     deviceListIntervalSeconds: settingsForm.deviceListIntervalSeconds,
     screenshotIntervalSeconds: settingsForm.screenshotIntervalSeconds,
   });
-  settingsFeedback.value = `设备列表每 ${settingsForm.deviceListIntervalSeconds} 秒、截图每 ${settingsForm.screenshotIntervalSeconds} 秒刷新。`;
+  settingsFeedback.value = t("settings.savedFeedback", {
+    device: settingsForm.deviceListIntervalSeconds,
+    screenshot: settingsForm.screenshotIntervalSeconds,
+  });
 
   if (authState.authenticated) {
     startDevices();

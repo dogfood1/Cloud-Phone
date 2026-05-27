@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import AppIcon from "./AppIcon.vue";
 import {
@@ -21,6 +22,8 @@ const props = defineProps({
 
 const emit = defineEmits(["open"]);
 
+const { t } = useI18n();
+
 function handleOpen() {
   emit("open", props.device);
 }
@@ -37,7 +40,11 @@ const screenshotFailed = ref(false);
 
 const manufacturerLine = formatManufacturerLine(props.device);
 const androidLine = formatAndroidVersion(props.device);
-const stateLabel = getDeviceStateLabel(props.device.state);
+const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
+
+const screenshotAlt = computed(() =>
+  t("devices.screenshotAlt", { name: props.device.displayName }),
+);
 
 function preloadScreenshot(url) {
   if (!url || !props.device.connected) {
@@ -105,7 +112,7 @@ watch(
       <img
         v-if="device.connected && displaySrc && !screenshotFailed"
         :src="displaySrc"
-        :alt="`${device.displayName} 截图`"
+        :alt="screenshotAlt"
         decoding="async"
       />
       <div
@@ -113,11 +120,13 @@ watch(
         class="device-card__placeholder"
       >
         <AppIcon name="phone" />
-        <span>截图加载失败</span>
+        <span>{{ t("devices.screenshotFailed") }}</span>
       </div>
       <div v-else class="device-card__placeholder">
         <AppIcon name="phone" />
-        <span>{{ device.connected ? "等待截图" : "设备未在线" }}</span>
+        <span>{{
+          device.connected ? t("devices.waitingScreenshot") : t("devices.deviceOffline")
+        }}</span>
       </div>
       <span
         class="device-card__status"
@@ -135,23 +144,23 @@ watch(
 
       <dl class="device-card__facts">
         <div>
-          <dt>IP 地址</dt>
+          <dt>{{ t("devices.ip") }}</dt>
           <dd>{{ device.ipAddress || "—" }}</dd>
         </div>
         <div v-if="device.product || device.device">
-          <dt>产品</dt>
+          <dt>{{ t("devices.product") }}</dt>
           <dd>{{ [device.product, device.device].filter(Boolean).join(" · ") }}</dd>
         </div>
         <div>
-          <dt>系统</dt>
+          <dt>{{ t("devices.system") }}</dt>
           <dd>{{ androidLine || "—" }}</dd>
         </div>
         <div>
-          <dt>序列号</dt>
+          <dt>{{ t("devices.serial") }}</dt>
           <dd class="device-card__mono">{{ device.serial }}</dd>
         </div>
         <div>
-          <dt>ADB 状态</dt>
+          <dt>{{ t("devices.adbState") }}</dt>
           <dd>{{ device.state }}</dd>
         </div>
       </dl>

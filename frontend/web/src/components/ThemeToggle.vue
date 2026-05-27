@@ -1,12 +1,15 @@
 <script setup>
+import { useI18n } from "vue-i18n";
+
 import AppIcon from "./AppIcon.vue";
 import { useTheme } from "../composables/useTheme.js";
 
 const { theme, setTheme } = useTheme();
+const { t } = useI18n();
 </script>
 
 <template>
-  <div class="theme-toggle" role="group" aria-label="外观模式">
+  <div class="theme-toggle" role="group" :aria-label="t('theme.ariaLabel')">
     <button
       type="button"
       class="theme-toggle__option"
@@ -14,7 +17,7 @@ const { theme, setTheme } = useTheme();
       @click="setTheme('light')"
     >
       <AppIcon name="sun" />
-      <span>浅色</span>
+      <span>{{ t("theme.light") }}</span>
     </button>
     <button
       type="button"
@@ -23,7 +26,7 @@ const { theme, setTheme } = useTheme();
       @click="setTheme('dark')"
     >
       <AppIcon name="moon" />
-      <span>深色</span>
+      <span>{{ t("theme.dark") }}</span>
     </button>
   </div>
 </template>

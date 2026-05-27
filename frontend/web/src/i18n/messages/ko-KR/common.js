@@ -1,0 +1,21 @@
+export default {
+  common: {
+    dateUnset: "설정 안 됨",
+    dateUnknown: "알 수 없는 시간",
+    show: "표시",
+    hide: "숨기기",
+    retry: "다시 시도",
+  },
+  sidebar: {
+    brandTitle: "기기 콘솔",
+    navLabel: "주 메뉴",
+    devices: "기기",
+    settings: "설정",
+    logout: "로그아웃",
+  },
+  theme: {
+    ariaLabel: "테마",
+    light: "라이트",
+    dark: "다크",
+  },
+};

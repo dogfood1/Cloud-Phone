@@ -1,4 +1,7 @@
 <script setup>
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
 import AppIcon from "./AppIcon.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 
@@ -11,10 +14,12 @@ const props = defineProps({
 
 const emit = defineEmits(["update:activeTab", "logout"]);
 
-const tabs = [
-  { id: "devices", label: "设备", icon: "devices" },
-  { id: "settings", label: "设置", icon: "settings" },
-];
+const { t } = useI18n();
+
+const tabs = computed(() => [
+  { id: "devices", label: t("sidebar.devices"), icon: "devices" },
+  { id: "settings", label: t("sidebar.settings"), icon: "settings" },
+]);
 </script>
 
 <template>
@@ -25,11 +30,11 @@ const tabs = [
       </div>
       <div>
         <p class="eyebrow">Cloud Phone</p>
-        <strong>设备控制台</strong>
+        <strong>{{ t("sidebar.brandTitle") }}</strong>
       </div>
     </div>
 
-    <nav class="sidebar__tabs" aria-label="主导航">
+    <nav class="sidebar__tabs" :aria-label="t('sidebar.navLabel')">
       <button
         v-for="tab in tabs"
         :key="tab.id"
@@ -47,7 +52,7 @@ const tabs = [
       <ThemeToggle />
       <button type="button" class="sidebar__logout" @click="emit('logout')">
         <AppIcon name="logout" />
-        <span>退出登录</span>
+        <span>{{ t("sidebar.logout") }}</span>
       </button>
     </div>
   </aside>
