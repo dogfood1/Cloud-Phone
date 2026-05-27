@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 
 import AppIcon from "./AppIcon.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
+import DeviceFileExplorer from "./DeviceFileExplorer.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
@@ -28,6 +29,7 @@ const castHint = ref("");
 const castOptions = ref(buildCastPayloadFromMirrorSettings(createDefaultMirrorSettings()));
 const castViewportRef = ref(null);
 const leftPanelRef = ref(null);
+const filesExplorerOpen = ref(false);
 
 const {
   actions,
@@ -53,6 +55,9 @@ const {
   mirrorSettingsRef: leftPanelRef,
   onHint: (message) => {
     castHint.value = message;
+  },
+  onOpenFiles: () => {
+    filesExplorerOpen.value = true;
   },
 });
 
@@ -262,5 +267,11 @@ onBeforeUnmount(() => {
         @cast-failed="handleCastFailed"
       />
     </div>
+
+    <DeviceFileExplorer
+      :device="device"
+      :open="filesExplorerOpen"
+      @close="filesExplorerOpen = false"
+    />
   </section>
 </template>

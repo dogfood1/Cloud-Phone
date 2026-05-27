@@ -29,7 +29,13 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     kind: "record",
     title: "录制投屏：有画面保存 MP4，仅音频保存 MP3",
   },
-  { id: "files", label: "文件管理", icon: "folder", kind: "planned" },
+  {
+    id: "files",
+    label: "文件管理",
+    icon: "folder",
+    kind: "files",
+    title: "浏览设备内部存储（/storage/emulated/0）",
+  },
   { id: "apps", label: "应用管理", icon: "apps", kind: "planned" },
   { id: "terminal", label: "终端", icon: "terminal", kind: "planned" },
 ];

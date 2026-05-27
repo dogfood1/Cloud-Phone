@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.14 - 2026-05-27
+
+- Device file explorer (toolbar「文件管理」): browse internal storage rooted at `/storage/emulated/0` while UI shows `/`; `GET /api/devices/:serial/files?path=...` lists via `adb shell ls`; path normalized to prevent traversal outside root; no cast required when device is online
+- Frontend `DeviceFileExplorer` modal: address bar, up, refresh, name/size/modified columns; folder and symlink navigation
+
 ## 0.7.13 - 2026-05-27
 
 - Cast toolbar recording: save MP4 while video cast is active; save MP3 when「disable video」audio-only cast

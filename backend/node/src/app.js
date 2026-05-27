@@ -190,7 +190,7 @@ export function createApp() {
       return;
     }
 
-    if (await handleDeviceRoute(req, res, method, pathname)) {
+    if (await handleDeviceRoute(req, res, method, pathname, requestUrl)) {
       return;
     }
 

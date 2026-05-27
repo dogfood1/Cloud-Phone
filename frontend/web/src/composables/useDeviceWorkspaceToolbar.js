@@ -17,6 +17,7 @@ export function useDeviceWorkspaceToolbar({
   castOptions,
   mirrorSettingsRef,
   onHint,
+  onOpenFiles,
 }) {
   const screenshotBusy = ref(false);
   const recordBusy = ref(false);
@@ -111,6 +112,10 @@ export function useDeviceWorkspaceToolbar({
       return true;
     }
 
+    if (action.kind === "files") {
+      return !device.connected;
+    }
+
     if (action.kind === "volume-menu") {
       return !isCasting.value;
     }
@@ -147,6 +152,14 @@ export function useDeviceWorkspaceToolbar({
   function actionTitle(action) {
     if (action.kind === "planned") {
       return "即将推出";
+    }
+
+    if (action.kind === "files") {
+      if (!device.connected) {
+        return "设备未在线";
+      }
+
+      return action.title ?? "浏览设备文件";
     }
 
     if (action.kind === "record") {
@@ -455,6 +468,11 @@ export function useDeviceWorkspaceToolbar({
 
     if (action.kind === "screenshot") {
       void handleScreenshot();
+      return;
+    }
+
+    if (action.kind === "files") {
+      onOpenFiles?.();
       return;
     }
 
