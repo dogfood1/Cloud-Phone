@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.13 - 2026-05-27
+
+- Cast toolbar recording: save MP4 while video cast is active; save MP3 when「disable video」audio-only cast
+- Fix audio-only cast with no sound and no `scrcpy_audio`: start PCM processor after `started=true` (was exiting immediately on sync start)
+- Server `WsPcmAudioProcessor`: compatibility check, PCM buffer handling, pipeline logging; inherit audio options in `copyForWebStream`
+- Frontend: `@breezystack/lamejs` MP3 encode, canvas PCM capture, click viewport to resume `AudioContext`, recording duration UI
+
 ## 0.7.12 - 2026-05-26
 
 - Fix cast canvas z-index: video canvas at bottom; toolbar volume menu stacks above cast viewport

@@ -44,7 +44,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 截屏时投屏区域四周白光闪动动画反馈
 - 音量按钮点击展开「增加 / 减小」子按钮（替代按住与 Shift+按住）
 - 投屏画布置底、顶栏音量菜单叠在画布之上（z-index）
-- 同步前端与后端版本号到 `0.7.12`
+- 投屏录屏：有画面保存 MP4，仅音频保存 MP3；投屏结束自动保存；修复禁用视频时无音频（server `started` 时序）
+- 同步前端与后端版本号到 `0.7.13`
 
 ### 启动方式
 ```powershell
@@ -111,7 +112,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Screenshot action: white edge-glow flash on cast viewport
 - Volume button expands increase/decrease sub-buttons (replaces hold and Shift+hold)
 - Cast canvas at bottom layer; toolbar volume menu above viewport (z-index)
-- Sync frontend and backend versions to `0.7.12`
+- Cast recording: MP4 with video cast, MP3 with audio-only; auto-save when cast ends; fix no audio when video disabled (server `started` race)
+- Sync frontend and backend versions to `0.7.13`
 
 ### Getting Started
 ```powershell

@@ -40,6 +40,7 @@ const {
   isActionDisabled,
   usesPressHold,
   isActionPressed,
+  isActionRecording,
   onToolbarPointerDown,
   onToolbarPointerUp,
   handleToolbarClick,
@@ -222,6 +223,7 @@ onBeforeUnmount(() => {
             :class="{
               'device-workspace__action--hold': usesPressHold(action),
               'device-workspace__action--pressed': isActionPressed(action),
+              'device-workspace__action--recording': isActionRecording(action),
             }"
             :disabled="isActionDisabled(action)"
             :title="actionTitle(action)"

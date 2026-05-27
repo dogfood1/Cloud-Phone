@@ -5,8 +5,9 @@ import {
   VOLUME_SUB_ACTIONS,
 } from "../utils/device-workspace-actions.js";
 import { downloadDeviceScreenshot } from "../utils/device-screenshot-download.js";
+import { formatRecordingDuration } from "../utils/cast-recording-utils.js";
 import { getErrorMessage } from "../utils/api.js";
-import { readExposedBoolean } from "../utils/read-exposed-ref.js";
+import { readExposedBoolean, readExposedNumber } from "../utils/read-exposed-ref.js";
 import { nextPreviewRotationDeg, normalizeRotationDeg } from "../utils/canvas-rotation.js";
 
 export function useDeviceWorkspaceToolbar({
@@ -18,7 +19,11 @@ export function useDeviceWorkspaceToolbar({
   onHint,
 }) {
   const screenshotBusy = ref(false);
+  const recordBusy = ref(false);
+  /** Bumps while casting so recording duration label re-renders. */
+  const recordingLabelTick = ref(0);
   const volumeMenuOpen = ref(false);
+  let recordingLabelTimer = null;
   /** @type {Map<number, string>} pointerId -> resolved press action */
   const activePresses = ref(new Map());
 
@@ -46,9 +51,35 @@ export function useDeviceWorkspaceToolbar({
     volumeMenuOpen.value = !volumeMenuOpen.value;
   }
 
+  function isCastViewportRecording() {
+    return readExposedBoolean(castViewportRef.value?.isRecording, false);
+  }
+
+  function stopRecordingLabelTimer() {
+    if (recordingLabelTimer) {
+      window.clearInterval(recordingLabelTimer);
+      recordingLabelTimer = null;
+    }
+  }
+
+  function startRecordingLabelTimer() {
+    stopRecordingLabelTimer();
+    recordingLabelTimer = window.setInterval(() => {
+      if (isCastViewportRecording()) {
+        recordingLabelTick.value += 1;
+      }
+    }, 250);
+  }
+
   function actionLabel(action) {
     if (action.id === "screen-off") {
       return screenOffActionLabel.value;
+    }
+
+    if (action.id === "record" && isCastViewportRecording()) {
+      void recordingLabelTick.value;
+      const elapsed = readExposedNumber(castViewportRef.value?.recordingElapsedMs, 0);
+      return `录制中 ${formatRecordingDuration(elapsed)}`;
     }
 
     return action.label;
@@ -60,7 +91,15 @@ export function useDeviceWorkspaceToolbar({
       return screenOn ? "screen-off" : "screen-on";
     }
 
+    if (action.id === "record" && isCastViewportRecording()) {
+      return "record-active";
+    }
+
     return action.icon;
+  }
+
+  function isActionRecording(action) {
+    return action.id === "record" && isCastViewportRecording();
   }
 
   function isActionDisabled(action) {
@@ -74,6 +113,20 @@ export function useDeviceWorkspaceToolbar({
 
     if (action.kind === "volume-menu") {
       return !isCasting.value;
+    }
+
+    if (action.kind === "record") {
+      if (!isCasting.value || recordBusy.value) {
+        return true;
+      }
+
+      const supported = castViewportRef.value?.isCastRecordingSupported?.(castOptions?.value);
+
+      if (supported === false) {
+        return true;
+      }
+
+      return false;
     }
 
     if (action.kind === "cast-navigation") {
@@ -94,6 +147,29 @@ export function useDeviceWorkspaceToolbar({
   function actionTitle(action) {
     if (action.kind === "planned") {
       return "即将推出";
+    }
+
+    if (action.kind === "record") {
+      if (!isCasting.value) {
+        return "请先开始投屏";
+      }
+
+      if (castViewportRef.value?.isCastRecordingSupported?.(castOptions?.value) === false) {
+        return castOptions?.value?.mirror?.video?.disabled === true
+          ? "当前浏览器不支持 MP3 录制"
+          : "当前浏览器不支持 MP4 录屏";
+      }
+
+      if (isCastViewportRecording()) {
+        const ext = castOptions?.value?.mirror?.video?.disabled === true ? "MP3" : "MP4";
+        return `点击结束录制并保存为 ${ext}`;
+      }
+
+      if (castOptions?.value?.mirror?.video?.disabled === true) {
+        return "开始录制设备音频（保存为 MP3）";
+      }
+
+      return action.title ?? "开始录制投屏画面（保存为 MP4）";
     }
 
     return action.title ?? "";
@@ -161,11 +237,36 @@ export function useDeviceWorkspaceToolbar({
     closeVolumeMenu();
   }
 
-  watch(isCasting, (casting) => {
-    if (!casting) {
-      releaseAllPresses();
-      closeVolumeMenu();
+  async function finalizeRecordingOnCastEnd() {
+    const viewport = castViewportRef.value;
+
+    if (!viewport?.stopCastRecording || !isCastViewportRecording()) {
+      return;
     }
+
+    recordBusy.value = true;
+
+    try {
+      await viewport.stopCastRecording(true);
+      const ext = castOptions?.value?.mirror?.video?.disabled === true ? "MP3" : "MP4";
+      onHint?.(`投屏已结束，${ext} 已保存`);
+    } catch (error) {
+      onHint?.(getErrorMessage(error, "保存录屏失败"));
+    } finally {
+      recordBusy.value = false;
+    }
+  }
+
+  watch(isCasting, (casting) => {
+    if (casting) {
+      startRecordingLabelTimer();
+      return;
+    }
+
+    stopRecordingLabelTimer();
+    releaseAllPresses();
+    closeVolumeMenu();
+    void finalizeRecordingOnCastEnd();
   });
 
   onMounted(() => {
@@ -175,12 +276,44 @@ export function useDeviceWorkspaceToolbar({
   });
 
   onBeforeUnmount(() => {
+    stopRecordingLabelTimer();
     window.removeEventListener("pointerup", onWindowPointerUp);
     window.removeEventListener("blur", onWindowBlur);
     document.removeEventListener("pointerdown", onDocumentPointerDown, true);
     releaseAllPresses();
     closeVolumeMenu();
   });
+
+  async function handleRecordToggle() {
+    const viewport = castViewportRef.value;
+
+    if (!viewport?.toggleCastRecording) {
+      onHint?.("录屏组件未就绪");
+      return;
+    }
+
+    const wasRecording = isCastViewportRecording();
+    recordBusy.value = true;
+
+    try {
+      await viewport.toggleCastRecording(device.displayName ?? device.serial);
+      const isAudioOnly = castOptions?.value?.mirror?.video?.disabled === true;
+
+      onHint?.(
+        wasRecording
+          ? isAudioOnly
+            ? "MP3 已保存"
+            : "MP4 已保存"
+          : isAudioOnly
+            ? "开始录制音频（MP3）"
+            : "开始录制画面（MP4）",
+      );
+    } catch (error) {
+      onHint?.(getErrorMessage(error, "录屏失败"));
+    } finally {
+      recordBusy.value = false;
+    }
+  }
 
   async function handleScreenshot() {
     if (!device.connected || screenshotBusy.value) {
@@ -325,6 +458,11 @@ export function useDeviceWorkspaceToolbar({
       return;
     }
 
+    if (action.kind === "record") {
+      void handleRecordToggle();
+      return;
+    }
+
     if (action.kind === "volume-menu") {
       toggleVolumeMenu();
       return;
@@ -340,9 +478,11 @@ export function useDeviceWorkspaceToolbar({
     volumeSubActions,
     volumeMenuOpen,
     screenshotBusy,
+    recordBusy,
     isVolumeMenuAction,
     actionLabel,
     actionIcon,
+    isActionRecording,
     actionTitle,
     isActionDisabled,
     usesPressHold,

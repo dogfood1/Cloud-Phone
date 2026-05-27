@@ -15,6 +15,9 @@ import {
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
 import { applyStagePreviewRotation } from "../utils/canvas-rotation.js";
 import { attachCastInteraction } from "../utils/scrcpy-cast-interaction.js";
+import { CastAudioMp3Recorder, isCastAudioRecordingSupported } from "../utils/cast-audio-mp3-recorder.js";
+import { downloadRecordingBlob } from "../utils/cast-recording-utils.js";
+import { CastVideoRecorder, isCastVideoRecordingSupported } from "../utils/cast-video-recorder.js";
 
 function isAudioOnlyCast(castOptions) {
   return castOptions?.mirror?.video?.disabled === true;
@@ -65,6 +68,142 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   let startAppTimer = null;
   let startAppSent = false;
   const displayScreenOn = ref(true);
+  const isRecording = ref(false);
+  const recordingElapsedMs = ref(0);
+  const castVideoRecordingSupported = isCastVideoRecordingSupported();
+  const castAudioRecordingSupported = isCastAudioRecordingSupported();
+  const videoRecorder = new CastVideoRecorder();
+  const audioRecorder = new CastAudioMp3Recorder();
+  let recordingDisplayName = "";
+  /** @type {"video" | "audio" | null} */
+  let recordingMode = null;
+
+  function isAudioOnlyRecording() {
+    return isAudioOnlyCast(unref(castOptionsRef));
+  }
+
+  function resolveCastAudioCapture() {
+    const currentPlayer = player.value;
+
+    if (typeof currentPlayer?.beginPcmRecording === "function") {
+      return currentPlayer;
+    }
+
+    if (currentPlayer?.playback) {
+      return currentPlayer.playback;
+    }
+
+    return audioPlayback;
+  }
+
+  function isCastRecordingSupported(castOptions = unref(castOptionsRef)) {
+    if (isAudioOnlyCast(castOptions)) {
+      return castAudioRecordingSupported;
+    }
+
+    return castVideoRecordingSupported;
+  }
+
+  function assertCanRecord() {
+    if (status.value !== "streaming") {
+      throw new Error("请先开始投屏后再录屏。");
+    }
+
+    if (isAudioOnlyRecording()) {
+      if (!castAudioRecordingSupported) {
+        throw new Error("当前浏览器不支持音频录制。");
+      }
+
+      if (!resolveCastAudioCapture()) {
+        throw new Error("设备音频通道未就绪。");
+      }
+
+      return;
+    }
+
+    if (!castVideoRecordingSupported) {
+      throw new Error("当前浏览器不支持 MP4 录屏，请使用 Chrome 或 Edge。");
+    }
+
+    if (!canvasRef.value) {
+      throw new Error("投屏画布未就绪。");
+    }
+  }
+
+  async function startCastRecording(displayName) {
+    assertCanRecord();
+    recordingDisplayName = displayName || serialRef.value || "recording";
+
+    let started = false;
+
+    if (isAudioOnlyRecording()) {
+      started = await audioRecorder.start(resolveCastAudioCapture(), {
+        displayName: recordingDisplayName,
+        onElapsed(ms) {
+          recordingElapsedMs.value = ms;
+        },
+      });
+      recordingMode = "audio";
+    } else {
+      started = videoRecorder.start(canvasRef.value, {
+        displayName: recordingDisplayName,
+        onElapsed(ms) {
+          recordingElapsedMs.value = ms;
+        },
+      });
+      recordingMode = "video";
+    }
+
+    if (!started) {
+      recordingMode = null;
+      throw new Error("录屏已在进行中。");
+    }
+
+    isRecording.value = true;
+    recordingElapsedMs.value = 0;
+  }
+
+  async function stopCastRecording(save = true) {
+    const activeMode =
+      recordingMode ??
+      (audioRecorder.isActive ? "audio" : videoRecorder.isActive ? "video" : null);
+    const wasActive =
+      isRecording.value || videoRecorder.isActive || audioRecorder.isActive;
+
+    if (!wasActive) {
+      return null;
+    }
+
+    isRecording.value = false;
+    recordingMode = null;
+
+    const blob =
+      activeMode === "audio" ? await audioRecorder.stop() : await videoRecorder.stop();
+    recordingElapsedMs.value = 0;
+
+    if (save && blob?.size) {
+      const extension = activeMode === "audio" ? "mp3" : "mp4";
+      downloadRecordingBlob(
+        blob,
+        recordingDisplayName || serialRef.value || "recording",
+        extension,
+      );
+    } else if (save && activeMode === "audio" && !blob?.size) {
+      throw new Error("MP3 保存失败，未生成有效音频文件。");
+    }
+
+    return blob;
+  }
+
+  async function toggleCastRecording(displayName) {
+    if (isRecording.value) {
+      await stopCastRecording(true);
+      return false;
+    }
+
+    await startCastRecording(displayName);
+    return true;
+  }
 
   async function beginCast(payload) {
     const serial = serialRef.value;
@@ -109,6 +248,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     });
     applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
     status.value = "streaming";
+
+    if (audioOnly && typeof player.value?.resumeForUserPlayback === "function") {
+      void player.value.resumeForUserPlayback();
+    }
   }
 
   /** @deprecated Prefer workspace calling cast-api then beginCast(payload). */
@@ -140,6 +283,17 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       await stopCast({ backend: backendSessionActive });
       throw error;
     }
+  }
+
+  async function resumeCastAudio() {
+    const currentPlayer = player.value;
+
+    if (typeof currentPlayer?.resumeForUserPlayback === "function") {
+      await currentPlayer.resumeForUserPlayback();
+      return;
+    }
+
+    await audioPlayback?.resumeForUserPlayback?.();
   }
 
   function handleWsScrcpyBinary(nextPlayer, data) {
@@ -260,9 +414,16 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
         handleWsScrcpyBinary(nextPlayer, event.data);
 
-        if (!settled && screenSize.value.width > 0 && screenSize.value.height > 0) {
-          clearTimeout(readyTimeout);
-          settleReady();
+        if (!settled) {
+          const bytes = new Uint8Array(event.data);
+
+          if (audioOnly && isScrcpyAudioPacket(bytes)) {
+            clearTimeout(readyTimeout);
+            settleReady();
+          } else if (screenSize.value.width > 0 && screenSize.value.height > 0) {
+            clearTimeout(readyTimeout);
+            settleReady();
+          }
         }
       });
 
@@ -376,6 +537,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     const serial = serialRef.value;
     const shouldStopBackend = options.backend ?? backendSessionActive;
 
+    await stopCastRecording(true);
     closeWebSocket();
     status.value = "idle";
     errorMessage.value = "";
@@ -409,6 +571,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       applyPreviewRotation(degrees ?? 0);
     },
   );
+
+  watch(status, (next, prev) => {
+    if (prev === "streaming" && next !== "streaming" && isRecording.value) {
+      void stopCastRecording(true);
+    }
+  });
 
   onBeforeUnmount(() => {
     void stopCast();
@@ -457,5 +625,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     },
     displayScreenOn,
     applyPreviewRotation,
+    isRecording,
+    recordingElapsedMs,
+    castVideoRecordingSupported,
+    castAudioRecordingSupported,
+    isCastRecordingSupported,
+    startCastRecording,
+    stopCastRecording,
+    toggleCastRecording,
+    resumeCastAudio,
   };
 }

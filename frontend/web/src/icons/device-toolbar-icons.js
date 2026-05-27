@@ -30,6 +30,7 @@ export const DEVICE_TOOLBAR_ICONS = {
   "volume-down": ["M11 5 6 9H3v6h3l5 4V5z", "M16 12h6"],
   camera: "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   record: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+  "record-active": "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   folder: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 11.07 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z",
   apps: ["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z"],
   terminal: ["M12 19h8", "M8 16l-4-4 4-4", "M4 19h.01", "M4 15h.01"],

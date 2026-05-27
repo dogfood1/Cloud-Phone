@@ -2,43 +2,98 @@
 
 import { MAGIC_AUDIO } from "./ws-scrcpy-audio-packet.js";
 
-const SAMPLE_RATE = 48_000;
+const DEVICE_PCM_SAMPLE_RATE = 48_000;
 const CHANNELS = 2;
+
+export function mergePcmRecordingChunks(chunks) {
+  if (!chunks?.length) {
+    return new Int16Array(0);
+  }
+
+  const totalSamples = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const merged = new Int16Array(totalSamples);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return merged;
+}
 
 export class WsScrcpyAudioPlayback {
   constructor() {
     this.audioContext = null;
     this.gain = null;
     this.playhead = 0;
+    this.pcmRecordingChunks = null;
   }
 
-  static isSupported() {
-    return typeof window !== "undefined" && typeof AudioContext !== "undefined";
+  isPcmRecordingActive() {
+    return this.pcmRecordingChunks !== null;
   }
 
-  #ensureAudioContext() {
+  beginPcmRecording() {
+    this.pcmRecordingChunks = [];
+    void this.resumeForUserPlayback();
+  }
+
+  endPcmRecording() {
+    const chunks = this.pcmRecordingChunks;
+    this.pcmRecordingChunks = null;
+    return mergePcmRecordingChunks(chunks);
+  }
+
+  async resumeForUserPlayback() {
+    this.ensureAudioContext();
+    await this.#resumeContext();
+  }
+
+  ensureAudioContext() {
     if (this.audioContext) {
       return;
     }
 
     try {
-      this.audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
+      this.audioContext = new AudioContext();
       this.gain = this.audioContext.createGain();
       this.gain.gain.value = 1;
       this.gain.connect(this.audioContext.destination);
+      this.playhead = this.audioContext.currentTime;
     } catch {
       this.audioContext = null;
       this.gain = null;
     }
   }
 
+  #capturePcmForRecording(int16) {
+    if (!this.pcmRecordingChunks) {
+      return;
+    }
+
+    this.pcmRecordingChunks.push(int16.slice());
+  }
+
+  static isSupported() {
+    return typeof window !== "undefined" && typeof AudioContext !== "undefined";
+  }
+
   async #resumeContext() {
-    if (this.audioContext?.state === "suspended") {
+    if (!this.audioContext) {
+      return;
+    }
+
+    if (this.audioContext.state === "suspended") {
       try {
         await this.audioContext.resume();
       } catch {
         // ignore
       }
+    }
+
+    if (this.playhead < this.audioContext.currentTime) {
+      this.playhead = this.audioContext.currentTime;
     }
   }
 
@@ -50,12 +105,18 @@ export class WsScrcpyAudioPlayback {
       return;
     }
 
-    const int16 = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 2));
+    const pcmCopy = pcm.slice();
+    const int16 = new Int16Array(
+      pcmCopy.buffer,
+      pcmCopy.byteOffset,
+      Math.floor(pcmCopy.byteLength / 2),
+    );
+    this.#capturePcmForRecording(int16);
     void this.#schedulePlayback(int16);
   }
 
   async #schedulePlayback(int16) {
-    this.#ensureAudioContext();
+    this.ensureAudioContext();
 
     if (!this.audioContext || !this.gain) {
       return;
@@ -69,7 +130,11 @@ export class WsScrcpyAudioPlayback {
       return;
     }
 
-    const buffer = this.audioContext.createBuffer(CHANNELS, frameCount, SAMPLE_RATE);
+    const buffer = this.audioContext.createBuffer(
+      CHANNELS,
+      frameCount,
+      DEVICE_PCM_SAMPLE_RATE,
+    );
     const left = buffer.getChannelData(0);
     const right = buffer.getChannelData(1);
 
@@ -98,5 +163,6 @@ export class WsScrcpyAudioPlayback {
     this.audioContext = null;
     this.gain = null;
     this.playhead = 0;
+    this.pcmRecordingChunks = null;
   }
 }

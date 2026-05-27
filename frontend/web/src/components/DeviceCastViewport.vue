@@ -34,6 +34,15 @@ const {
   sendNavigationPress,
   displayScreenOn,
   applyPreviewRotation,
+  isRecording,
+  recordingElapsedMs,
+  castVideoRecordingSupported,
+  castAudioRecordingSupported,
+  isCastRecordingSupported,
+  startCastRecording,
+  stopCastRecording,
+  toggleCastRecording,
+  resumeCastAudio,
 } = useDeviceScrcpyCast(
   serialRef,
   canvasRef,
@@ -63,6 +72,10 @@ function onScreenshotFlashEnd(event) {
   screenshotFlashActive.value = false;
 }
 
+function onViewportPointerDown() {
+  void resumeCastAudio();
+}
+
 watch(hasError, (failed) => {
   if (failed) {
     emit("cast-failed");
@@ -79,6 +92,15 @@ defineExpose({
   playScreenshotFlash,
   status,
   errorMessage,
+  isRecording,
+  recordingElapsedMs,
+  castVideoRecordingSupported,
+  castAudioRecordingSupported,
+  isCastRecordingSupported,
+  startCastRecording,
+  stopCastRecording,
+  toggleCastRecording,
+  resumeCastAudio,
 });
 </script>
 
@@ -88,6 +110,7 @@ defineExpose({
       v-show="isStreaming || isStarting"
       class="device-cast-viewport__stage"
       aria-hidden="true"
+      @pointerdown="onViewportPointerDown"
     >
       <div ref="rotatorRef" class="device-cast-viewport__rotator">
         <canvas

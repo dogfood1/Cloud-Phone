@@ -174,15 +174,20 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
     controller.start(controlTerminationListener());
 
+    scheduleTurnScreenOffIfRequested(streamOptions);
+    scheduleStartAppIfRequested(streamOptions);
+    started = true;
+
     if (useAudio) {
       scheduleAudioProcessorStart(streamOptions, useVideo);
     } else if (!useVideo) {
       Ln.w("Web cast started with neither video nor audio");
     }
 
-    scheduleTurnScreenOffIfRequested(streamOptions);
-    scheduleStartAppIfRequested(streamOptions);
-    started = true;
+    Ln.i("Web cast pipeline: video=" + useVideo + ", audio=" + useAudio
+        + ", source=" + streamOptions.getAudioSource()
+        + ", audio_dup=" + streamOptions.getAudioDup());
+
     server.broadcastInitialInfo();
   }
 
@@ -359,7 +364,8 @@ public final class WsCastSession implements WsSocketBroadcaster {
     if (withVideo) {
       SCHEDULER.schedule(start, 350, TimeUnit.MILLISECONDS);
     } else {
-      start.run();
+      // Defer to next scheduler tick so startPipeline can set started=true first.
+      SCHEDULER.schedule(start, 0, TimeUnit.MILLISECONDS);
     }
   }
 

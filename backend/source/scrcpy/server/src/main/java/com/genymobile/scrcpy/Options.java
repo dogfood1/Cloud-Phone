@@ -392,6 +392,11 @@ public class Options {
         copy.powerOn = powerOn;
         copy.cleanup = cleanup;
         copy.downsizeOnError = downsizeOnError;
+        copy.audioSource = audioSource;
+        copy.audioDup = audioDup;
+        copy.audioBitRate = audioBitRate;
+        copy.audioCodec = audioCodec;
+        copy.audioEncoder = audioEncoder;
         applyVideoStreamExtras(copy, settings);
         normalizeWebAudioOptions(copy);
         return copy;

@@ -1,12 +1,13 @@
 /** Device PCM: s16le stereo 48 kHz after `scrcpy_audio` magic (12 bytes). */
 
 import { MAGIC_AUDIO, isScrcpyAudioPacket } from "./ws-scrcpy-audio-packet.js";
-import { WsScrcpyAudioPlayback } from "./ws-scrcpy-audio-playback.js";
+import {
+  mergePcmRecordingChunks,
+  WsScrcpyAudioPlayback,
+} from "./ws-scrcpy-audio-playback.js";
 
 export { MAGIC_AUDIO, isScrcpyAudioPacket };
 
-const SAMPLE_RATE = 48_000;
-const CHANNELS = 2;
 const BAR_COUNT = 64;
 
 function pcmRms(int16View) {
@@ -34,6 +35,7 @@ export class WsScrcpyAudioCanvas {
     this.receiving = false;
     this.statusText = "仅音频模式 · 等待设备音频…";
     this.playback = new WsScrcpyAudioPlayback();
+    this.pcmRecordingChunks = null;
     this.analyser = null;
     this.resizeObserver = null;
 
@@ -46,24 +48,39 @@ export class WsScrcpyAudioCanvas {
     this.#startDrawLoop();
   }
 
+  isPcmRecordingActive() {
+    return this.pcmRecordingChunks !== null;
+  }
+
+  beginPcmRecording() {
+    this.pcmRecordingChunks = [];
+    void this.playback.resumeForUserPlayback();
+  }
+
+  async resumeForUserPlayback() {
+    await this.playback?.resumeForUserPlayback?.();
+  }
+
+  endPcmRecording() {
+    const canvasChunks = this.pcmRecordingChunks;
+    this.pcmRecordingChunks = null;
+    return mergePcmRecordingChunks(canvasChunks);
+  }
+
   #ensureAnalyser() {
+    this.playback.ensureAudioContext();
     const ctx = this.playback.audioContext;
 
-    if (!ctx || this.analyser) {
+    if (!ctx || this.analyser || !this.playback.gain) {
       return;
     }
 
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 256;
     this.analyser.smoothingTimeConstant = 0.65;
-
-    if (this.playback.gain) {
-      this.playback.gain.disconnect();
-      this.playback.gain.connect(this.analyser);
-      this.analyser.connect(ctx.destination);
-    }
-
-    this.#startDrawLoop();
+    this.playback.gain.disconnect();
+    this.playback.gain.connect(this.analyser);
+    this.analyser.connect(ctx.destination);
   }
 
   static isSupported() {
@@ -89,10 +106,20 @@ export class WsScrcpyAudioCanvas {
       return;
     }
 
+    const pcmCopy = pcm.slice();
+    const int16 = new Int16Array(
+      pcmCopy.buffer,
+      pcmCopy.byteOffset,
+      Math.floor(pcmCopy.byteLength / 2),
+    );
+
+    if (this.pcmRecordingChunks) {
+      this.pcmRecordingChunks.push(int16.slice());
+    }
+
     this.receiving = true;
     this.statusText = "仅音频模式 · 播放中";
 
-    const int16 = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.byteLength / 2));
     const rms = pcmRms(int16);
 
     for (let i = 0; i < this.levels.length - 1; i += 1) {
@@ -186,6 +213,7 @@ export class WsScrcpyAudioCanvas {
 
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.pcmRecordingChunks = null;
 
     this.playback?.destroy();
     this.playback = null;

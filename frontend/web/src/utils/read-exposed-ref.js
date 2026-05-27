@@ -10,3 +10,14 @@ export function readExposedBoolean(exposed, defaultValue = true) {
 
   return Boolean(value);
 }
+
+/** Read a number exposed from a child `defineExpose` ref (may be Ref or plain number). */
+export function readExposedNumber(exposed, defaultValue = 0) {
+  const value = unref(exposed);
+
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return defaultValue;
+  }
+
+  return value;
+}

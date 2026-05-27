@@ -763,6 +763,31 @@ h2 {
   transform: scale(0.94);
 }
 
+.device-workspace__action--recording:not(:disabled) {
+  border-color: #e5484d;
+  background: color-mix(in srgb, #e5484d 14%, transparent);
+  color: #e5484d;
+}
+
+.device-workspace__action--recording:not(:disabled) .device-workspace__action-icon {
+  background: color-mix(in srgb, #e5484d 24%, transparent);
+  color: #e5484d;
+  animation: device-workspace-record-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes device-workspace-record-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scale(0.92);
+  }
+}
+
 .device-workspace__split {
   position: relative;
   z-index: 0;

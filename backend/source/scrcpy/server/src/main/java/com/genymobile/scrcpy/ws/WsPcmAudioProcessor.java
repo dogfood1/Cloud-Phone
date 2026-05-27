@@ -8,6 +8,7 @@ import com.genymobile.scrcpy.audio.AudioCaptureException;
 import com.genymobile.scrcpy.audio.AudioConfig;
 import com.genymobile.scrcpy.audio.AudioDirectCapture;
 import com.genymobile.scrcpy.audio.AudioPlaybackCapture;
+import com.genymobile.scrcpy.audio.AudioSource;
 import com.genymobile.scrcpy.util.IO;
 import com.genymobile.scrcpy.util.Ln;
 
@@ -20,7 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
-/** Captures device PCM and forwards it over WebSocket (audio-only web cast). */
+/** Captures device PCM and forwards it over WebSocket (audio-only or video+audio web cast). */
 public final class WsPcmAudioProcessor implements AsyncProcessor {
 
   private final Set<WebSocket> clients;
@@ -32,39 +33,66 @@ public final class WsPcmAudioProcessor implements AsyncProcessor {
     this.options = options;
   }
 
-  private void record() throws IOException, AudioCaptureException {
-    if (Build.VERSION.SDK_INT < AndroidVersions.API_30_ANDROID_11) {
-      Ln.w("Audio-only web cast requires Android 11+");
-      return;
-    }
-
+  private static AudioCapture createAudioCapture(Options options) throws AudioCaptureException {
+    AudioSource audioSource = options.getAudioSource();
     AudioCapture capture;
-    if (options.getAudioSource().isDirect()) {
-      capture = new AudioDirectCapture(options.getAudioSource());
+
+    if (audioSource.isDirect()) {
+      capture = new AudioDirectCapture(audioSource);
     } else {
       capture = new AudioPlaybackCapture(options.getAudioDup());
     }
 
+    capture.checkCompatibility();
+    return capture;
+  }
+
+  private void record() throws IOException, AudioCaptureException {
+    if (Build.VERSION.SDK_INT < AndroidVersions.API_30_ANDROID_11) {
+      Ln.w("Web cast audio requires Android 11+");
+      return;
+    }
+
+    if (!options.getAudio()) {
+      Ln.w("Web cast audio processor started while audio=false");
+      return;
+    }
+
+    AudioCapture capture = createAudioCapture(options);
     ByteBuffer buffer = ByteBuffer.allocateDirect(AudioConfig.MAX_READ_SIZE);
     MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+
+    Ln.i("Starting web cast PCM capture (source=" + options.getAudioSource()
+        + ", audio_dup=" + options.getAudioDup() + ")");
 
     try {
       capture.start();
     } catch (Throwable t) {
-      Ln.e("Could not start audio capture for web cast", t);
+      Ln.e("Could not start audio capture for web cast (source=" + options.getAudioSource() + ")", t);
       return;
     }
 
     try {
+      long packets = 0;
       while (!Thread.currentThread().isInterrupted()) {
         buffer.clear();
         int read = capture.read(buffer, bufferInfo);
         if (read < 0) {
           throw new IOException("Could not read audio: " + read);
         }
+        if (read == 0) {
+          Thread.sleep(5);
+          continue;
+        }
         buffer.limit(read);
         WsPcmSender.sendPcm(clients, buffer);
+        packets += 1;
+        if (packets == 1) {
+          Ln.i("Web cast PCM streaming started (" + read + " bytes/packet)");
+        }
       }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     } catch (IOException e) {
       if (!IO.isBrokenPipe(e)) {
         Ln.e("Web cast audio capture error", e);
@@ -81,9 +109,10 @@ public final class WsPcmAudioProcessor implements AsyncProcessor {
       try {
         record();
       } catch (AudioCaptureException e) {
-        // logged by capture layer
+        Ln.e("Web cast audio capture not supported on this device");
       } catch (Throwable t) {
         Ln.e("Web cast audio processor error", t);
+        fatal = true;
       } finally {
         listener.onTerminated(fatal);
       }
