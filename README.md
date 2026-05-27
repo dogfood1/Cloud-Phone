@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里。**
 
-当前版本：**v0.9.5** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.9.6** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -189,6 +189,15 @@ images/readme/
 
 **环境**：Node.js 18+、已授权 ADB 的 Android 设备、支持 WebCodecs 的 Chromium 系浏览器（Chrome / Edge 等）。
 
+**自动安装（命令行伪图形向导）**：
+
+| 系统 | 命令 |
+|------|------|
+| Linux（Debian/Ubuntu/Alpine/Fedora/Arch 等） | `bash scripts/install-linux.sh` |
+| macOS | `bash scripts/install-macos.sh` |
+| Windows | `powershell -ExecutionPolicy Bypass -File scripts/install-windows.ps1` |
+| Unix 自动分流 | `bash scripts/install.sh` |
+
 ```powershell
 # 克隆后
 cd Cloud-Phone
@@ -226,6 +235,7 @@ node tools/build-scrcpy-server.mjs
 
 ```text
 Cloud-Phone/
+├── scripts/               # 三平台自动安装向导（install-linux/macos/windows）
 ├── backend/node/          # Node HTTP + WebSocket API
 ├── backend/source/scrcpy/ # scrcpy 4.0 源码 + WebSocket 改造
 ├── backend/bin/           # adb、scrcpy 预编译产物

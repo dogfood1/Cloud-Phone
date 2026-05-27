@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.6 - 2026-05-27
+
+- 新增 `scripts/` 三平台自动安装向导（Linux / macOS / Windows），命令行伪图形菜单
+- Linux 支持 Debian/Ubuntu、Alpine、Fedora/RHEL、Arch、openSUSE、Void 等；可选 Node、npm 依赖、JDK、Android SDK、Meson、编译魔改 scrcpy-server
+- Windows 安装脚本兼容 PowerShell 5.1（winget/choco）；界面使用 ASCII 避免控制台乱码
+- `scripts/install.sh` Unix 入口；`scripts/lib/` 共享 TUI 与发行版探测；`.gitattributes` 保证 shell 脚本 LF
+
+### Cross-platform install scripts
+- Interactive terminal installers under `scripts/` for Linux, macOS, and Windows
+- Linux multi-distro package managers; optional modded scrcpy-server build
+- Windows PS 5.1-safe installer with ASCII UI
+
 ## 0.9.5 - 2026-05-27
 
 - 完善 Linux / macOS 魔改 scrcpy 构建：`--all-platforms` 一次安装三平台 `scrcpy-server`；Meson 使用魔改 `-Dprebuilt_server`，不再走官方 `install_release.sh`

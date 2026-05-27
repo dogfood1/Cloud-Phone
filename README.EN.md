@@ -192,6 +192,15 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
 **Requirements:** Node.js 18+, authorized ADB device, Chromium-based browser with WebCodecs.
 
+**Interactive installer (terminal UI):**
+
+| OS | Command |
+|----|---------|
+| Linux (Debian, Alpine, Fedora, Arch, …) | `bash scripts/install-linux.sh` |
+| macOS | `bash scripts/install-macos.sh` |
+| Windows | `powershell -ExecutionPolicy Bypass -File scripts/install-windows.ps1` |
+| Auto (Linux/macOS) | `bash scripts/install.sh` |
+
 ```powershell
 cd Cloud-Phone
 copy .env.example .env
@@ -227,6 +236,7 @@ node tools/build-scrcpy-server.mjs
 ## Project layout
 
 ```text
+scripts/               cross-platform install wizards (terminal UI)
 backend/node/          API + WebSocket
 backend/source/scrcpy/ scrcpy 4.0 + WebSocket fork
 frontend/web/          Vue 3 + Vite
