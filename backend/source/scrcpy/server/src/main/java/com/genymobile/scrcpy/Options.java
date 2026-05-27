@@ -402,6 +402,15 @@ public class Options {
         copy.audioBitRate = audioBitRate;
         copy.audioCodec = audioCodec;
         copy.audioEncoder = audioEncoder;
+        copy.videoSource = videoSource;
+        copy.cameraId = cameraId;
+        copy.cameraSize = cameraSize;
+        copy.cameraFacing = cameraFacing;
+        copy.cameraAspectRatio = cameraAspectRatio;
+        copy.cameraZoom = cameraZoom;
+        copy.cameraFps = cameraFps;
+        copy.cameraHighSpeed = cameraHighSpeed;
+        copy.cameraTorch = cameraTorch;
         applyVideoStreamExtras(copy, settings);
         normalizeWebAudioOptions(copy);
         return copy;
@@ -542,6 +551,41 @@ public class Options {
                 break;
             case "audio_dup":
                 copy.audioDup = Boolean.parseBoolean(value);
+                break;
+            case "video_source":
+                VideoSource streamVideoSource = VideoSource.findByName(value);
+                if (streamVideoSource != null) {
+                    copy.videoSource = streamVideoSource;
+                }
+                break;
+            case "camera_id":
+                if (!value.isEmpty()) {
+                    copy.cameraId = value;
+                }
+                break;
+            case "camera_size":
+                copy.cameraSize = parseSize(value);
+                break;
+            case "camera_facing":
+                CameraFacing facing = CameraFacing.findByName(value);
+                if (facing != null) {
+                    copy.cameraFacing = facing;
+                }
+                break;
+            case "camera_ar":
+                copy.cameraAspectRatio = parseCameraAspectRatio(value);
+                break;
+            case "camera_zoom":
+                copy.cameraZoom = Float.parseFloat(value);
+                break;
+            case "camera_fps":
+                copy.cameraFps = Integer.parseInt(value);
+                break;
+            case "camera_high_speed":
+                copy.cameraHighSpeed = Boolean.parseBoolean(value);
+                break;
+            case "camera_torch":
+                copy.cameraTorch = Boolean.parseBoolean(value);
                 break;
             default:
                 Ln.w("Unknown stream extra: " + key);

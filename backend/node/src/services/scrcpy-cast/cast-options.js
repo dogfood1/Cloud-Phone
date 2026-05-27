@@ -41,10 +41,16 @@ export function resolveCastServerOptions(input = {}) {
 }
 
 export function listCastFeatures(options) {
+  const isCamera = options.castMode === "camera" || options.videoSource === "camera";
   const features = ["video", "control"];
 
   if (options.audio) {
     features.push("audio");
+  }
+
+  if (isCamera) {
+    features.push("camera", "camera_torch", "camera_zoom");
+    return features;
   }
 
   features.push(

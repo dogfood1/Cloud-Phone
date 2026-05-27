@@ -43,6 +43,7 @@ const {
   stopCastRecording,
   toggleCastRecording,
   resumeCastAudio,
+  sendCameraControl,
 } = useDeviceScrcpyCast(
   serialRef,
   canvasRef,
@@ -101,6 +102,7 @@ defineExpose({
   stopCastRecording,
   toggleCastRecording,
   resumeCastAudio,
+  sendCameraControl,
 });
 </script>
 

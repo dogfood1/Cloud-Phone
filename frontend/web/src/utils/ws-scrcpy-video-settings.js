@@ -1,3 +1,4 @@
+import { videoStreamSettingsFromCameraCastOptions } from "./camera-video-config.js";
 import { videoStreamSettingsFromCastOptions } from "./mirror-video-config.js";
 
 export const TYPE_CHANGE_STREAM_PARAMETERS = 101;
@@ -80,13 +81,19 @@ export function serializeChangeStreamParameters(settings) {
 
 export function videoSettingsFromCastOptions(castOptions = {}, sessionMeta = null) {
   const sessionCast = sessionMeta?.castOptions ?? {};
-
-  return videoStreamSettingsFromCastOptions({
+  const merged = {
     ...sessionCast,
     ...castOptions,
     maxSize: castOptions.maxSize || sessionCast.maxSize,
     mirror: castOptions.mirror ?? sessionCast.mirror,
-  });
+    castMode: castOptions.castMode ?? sessionCast.castMode,
+  };
+
+  if (merged.castMode === "camera") {
+    return videoStreamSettingsFromCameraCastOptions(merged);
+  }
+
+  return videoStreamSettingsFromCastOptions(merged);
 }
 
 export { videoStreamSettingsFromCastOptions };

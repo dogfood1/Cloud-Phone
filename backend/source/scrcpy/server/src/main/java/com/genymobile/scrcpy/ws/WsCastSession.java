@@ -8,6 +8,7 @@ import com.genymobile.scrcpy.control.Controller;
 import com.genymobile.scrcpy.device.Device;
 import com.genymobile.scrcpy.model.ConfigurationException;
 import com.genymobile.scrcpy.model.NewDisplay;
+import com.genymobile.scrcpy.video.CameraCapture;
 import com.genymobile.scrcpy.video.NewDisplayCapture;
 import com.genymobile.scrcpy.util.Ln;
 import com.genymobile.scrcpy.util.Settings;
@@ -15,6 +16,7 @@ import com.genymobile.scrcpy.util.SettingsException;
 import com.genymobile.scrcpy.video.ScreenCapture;
 import com.genymobile.scrcpy.video.SurfaceCapture;
 import com.genymobile.scrcpy.video.SurfaceEncoder;
+import com.genymobile.scrcpy.video.VideoSource;
 
 import org.java_websocket.WebSocket;
 
@@ -234,6 +236,21 @@ public final class WsCastSession implements WsSocketBroadcaster {
       return true;
     }
 
+    if (previous.getVideoSource() != next.getVideoSource()) {
+      return true;
+    }
+
+    if (next.getVideoSource() == VideoSource.CAMERA) {
+      if (!java.util.Objects.equals(previous.getCameraId(), next.getCameraId())
+          || previous.getCameraFacing() != next.getCameraFacing()
+          || !java.util.Objects.equals(previous.getCameraSize(), next.getCameraSize())
+          || !java.util.Objects.equals(previous.getCameraAspectRatio(), next.getCameraAspectRatio())
+          || previous.getCameraFps() != next.getCameraFps()
+          || previous.getCameraHighSpeed() != next.getCameraHighSpeed()) {
+        return true;
+      }
+    }
+
     NewDisplay prevNd = previous.getNewDisplay();
     NewDisplay nextNd = next.getNewDisplay();
     boolean prevHasNd = prevNd != null;
@@ -265,6 +282,11 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
   private static SurfaceCapture createSurfaceCapture(Controller controller, Options options)
       throws ConfigurationException, IOException {
+    if (options.getVideoSource() == VideoSource.CAMERA) {
+      Ln.i("Web cast using device camera");
+      return new CameraCapture(options);
+    }
+
     if (options.getNewDisplay() != null) {
       Ln.i("Web cast using new virtual display");
       return new NewDisplayCapture(controller, options);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0 - 2026-05-27
+
+- Camera cast mode (escrcpy/scrcpy `--video-source=camera`, Android 12+): left panel「摄像头」settings (facing, camera id, size, aspect ratio, fps, high-speed, torch, zoom, encoder, audio); stream extras over WebSocket type 101
+- scrcpy-server Web cast: `CameraCapture` pipeline when `video_source=camera`; stream extra keys for camera_* and video_source; hot-reconfigure restarts capture on camera param changes
+- Backend `GET /api/devices/:serial/cameras` lists device cameras and capture sizes via server `list_cameras` / `list_camera_sizes`
+- Cast controls: torch on/off and zoom in/out (scrcpy control messages 18–20); disable canvas touch injection in camera mode
+- Fix `buildCastPayloadFromCameraSettings` max size helper (`maxSizeFromMirrorVideo`)
+
 ## 0.8.2 - 2026-05-27
 
 - Device workspace toolbar Terminal (`终端`): interactive ADB shell in a modal via WebSocket `GET /api/devices/:serial/terminal/ws` (upgrade); backend bridges `adb shell -tt` with `TERM=xterm-256color`

@@ -9,7 +9,10 @@ import DeviceTerminal from "./DeviceTerminal.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
-import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
+import {
+  buildCastPayloadFromCameraSettings,
+  buildCastPayloadFromMirrorSettings,
+} from "../utils/build-cast-payload.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
@@ -75,6 +78,10 @@ const {
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
 
+function handleCameraControl(payload) {
+  castViewportRef.value?.sendCameraControl?.(payload);
+}
+
 async function startCast(options) {
   castHint.value = "";
 
@@ -88,7 +95,13 @@ async function startCast(options) {
     return;
   }
 
-  const audioOnly = options?.mirror?.video?.disabled === true;
+  const isCameraCast = options?.castMode === "camera";
+  const audioOnly = !isCameraCast && options?.mirror?.video?.disabled === true;
+
+  if (isCameraCast && Number(props.device.sdkVersion) > 0 && Number(props.device.sdkVersion) < 31) {
+    castHint.value = "摄像头投屏需要 Android 12（API 31）及以上。";
+    return;
+  }
 
   if (audioOnly) {
     if (!WsScrcpyAudioCanvas.isSupported()) {
@@ -280,6 +293,7 @@ function handleOpenAppDataInFiles(devicePath) {
         @start-cast="startCast"
         @stop-cast="stopCast"
         @cast-options-change="updateCastOptions"
+        @camera-control="handleCameraControl"
       />
       <DeviceCastViewport
         ref="castViewportRef"

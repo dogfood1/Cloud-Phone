@@ -40,7 +40,12 @@ const POINTER_TO_MOUSE = {
  * }} options
  */
 export function attachCastInteraction(options) {
-  const { canvas, getScreenSize, getRotator, hasScreenInfo, sendControl } = options;
+  const { canvas, getScreenSize, getRotator, hasScreenInfo, sendControl, interactionEnabled = true } =
+    options;
+
+  if (interactionEnabled === false) {
+    return () => {};
+  }
   const mouseStorage = new Map();
   const touchStorage = new Map();
   const touchPointers = createTouchPointerRegistry();

@@ -2,9 +2,14 @@
 import { computed, ref } from "vue";
 import { NAlert, NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
+import CameraCastSettings from "./mirror/CameraCastSettings.vue";
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
 import MirrorSearchableSelect from "./mirror/MirrorSearchableSelect.vue";
-import { buildCastPayloadFromMirrorSettings } from "../utils/build-cast-payload.js";
+import {
+  buildCastPayloadFromCameraSettings,
+  buildCastPayloadFromMirrorSettings,
+} from "../utils/build-cast-payload.js";
+import { createDefaultCameraSettings } from "../utils/camera-cast-defaults.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
 
@@ -27,9 +32,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change"]);
+const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change", "camera-control"]);
 
 const mirrorSettingsRef = ref(null);
+const cameraSettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
 
 const modeOptions = computed(() =>
@@ -37,6 +43,11 @@ const modeOptions = computed(() =>
 );
 
 function buildCastOptions() {
+  if (castMode.value === "camera") {
+    const settings = cameraSettingsRef.value?.getSettings?.() ?? createDefaultCameraSettings();
+    return buildCastPayloadFromCameraSettings(settings, props.device.sdkVersion);
+  }
+
   const settings = mirrorSettingsRef.value?.getSettings?.() ?? createDefaultMirrorSettings();
   return buildCastPayloadFromMirrorSettings(settings, props.device.sdkVersion);
 }
@@ -82,6 +93,15 @@ defineExpose({ stepPreviewRotationDeg });
         :device-sdk="device.sdkVersion"
         :casting="casting"
         @settings-change="handleSettingsChange"
+      />
+      <CameraCastSettings
+        v-else-if="castMode === 'camera'"
+        ref="cameraSettingsRef"
+        :serial="device.serial"
+        :device-sdk="device.sdkVersion"
+        :casting="casting"
+        @settings-change="handleSettingsChange"
+        @camera-control="(payload) => emit('camera-control', payload)"
       />
       <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
     </div>

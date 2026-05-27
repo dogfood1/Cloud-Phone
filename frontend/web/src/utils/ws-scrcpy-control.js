@@ -9,6 +9,9 @@ const CONTROL_MSG_TYPE = {
   ROTATE_DEVICE: 11,
   START_APP: 16,
   RESET_VIDEO: 17,
+  CAMERA_SET_TORCH: 18,
+  CAMERA_ZOOM_IN: 19,
+  CAMERA_ZOOM_OUT: 20,
 };
 
 const MOTION_ACTION = {
@@ -258,5 +261,30 @@ export function serializeNavigationActions(actionId) {
 export function serializeNavigationAction(actionId) {
   const buffers = serializeNavigationActions(actionId);
   return buffers[0] ?? null;
+}
+
+export function serializeCameraSetTorch(on = true) {
+  return new Uint8Array([CONTROL_MSG_TYPE.CAMERA_SET_TORCH, on ? 1 : 0]);
+}
+
+export function serializeCameraZoomIn() {
+  return new Uint8Array([CONTROL_MSG_TYPE.CAMERA_ZOOM_IN]);
+}
+
+export function serializeCameraZoomOut() {
+  return new Uint8Array([CONTROL_MSG_TYPE.CAMERA_ZOOM_OUT]);
+}
+
+export function serializeCameraControl({ type, on }) {
+  switch (type) {
+    case "torch":
+      return serializeCameraSetTorch(Boolean(on));
+    case "zoom-in":
+      return serializeCameraZoomIn();
+    case "zoom-out":
+      return serializeCameraZoomOut();
+    default:
+      return null;
+  }
 }
 

@@ -6,6 +6,7 @@ import { WsScrcpyAudioPlayback } from "../utils/ws-scrcpy-audio-playback.js";
 import { isNewDisplayEnabled, resolveStartAppPackage } from "../utils/mirror-screen-utils.js";
 import {
   KEY_ACTION,
+  serializeCameraControl,
   serializeDisplayWakeActions,
   serializeNavigationActions,
   serializeNavigationPress,
@@ -239,12 +240,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     await nextTick();
     await openWebSocket(serial);
     unbindCanvas?.();
+    const castOptions = unref(castOptionsRef) ?? {};
     unbindCanvas = attachCastInteraction({
       canvas: canvasRef.value,
       getScreenSize: getEffectiveScreenSize,
       getRotator: () => rotatorRef?.value ?? null,
       hasScreenInfo: () => screenSize.value.width > 0,
       sendControl,
+      interactionEnabled: castOptions.castMode !== "camera",
     });
     applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
     status.value = "streaming";
@@ -516,6 +519,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     socket.send(buffer);
   }
 
+  function sendCameraControl(payload) {
+    const buffer = serializeCameraControl(payload);
+
+    if (buffer) {
+      sendControl(buffer);
+    }
+  }
+
   function pushVideoStreamSettings() {
     const castOptions = unref(castOptionsRef) ?? {};
     sendControl(
@@ -634,5 +645,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     stopCastRecording,
     toggleCastRecording,
     resumeCastAudio,
+    sendCameraControl,
   };
 }
