@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.5 - 2026-05-27
+
+- 完善 Linux / macOS 魔改 scrcpy 构建：`--all-platforms` 一次安装三平台 `scrcpy-server`；Meson 使用魔改 `-Dprebuilt_server`，不再走官方 `install_release.sh`
+- 新增 `tools/scrcpy-platform.js`、`scrcpy-build-env.js`、`build-scrcpy-client.mjs`；跨平台 JDK/Android SDK 探测
+- `npm run build:scrcpy-server` / `build:scrcpy-server:all` / `build:scrcpy`；官方下载路径增加无魔改警告；支持 linux aarch64 预编译包名
+
+### Linux / macOS modded scrcpy build
+- `--all-platforms` installs modded server JAR under windows/linux/macos bin dirs
+- Client build embeds modded server via Meson; no `install_release.sh` / official unmodded server
+- Shared platform/env helpers; npm build scripts; warn on official server download
+
 ## 0.9.4 - 2026-05-27
 
 - 设备文件管理支持上传与下载：顶栏上传到当前目录，文件行下载到电脑（`adb push` / `adb pull`）

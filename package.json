@@ -10,6 +10,9 @@
     "start:backend": "npm --prefix backend/node run start",
     "start:frontend": "npm --prefix frontend/web run start",
     "test:scrcpy-cast": "node tools/test-scrcpy-cast.mjs",
-    "test:scrcpy-cast:direct": "node tools/test-scrcpy-cast.mjs --direct-only"
+    "test:scrcpy-cast:direct": "node tools/test-scrcpy-cast.mjs --direct-only",
+    "build:scrcpy-server": "node tools/build-scrcpy-server.mjs",
+    "build:scrcpy-server:all": "node tools/build-scrcpy-server.mjs --all-platforms",
+    "build:scrcpy": "node tools/build-scrcpy.mjs"
   }
 }

@@ -21,6 +21,20 @@ export function getScrcpyReleaseAsset(platform = process.platform, arch = proces
         };
   }
 
+  if (platform === "linux") {
+    if (arch === "arm64" || arch === "aarch64") {
+      return {
+        fileName: `scrcpy-linux-aarch64-v${SCRCPY_RELEASE_VERSION}.tar.gz`,
+        kind: "tar.gz",
+      };
+    }
+
+    return {
+      fileName: `scrcpy-linux-x86_64-v${SCRCPY_RELEASE_VERSION}.tar.gz`,
+      kind: "tar.gz",
+    };
+  }
+
   return {
     fileName: `scrcpy-linux-x86_64-v${SCRCPY_RELEASE_VERSION}.tar.gz`,
     kind: "tar.gz",

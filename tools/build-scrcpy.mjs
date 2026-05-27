@@ -3,21 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { downloadScrcpyRelease } from "./download-scrcpy.mjs";
+import { buildScrcpyClient } from "./build-scrcpy-client.mjs";
 import { buildScrcpyServer } from "./build-scrcpy-server.mjs";
+import { downloadScrcpyRelease } from "./download-scrcpy.mjs";
+import { getHostPlatformKey, getScrcpyBinDir, getScrcpyServerPath } from "./scrcpy-platform.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scrcpyRoot = path.join(rootDir, "backend", "source", "scrcpy");
-const platformKey =
-  process.platform === "win32"
-    ? "windows"
-    : process.platform === "darwin"
-      ? "macos"
-      : "linux";
-const binDir = path.join(rootDir, "backend", "bin", "scrcpy", platformKey);
-const binaryName = process.platform === "win32" ? "scrcpy.exe" : "scrcpy";
 const forceDownload = process.argv.includes("--download");
 const serverOnly = process.argv.includes("--server-only");
+const allPlatforms =
+  process.argv.includes("--all-platforms") || process.argv.includes("--all");
 
 function commandExists(command) {
   const checker = process.platform === "win32" ? "where" : "which";
@@ -29,68 +25,44 @@ function commandExists(command) {
   return result.status === 0;
 }
 
-function canBuildFromSource() {
-  if (process.platform === "win32") {
-    return commandExists("meson") && commandExists("ninja");
-  }
-
-  return fs.existsSync(path.join(scrcpyRoot, "install_release.sh"));
-}
-
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: options.cwd ?? scrcpyRoot,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    env: process.env,
-  });
-
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed with code ${result.status}`);
-  }
+function canBuildClientFromSource() {
+  return commandExists("meson") && commandExists("ninja");
 }
 
 function buildFromSource() {
-  fs.mkdirSync(binDir, { recursive: true });
-  console.log(`Building scrcpy for ${platformKey} from source...`);
+  const platformKey = getHostPlatformKey();
+  console.log(`Building Cloud Phone scrcpy for ${platformKey} from source...`);
 
-  if (process.platform === "win32") {
-    run("meson", ["setup", "build", "--buildtype=release", "-Dportable=true"]);
-    run("ninja", ["-C", "build"]);
-  } else {
-    run("./install_release.sh", []);
-  }
-
-  const buildOutput =
-    process.platform === "win32"
-      ? path.join(scrcpyRoot, "build", "app", "scrcpy.exe")
-      : path.join(scrcpyRoot, "scrcpy");
-
-  const serverOutput =
-    process.platform === "win32"
-      ? path.join(scrcpyRoot, "build", "server", "scrcpy-server")
-      : path.join(scrcpyRoot, "scrcpy-server");
-
-  fs.copyFileSync(buildOutput, path.join(binDir, binaryName));
-  fs.copyFileSync(serverOutput, path.join(binDir, "scrcpy-server"));
-  console.log(`Installed to ${binDir}`);
+  const serverJar = buildScrcpyServer({ allPlatforms: allPlatforms });
+  buildScrcpyClient(rootDir, scrcpyRoot, serverJar);
 }
 
 async function main() {
   if (serverOnly) {
-    buildScrcpyServer();
+    buildScrcpyServer({ allPlatforms: allPlatforms });
     return;
   }
 
-  if (forceDownload || !canBuildFromSource()) {
-    if (!forceDownload && !serverOnly && !canBuildFromSource()) {
-      console.warn(
-        "Meson/Ninja not found (or install_release.sh missing). Falling back to official prebuilt release.",
-      );
-      console.warn("To compile from source on Windows, install Meson + Ninja, then rerun without --download.");
+  if (forceDownload) {
+    console.warn(
+      "[warn] --download 安装的是官方预编译包，scrcpy-server 不含 Cloud Phone WebSocket 魔改。",
+    );
+    console.warn("       Web 投屏请使用: node tools/build-scrcpy-server.mjs --all-platforms");
+    await downloadScrcpyRelease({ serverOnly: false });
+    return;
+  }
+
+  if (!canBuildClientFromSource()) {
+    console.warn("未找到 meson 或 ninja，无法从源码编译桌面客户端。");
+    console.warn("仅编译魔改 server（Web 投屏必需）...");
+
+    if (!fs.existsSync(getScrcpyServerPath(rootDir, getHostPlatformKey()))) {
+      buildScrcpyServer({ allPlatforms: allPlatforms });
+    } else {
+      console.log(`scrcpy-server 已存在: ${getScrcpyServerPath(rootDir, getHostPlatformKey())}`);
     }
 
-    await downloadScrcpyRelease({ serverOnly });
+    console.warn("可选: 安装 meson + ninja 后重新运行 node tools/build-scrcpy.mjs 以编译本机 scrcpy 客户端。");
     return;
   }
 

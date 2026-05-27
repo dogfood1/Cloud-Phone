@@ -124,6 +124,9 @@ function installFiles(binaryPath, serverPath) {
 async function downloadServerOnly() {
   const serverPath = path.join(binDir, "scrcpy-server");
   ensureDir(binDir);
+  console.warn(
+    "[warn] 官方 scrcpy-server 不含 Cloud Phone WebSocket 魔改，Web 投屏请运行: node tools/build-scrcpy-server.mjs",
+  );
   console.log(`Downloading scrcpy-server v${SCRCPY_RELEASE_VERSION}...`);
   await downloadToFile(getScrcpyServerOnlyUrl(), serverPath);
   console.log(`Installed scrcpy-server to ${serverPath}`);

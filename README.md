@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里。**
 
-当前版本：**v0.9.4** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.9.5** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -264,18 +264,33 @@ Cloud-Phone/
 
 ## 构建 scrcpy
 
+**Web 投屏**依赖魔改 `scrcpy-server`（与 Windows/Linux/macOS 无关，但须在任一系统上用 Gradle 编出）：
+
 ```powershell
-# 仅编译 WebSocket 版 server（投屏必需）
+# 魔改 server（当前系统需 JDK 17+、Android SDK）
 node tools/build-scrcpy-server.mjs
 
-# 编译桌面客户端（可选；无 Meson 时会尝试下载官方预编译）
-node tools/build-scrcpy.mjs
-
-# 从上游同步源码（保留本地 Cloud Phone 改动需自行合并）
-node tools/sync-scrcpy-source.mjs
+# 同时写入 backend/bin/scrcpy/windows|linux|macos/（跨平台部署推荐）
+node tools/build-scrcpy-server.mjs --all-platforms
 ```
 
-原理说明见 [backend/source/scrcpy/CLOUD_PHONE.md](backend/source/scrcpy/CLOUD_PHONE.md)。
+**Linux / macOS** 上若只跑 Node 后端 + 浏览器，执行 `--all-platforms` 即可；**不必**在本机再编 scrcpy 客户端。
+
+可选：在本机用 Meson 编译 **scrcpy 桌面客户端**（会捆绑魔改 server，不再使用官方 `install_release.sh`）：
+
+```powershell
+node tools/build-scrcpy.mjs              # 需 meson + ninja；否则仅编 server
+node tools/build-scrcpy.mjs --server-only
+
+# 勿用于 Web 投屏：官方预编译，server 无 WebSocket 魔改
+# node tools/build-scrcpy.mjs --download
+```
+
+```powershell
+node tools/sync-scrcpy-source.mjs   # 从上游同步源码（需自行合并魔改）
+```
+
+详见 [backend/source/scrcpy/CLOUD_PHONE.md](backend/source/scrcpy/CLOUD_PHONE.md)。
 
 ---
 

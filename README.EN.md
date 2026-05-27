@@ -263,14 +263,26 @@ images/qr/             sponsorship QR codes
 
 ## Building scrcpy
 
+**Web cast** needs the modded `scrcpy-server` (same Android APK for every host OS; build once with Gradle):
+
 ```powershell
-# WebSocket server JAR (required for web cast)
 node tools/build-scrcpy-server.mjs
+node tools/build-scrcpy-server.mjs --all-platforms   # install jar under windows/linux/macos
+```
 
-# Desktop scrcpy binaries (optional; will try to download official prebuilt if Meson is missing)
+On **Linux / macOS**, if you only run the Node backend in a browser, `--all-platforms` is enough; a desktop `scrcpy` binary is optional.
+
+Optional client build (Meson + Ninja; embeds the modded server, no `install_release.sh`):
+
+```powershell
 node tools/build-scrcpy.mjs
+node tools/build-scrcpy.mjs --server-only
 
-# Sync upstream scrcpy source into backend/source/scrcpy
+# Official prebuilt — server is NOT modded; do not use for web cast
+# node tools/build-scrcpy.mjs --download
+```
+
+```powershell
 node tools/sync-scrcpy-source.mjs
 ```
 

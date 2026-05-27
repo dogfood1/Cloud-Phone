@@ -43,14 +43,43 @@
 
 ## 构建（Windows / Linux / macOS）
 
-需安装：Meson、Ninja、JDK、Android SDK 相关依赖，详见官方 `doc/windows.md` / `doc/linux.md` / `doc/macos.md`。
+### Web 投屏必需：魔改 scrcpy-server
+
+`scrcpy-server` 是 Android 端 APK，**与宿主操作系统无关**，但需用本仓库 Gradle 编译（含 WebSocket / ws-scrcpy 线协议），**不要用**官方 release 里的 `scrcpy-server-v4.0` 代替。
 
 ```bash
-# 在仓库根目录
-node tools/build-scrcpy.mjs
+# 在仓库根目录（当前系统需 JDK 17+、Android SDK）
+node tools/build-scrcpy-server.mjs
+
+# 一次写入 windows / linux / macos 三个目录（便于跨平台部署仓库）
+node tools/build-scrcpy-server.mjs --all-platforms
 ```
 
-产物安装到 `backend/bin/scrcpy/<platform>/scrcpy[.exe]` 与 `scrcpy-server`。
+产物：`backend/bin/scrcpy/<platform>/scrcpy-server`（三份内容相同，均为魔改 APK）。
+
+| 系统 | JDK / SDK 提示 |
+|------|----------------|
+| **Linux** | `openjdk-17-jdk`、`android-sdk`；可设 `JAVA_HOME`、`ANDROID_HOME` |
+| **macOS** | Android Studio 自带 JBR，或 Temurin 17；SDK 通常在 `~/Library/Android/sdk` |
+| **Windows** | `Program Files\Java\jdk-*` 或 Android Studio `jbr`；可设 `CLOUD_PHONE_JAVA_HOME` |
+
+### 可选：本机 scrcpy 桌面客户端
+
+需 Meson + Ninja。脚本会用**已编译的魔改 server** 作为 `-Dprebuilt_server`，不再走官方 `install_release.sh`（避免 sudo 安装且避免官方未魔改 server）。
+
+```bash
+# 编译本机平台的 scrcpy + 同步魔改 server 到对应 bin 目录
+node tools/build-scrcpy.mjs
+
+# 仅编译魔改 server（无 meson 时自动走此路径）
+node tools/build-scrcpy.mjs --server-only
+```
+
+产物：`backend/bin/scrcpy/<platform>/scrcpy[.exe]` 与 `scrcpy-server`。
+
+**注意**：`node tools/build-scrcpy.mjs --download` 仅下载官方预编译包，**server 无魔改**，不适合 Cloud Phone Web 投屏。
+
+依赖详见官方 `doc/linux.md` / `doc/macos.md` / `doc/windows.md`。
 
 ## 后端 API（前端暂未对接）
 
