@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1 - 2026-05-27
+
+- Remove OTG cast mode and all related web UHID / virtual AOA plumbing (Pointer Lock capture, `otg/input/ws`, `scrcpy-otg` backend service, OTG settings UI and styles); cast modes are mirror and camera only
+- Simplify cast viewport and `useDeviceScrcpyCast` to canvas WebSocket preview + standard touch injection
+- Restore full toolbar actions during cast (no OTG-only restrictions)
+- scrcpy capabilities UI: drop OTG / USB group entry
+- Cast debug: recognize UHID control packet types (12–14) in `ws-packet-summary`; `WsControlChannel` serializes control writes to avoid interleaved pipe corruption
+
 ## 0.9.0 - 2026-05-27
 
 - Camera cast mode (escrcpy/scrcpy `--video-source=camera`, Android 12+): left panel「摄像头」settings (facing, camera id, size, aspect ratio, fps, high-speed, torch, zoom, encoder, audio); stream extras over WebSocket type 101

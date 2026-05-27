@@ -94,8 +94,6 @@ export function attachControlWebSocketClient(session, ws) {
   ws.on("close", () => {
     session.controlClients.delete(ws);
   });
-
-  // ws-scrcpy protocol does not have JSON ready on control channel.
 }
 
 export function teardownControlListener(session) {
@@ -118,21 +116,5 @@ export function teardownControlListener(session) {
     }
 
     session.controlSocket = null;
-  }
-}
-
-export async function ensureControlPipe(session) {
-  if (session.controlSocket) {
-    return session;
-  }
-
-  try {
-    await connectControlSocket(session);
-    return session;
-  } catch (error) {
-    logCastError(session.serial, "control.connect.failed", {
-      message: error instanceof Error ? error.message : "unknown",
-    });
-    throw error;
   }
 }

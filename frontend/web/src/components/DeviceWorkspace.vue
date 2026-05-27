@@ -125,6 +125,7 @@ async function startCast(options) {
     await nextTick();
 
     const viewport = castViewportRef.value;
+
     if (!viewport?.beginCast) {
       throw new Error("投屏画面组件未就绪，请刷新页面后重试。");
     }
@@ -153,6 +154,7 @@ async function stopCast() {
 
   try {
     await castViewportRef.value?.stopCast?.({ backend: false });
+
     if (props.device?.serial) {
       await stopDeviceCast(props.device.serial);
     }

@@ -241,11 +241,13 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     await openWebSocket(serial);
     unbindCanvas?.();
     const castOptions = unref(castOptionsRef) ?? {};
+    unbindCanvas?.();
+
     unbindCanvas = attachCastInteraction({
       canvas: canvasRef.value,
       getScreenSize: getEffectiveScreenSize,
       getRotator: () => rotatorRef?.value ?? null,
-      hasScreenInfo: () => screenSize.value.width > 0,
+      hasScreenInfo: () => getEffectiveScreenSize().width > 0,
       sendControl,
       interactionEnabled: castOptions.castMode !== "camera",
     });
@@ -360,6 +362,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     return new Promise((resolve, reject) => {
       closeWebSocket();
 
+      const castOptions = unref(castOptionsRef) ?? {};
       const canvas = canvasRef.value;
 
       if (!canvas) {
@@ -367,7 +370,6 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
         return;
       }
 
-      const castOptions = unref(castOptionsRef) ?? {};
       const audioOnly = isAudioOnlyCast(castOptions);
       const nextPlayer = audioOnly ? new WsScrcpyAudioCanvas(canvas) : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
@@ -407,6 +409,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
             videoSettingsFromCastOptions(castOptions, sessionMeta.value),
           ),
         );
+
         queueStartAppAfterConnect(1200);
       });
 
@@ -415,7 +418,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
           return;
         }
 
-        handleWsScrcpyBinary(nextPlayer, event.data);
+        handleWsScrcpyBinary(player.value, event.data);
 
         if (!settled) {
           const bytes = new Uint8Array(event.data);
@@ -646,5 +649,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     toggleCastRecording,
     resumeCastAudio,
     sendCameraControl,
+    sendControl,
+    getEffectiveScreenSize,
   };
 }

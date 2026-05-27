@@ -5,7 +5,6 @@ export { listCastFeatures, resolveCastServerOptions } from "./cast-options.js";
 export {
   attachControlWebSocketClient,
   connectControlSocket,
-  ensureControlPipe,
   teardownControlListener,
 } from "./control-bridge.js";
 export {

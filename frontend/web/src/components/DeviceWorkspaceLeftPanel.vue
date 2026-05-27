@@ -38,6 +38,16 @@ const mirrorSettingsRef = ref(null);
 const cameraSettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
 
+const canStartCast = computed(() => {
+  if (props.casting || props.castBusy) {
+    return false;
+  }
+
+  return Boolean(props.device?.connected && props.device?.serial);
+});
+
+const startButtonLabel = computed(() => (props.castBusy ? "正在处理…" : "开始投屏"));
+
 const modeOptions = computed(() =>
   DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
 );
@@ -124,11 +134,11 @@ defineExpose({ stepPreviewRotationDeg });
         <NButton
           block
           type="primary"
-          :disabled="!device.connected || casting || castBusy"
+          :disabled="!canStartCast || casting || castBusy"
           :loading="castBusy"
           @click="handleStartClick"
         >
-          {{ castBusy ? "正在处理…" : "开始投屏" }}
+          {{ startButtonLabel }}
         </NButton>
       </NSpace>
     </div>

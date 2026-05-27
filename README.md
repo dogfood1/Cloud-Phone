@@ -49,7 +49,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 设备工作区顶栏「应用管理」：列出已安装应用（应用名称经 scrcpy-server 获取、包名、系统/冻结标记）；点击应用弹窗查看详情（版本/SDK/数据目录等）；卸载二次确认；用户级冻结/解冻（`pm disable-user` / `pm enable`）；导出 APK；打开 `dataDir` 于文件管理器；支持本地上传 APK 安装（`PUT /api/devices/:serial/apps/install`）；相关接口 `GET/DELETE .../apps`、`GET .../apps/:pkg`、`POST .../apps/:pkg/state`、`GET .../apk`
 - 设备工作区顶栏「终端」：设备在线即可打开 ADB Shell 交互终端（xterm.js，支持 Tab/方向键与 ANSI 彩色）；WebSocket `.../terminal/ws` 桥接 `adb shell -tt`
 - 投屏模式「摄像头」（Android 12+）：对齐 escrcpy/scrcpy `--video-source=camera`；左侧参数（朝向、摄像头 ID、采集尺寸、宽高比、帧率、高速模式、手电筒、变焦、编码与音频）；`GET /api/devices/:serial/cameras` 列出设备摄像头；WebSocket type 101 下发 `video_source=camera` 等；投屏中手电/变焦控制；摄像头模式禁用画布触控注入
-- 同步前端与后端版本号到 `0.9.0`
+- 已移除 OTG / UHID 投屏模式及相关 API；投屏仅保留镜像与摄像头
+- 同步前端与后端版本号到 `0.9.1`
 
 ### 启动方式
 ```powershell
@@ -121,7 +122,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Device workspace toolbar App manager: app labels via scrcpy-server `PackageManager` (`list_all_apps`); list shows label + package name + system/frozen badges; detail modal (version/SDK/data dir, etc.); uninstall with confirmation; user-level freeze/unfreeze; export APK; open `dataDir` in file explorer; local APK install via `PUT /api/devices/:serial/apps/install`; APIs `GET/DELETE .../apps`, `GET .../apps/:pkg`, `POST .../apps/:pkg/state`, `GET .../apk` (no icon endpoint)
 - Device workspace toolbar Terminal: interactive ADB shell (xterm.js; Tab/arrows/ANSI colors) when device is online; WebSocket `.../terminal/ws` bridges `adb shell -tt`
 - Cast mode Camera (Android 12+): escrcpy/scrcpy `--video-source=camera`; settings for facing, camera id, capture size, aspect ratio, fps, high-speed, torch, zoom, encoder, and audio; `GET /api/devices/:serial/cameras`; stream params via WebSocket type 101; torch/zoom controls during cast; canvas touch injection disabled in camera mode
-- Sync frontend and backend versions to `0.9.0`
+- OTG / UHID cast mode and related APIs removed; mirror and camera cast only
+- Sync frontend and backend versions to `0.9.1`
 
 ### Getting Started
 ```powershell

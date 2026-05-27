@@ -17,8 +17,16 @@ const CONTROL_TYPE_NAMES = {
   9: "SET_CLIPBOARD",
   10: "SET_DISPLAY_POWER",
   11: "ROTATE_DEVICE",
+  12: "UHID_CREATE",
+  13: "UHID_INPUT",
+  14: "UHID_DESTROY",
+  15: "OPEN_HARD_KEYBOARD_SETTINGS",
   16: "START_APP",
   17: "RESET_VIDEO",
+  18: "CAMERA_SET_TORCH",
+  19: "CAMERA_ZOOM_IN",
+  20: "CAMERA_ZOOM_OUT",
+  21: "RESIZE_DISPLAY",
   101: "CHANGE_STREAM_PARAMETERS",
 };
 
@@ -142,6 +150,19 @@ export function summarizeWsPacket(data) {
       summary.powerMode = buffer[1];
     }
 
+    if (type === 12 && size >= 3) {
+      summary.uhidId = buffer.readUInt16BE(1);
+    }
+
+    if (type === 13 && size >= 5) {
+      summary.uhidId = buffer.readUInt16BE(1);
+      summary.uhidInputSize = buffer.readUInt16BE(3);
+    }
+
+    if (type === 14 && size >= 3) {
+      summary.uhidId = buffer.readUInt16BE(1);
+    }
+
     return summary;
   }
 
@@ -163,6 +184,22 @@ export function shouldLogPacketSummary(summary, counters, direction) {
     const count = counters[key];
 
     return count <= 2 || count % 200 === 0;
+  }
+
+  if (summary.controlType === "UHID_INPUT") {
+    const key = `${direction}:uhid_input`;
+    counters[key] = (counters[key] ?? 0) + 1;
+    const count = counters[key];
+
+    return count <= 2 || count % 120 === 0;
+  }
+
+  if (summary.controlType === "INJECT_TEXT") {
+    const key = `${direction}:inject_text`;
+    counters[key] = (counters[key] ?? 0) + 1;
+    const count = counters[key];
+
+    return count <= 3 || count % 40 === 0;
   }
 
   return true;

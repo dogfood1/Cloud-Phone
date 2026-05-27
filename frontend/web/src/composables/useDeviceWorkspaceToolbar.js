@@ -105,6 +105,10 @@ export function useDeviceWorkspaceToolbar({
     return action.id === "record" && isCastViewportRecording();
   }
 
+  function isWebCastSession() {
+    return isCasting.value;
+  }
+
   function isActionDisabled(action) {
     if (action.kind === "screenshot") {
       return !device.connected || screenshotBusy.value;
@@ -123,11 +127,11 @@ export function useDeviceWorkspaceToolbar({
     }
 
     if (action.kind === "volume-menu") {
-      return !isCasting.value;
+      return !isWebCastSession();
     }
 
     if (action.kind === "record") {
-      if (!isCasting.value || recordBusy.value) {
+      if (!isWebCastSession() || recordBusy.value) {
         return true;
       }
 
@@ -141,7 +145,7 @@ export function useDeviceWorkspaceToolbar({
     }
 
     if (action.kind === "cast-navigation") {
-      if (!isCasting.value) {
+      if (!isWebCastSession()) {
         return true;
       }
 

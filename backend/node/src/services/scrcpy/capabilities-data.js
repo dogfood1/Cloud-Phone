@@ -151,11 +151,6 @@ export const SCRCPY_CAPABILITIES = {
       ],
     },
     {
-      id: "otg",
-      name: "OTG / USB",
-      options: [{ flag: "otg", type: "boolean", description: "OTG 模式 (无需 adb 调试)" }],
-    },
-    {
       id: "v4l2",
       name: "V4L2 (Linux)",
       options: [

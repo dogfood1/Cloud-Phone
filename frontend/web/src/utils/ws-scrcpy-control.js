@@ -127,6 +127,22 @@ export function serializeInjectScroll({ point, screenSize, hscroll = 0, vscroll 
   return new Uint8Array(buffer);
 }
 
+export function serializeInjectText(text) {
+  const bytes = encodeUtf8(text);
+  const length = Math.min(bytes.length, 300);
+
+  if (length === 0) {
+    return null;
+  }
+
+  const buffer = new ArrayBuffer(5 + length);
+  const view = new DataView(buffer);
+  view.setUint8(0, CONTROL_MSG_TYPE.INJECT_TEXT);
+  writeU32BE(view, 1, length);
+  new Uint8Array(buffer, 5).set(bytes.subarray(0, length));
+  return new Uint8Array(buffer);
+}
+
 export function serializeInjectKeycode({ action, keycode, repeat = 0, metastate = 0 }) {
   const buffer = new ArrayBuffer(14);
   const view = new DataView(buffer);

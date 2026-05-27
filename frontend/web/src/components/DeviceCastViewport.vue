@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, toRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRef, watch } from "vue";
 
 import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
 
@@ -122,11 +122,18 @@ defineExpose({
         />
       </div>
     </div>
-    <div v-if="!casting || !device.connected" class="device-cast-viewport__placeholder">
+
+    <div
+      v-if="!casting || !device.connected"
+      class="device-cast-viewport__placeholder"
+    >
       <p v-if="!device.connected">设备未在线，无法投屏。</p>
       <p v-else-if="!casting">点击左侧「开始投屏」预览设备画面。</p>
     </div>
-    <div v-else-if="!isStarting && !isStreaming && !hasError" class="device-cast-viewport__overlay">
+    <div
+      v-else-if="!isStarting && !isStreaming && !hasError"
+      class="device-cast-viewport__overlay"
+    >
       <p>正在准备投屏连接…</p>
     </div>
     <div v-else-if="isStarting" class="device-cast-viewport__overlay">
@@ -135,7 +142,7 @@ defineExpose({
     <div v-else-if="hasError" class="device-cast-viewport__overlay device-cast-viewport__overlay--error">
       <p>{{ errorMessage }}</p>
       <span class="device-cast-viewport__hint">
-        请确认已执行 node tools/build-scrcpy.mjs、设备已连接，并使用 Chrome/Edge 浏览器。
+        请确认设备已 adb 连接、已执行 node tools/build-scrcpy-server.mjs，并使用 Chrome/Edge 浏览器。
       </span>
     </div>
     <div v-else-if="isStreaming" class="device-cast-viewport__badge">scrcpy</div>

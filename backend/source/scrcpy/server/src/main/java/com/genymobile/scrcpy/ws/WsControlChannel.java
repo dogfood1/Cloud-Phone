@@ -21,6 +21,7 @@ public final class WsControlChannel implements ControlConnection {
   private final PipedOutputStream controlWriteEnd;
   private final ControlMessageReader reader;
   private final WsSocketBroadcaster broadcaster;
+  private final Object feedLock = new Object();
 
   public WsControlChannel(WsSocketBroadcaster broadcaster) throws IOException {
     this.broadcaster = broadcaster;
@@ -53,21 +54,22 @@ public final class WsControlChannel implements ControlConnection {
     }
     byte[] chunk = new byte[message.remaining()];
     message.get(chunk);
-    try {
-      controlWriteEnd.write(chunk);
-      controlWriteEnd.flush();
-    } catch (IOException e) {
-      // Controller thread may have stopped; ignore further client input.
-      Ln.d("Control pipe closed: " + e.getMessage());
-    }
+    feedControl(chunk);
   }
 
   public void feedControl(byte[] chunk) throws IOException {
     if (chunk == null || chunk.length == 0) {
       return;
     }
-    controlWriteEnd.write(chunk);
-    controlWriteEnd.flush();
+    synchronized (feedLock) {
+      try {
+        controlWriteEnd.write(chunk);
+        controlWriteEnd.flush();
+      } catch (IOException e) {
+        // Controller thread may have stopped; ignore further client input.
+        Ln.d("Control pipe closed: " + e.getMessage());
+      }
+    }
   }
 
   public ControlMessage parseInline(ByteBuffer message) throws IOException {
