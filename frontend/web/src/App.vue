@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 
 import AppProviders from "./components/AppProviders.vue";
 import AuthLayer from "./components/AuthLayer.vue";
+import AuthPasswordModal from "./components/AuthPasswordModal.vue";
 import ConsoleLayout from "./components/ConsoleLayout.vue";
 import ThemeToggle from "./components/ThemeToggle.vue";
 import { useAuth } from "./composables/useAuth.js";
@@ -20,10 +21,13 @@ const {
   showAuthLayer,
   showLoginModal,
   showPasswordChangeModal,
+  passwordChangeMode,
   passwordStatusText,
   loadSession,
   submitLogin,
   submitPasswordChange,
+  openPasswordChange,
+  closePasswordChange,
   logout,
 } = useAuth();
 
@@ -89,6 +93,10 @@ async function handlePasswordChange() {
   }
 }
 
+async function handlePasswordChangeFromSettings() {
+  await handlePasswordChange();
+}
+
 async function handleLogout() {
   await logout();
   stopDevices();
@@ -124,10 +132,23 @@ function saveSettingsForm() {
         v-if="showAuthLayer"
         :show-login-modal="showLoginModal"
         :show-password-change-modal="showPasswordChangeModal"
+        :password-change-mode="passwordChangeMode"
         :state="authState"
         @login="handleLogin"
         @change-password="handlePasswordChange"
       />
+      <div
+        v-if="showPasswordChangeModal && authState.authenticated"
+        class="modal-layer"
+        @click.self="closePasswordChange"
+      >
+        <AuthPasswordModal
+          :state="authState"
+          mode="voluntary"
+          @submit="handlePasswordChangeFromSettings"
+          @cancel="closePasswordChange"
+        />
+      </div>
       <ConsoleLayout
         v-else
         v-model:active-tab="activeTab"
@@ -144,6 +165,7 @@ function saveSettingsForm() {
         :session-expires-at="authState.sessionExpiresAt"
         @logout="handleLogout"
         @save-settings="saveSettingsForm"
+        @change-password="openPasswordChange"
         @refresh-devices="refreshDevices"
       />
     </div>

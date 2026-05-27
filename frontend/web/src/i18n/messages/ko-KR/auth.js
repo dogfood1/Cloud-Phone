@@ -15,6 +15,12 @@ export default {
     changeTitle: "기본 비밀번호를 계속 사용할 수 없습니다",
     changeIntro:
       "비밀번호가 기본값 admin입니다. 콘솔을 계속 사용하려면 새 로그인 비밀번호를 설정하세요.",
+    changeTitleVoluntary: "로그인 비밀번호 변경",
+    changeIntroVoluntary: "현재 비밀번호를 입력하고 새 로그인 비밀번호를 설정하세요.",
+    currentPassword: "현재 비밀번호",
+    currentPasswordPlaceholder: "현재 비밀번호 입력",
+    cancel: "취소",
+    savePassword: "비밀번호 저장",
     newPassword: "새 비밀번호",
     newPasswordPlaceholder: "6자 이상",
     confirmPassword: "새 비밀번호 확인",

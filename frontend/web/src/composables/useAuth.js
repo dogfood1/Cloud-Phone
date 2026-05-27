@@ -1,4 +1,4 @@
-import { computed, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 
 import { i18n } from "../i18n/index.js";
 import { getErrorMessage, requestJson } from "../utils/api.js";
@@ -28,12 +28,20 @@ export function useAuth() {
 
   state.sessionStateText = t("auth.sessionChecking");
 
+  const passwordChangeDialogOpen = ref(false);
+
   const passwordStatusText = computed(() =>
     state.passwordConfigured ? t("auth.passwordUpdated") : t("auth.passwordDefault"),
   );
   const showAuthLayer = computed(() => !state.authenticated);
-  const showPasswordChangeModal = computed(
+  const showForcedPasswordChangeModal = computed(
     () => state.requiresPasswordChange && Boolean(state.currentPassword),
+  );
+  const showPasswordChangeModal = computed(
+    () => showForcedPasswordChangeModal.value || passwordChangeDialogOpen.value,
+  );
+  const passwordChangeMode = computed(() =>
+    showForcedPasswordChangeModal.value ? "forced" : "voluntary",
   );
   const showLoginModal = computed(
     () => !state.authenticated && !showPasswordChangeModal.value,
@@ -127,6 +135,7 @@ export function useAuth() {
       state.currentPassword = "";
       state.nextPassword = "";
       state.confirmPassword = "";
+      passwordChangeDialogOpen.value = false;
       return true;
     } catch (error) {
       state.changeFeedback = getErrorMessage(error, t("auth.changeFailedDefault"));
@@ -134,6 +143,34 @@ export function useAuth() {
     } finally {
       state.changePending = false;
     }
+  }
+
+  function openPasswordChange() {
+    if (!state.authenticated) {
+      return;
+    }
+
+    state.nextPassword = "";
+    state.confirmPassword = "";
+    state.changeFeedback = "";
+
+    if (!state.requiresPasswordChange) {
+      state.currentPassword = "";
+    }
+
+    passwordChangeDialogOpen.value = true;
+  }
+
+  function closePasswordChange() {
+    if (state.requiresPasswordChange) {
+      return;
+    }
+
+    passwordChangeDialogOpen.value = false;
+    state.currentPassword = "";
+    state.nextPassword = "";
+    state.confirmPassword = "";
+    state.changeFeedback = "";
   }
 
   async function logout() {
@@ -161,9 +198,12 @@ export function useAuth() {
     showAuthLayer,
     showLoginModal,
     showPasswordChangeModal,
+    passwordChangeMode,
     loadSession,
     submitLogin,
     submitPasswordChange,
+    openPasswordChange,
+    closePasswordChange,
     logout,
   };
 }

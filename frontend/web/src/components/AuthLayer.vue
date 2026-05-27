@@ -11,6 +11,10 @@ defineProps({
     type: Boolean,
     required: true,
   },
+  passwordChangeMode: {
+    type: String,
+    default: "forced",
+  },
   state: {
     type: Object,
     required: true,
@@ -30,6 +34,7 @@ const emit = defineEmits(["login", "change-password"]);
     <AuthPasswordModal
       v-else-if="showPasswordChangeModal"
       :state="state"
+      :mode="passwordChangeMode"
       @submit="emit('change-password')"
     />
   </div>

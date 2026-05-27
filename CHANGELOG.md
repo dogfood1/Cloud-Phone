@@ -5,11 +5,17 @@
 - 设置页新增界面语言切换，支持简体中文、English、繁體中文、日本語、한국어
 - 接入 `vue-i18n`：设置、侧栏、主题、登录/改密、设备画廊等核心界面文案多语言化
 - 语言偏好写入 `localStorage`，切换即时生效；日期与设备状态标签随 locale 格式化
+- 设置页改为横向布局：左侧二级菜单（账号 / 外观 / 刷新），右侧分类内容区
+- 外观分类集中语言与主题；账号分类支持会话信息与修改密码；刷新分类独立保存间隔
 
 ### Settings i18n & language switcher
 - Language selector on Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR)
 - `vue-i18n` for shell UI: settings, sidebar, theme, auth, device gallery
 - Persisted locale; date/device labels follow active language
+
+### Settings layout refactor
+- Horizontal settings page with secondary nav: Account, Appearance, Refresh
+- Theme toggle moved from sidebar to Appearance; change password from Account section
 
 ## 0.9.8 - 2026-05-27
 

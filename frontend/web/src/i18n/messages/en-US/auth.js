@@ -15,6 +15,12 @@ export default {
     changeTitle: "Default password cannot be used",
     changeIntro:
       "The password is still the default admin. Set a new login password to continue using the console.",
+    changeTitleVoluntary: "Change login password",
+    changeIntroVoluntary: "Enter your current password and choose a new login password.",
+    currentPassword: "Current password",
+    currentPasswordPlaceholder: "Enter current password",
+    cancel: "Cancel",
+    savePassword: "Save password",
     newPassword: "New password",
     newPasswordPlaceholder: "At least 6 characters",
     confirmPassword: "Confirm new password",

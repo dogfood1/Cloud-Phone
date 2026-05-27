@@ -109,11 +109,10 @@ Images are embedded in the corresponding feature sections below.
 
 ### Settings & auth
 
-- Configure list/screenshot refresh intervals (defaults: list 1s / screenshots 5s)
-- **UI language**: Simplified Chinese, English, Traditional Chinese, Japanese, Korean (Settings dropdown, persisted locally)
-- Session login (default password `admin`, please change it) and password change dialog
-- Session expiry info
-- Light/dark theme toggle with persisted preference
+- Horizontal settings page with secondary nav: **Account** (session/password), **Appearance** (language/theme), **Refresh** (intervals)
+- **UI language**: Simplified Chinese, English, Traditional Chinese, Japanese, Korean (under Appearance, persisted locally)
+- Session login (default password `admin`, please change it); change password and session expiry under Account
+- Light/dark theme under Appearance with persisted preference
 
 ### Device workspace · Mirror cast (default)
 

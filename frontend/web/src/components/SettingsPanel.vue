@@ -1,8 +1,12 @@
 <script setup>
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 
-import { useLocale } from "../composables/useLocale.js";
-import { formatDate } from "../utils/format-date.js";
+import "../assets/settings-page.css";
+import AppIcon from "./AppIcon.vue";
+import SettingsAccountSection from "./settings/SettingsAccountSection.vue";
+import SettingsAppearanceSection from "./settings/SettingsAppearanceSection.vue";
+import SettingsRefreshSection from "./settings/SettingsRefreshSection.vue";
 
 defineProps({
   settingsForm: {
@@ -23,14 +27,20 @@ defineProps({
   },
 });
 
-defineEmits(["save"]);
+const emit = defineEmits(["save", "change-password"]);
 
 const { t } = useI18n();
-const { locale, localeOptions } = useLocale();
+const activeSection = ref("account");
+
+const sections = [
+  { id: "account", icon: "user" },
+  { id: "appearance", icon: "palette" },
+  { id: "refresh", icon: "refresh" },
+];
 </script>
 
 <template>
-  <section class="settings-view">
+  <section class="settings-page">
     <header class="panel-header">
       <div>
         <p class="eyebrow">{{ t("settings.eyebrow") }}</p>
@@ -38,58 +48,38 @@ const { locale, localeOptions } = useLocale();
         <p class="panel-header__desc">{{ t("settings.desc") }}</p>
       </div>
     </header>
-    <form class="settings-form settings-card" @submit.prevent="$emit('save')">
-      <label class="field">
-        <span>{{ t("settings.language") }}</span>
-        <div class="field__control">
-          <select v-model="locale" class="field__select" :aria-label="t('settings.language')">
-            <option v-for="item in localeOptions" :key="item.code" :value="item.code">
-              {{ item.label }}
-            </option>
-          </select>
-        </div>
-      </label>
-      <p class="settings-form__hint">{{ t("settings.languageHint") }}</p>
 
-      <label class="field">
-        <span>{{ t("settings.deviceInterval") }}</span>
-        <div class="field__control">
-          <input
-            v-model.number="settingsForm.deviceListIntervalSeconds"
-            type="number"
-            min="1"
-            max="120"
-            step="1"
-            required
-          />
-        </div>
-      </label>
-      <label class="field">
-        <span>{{ t("settings.screenshotInterval") }}</span>
-        <div class="field__control">
-          <input
-            v-model.number="settingsForm.screenshotIntervalSeconds"
-            type="number"
-            min="1"
-            max="120"
-            step="1"
-            required
-          />
-        </div>
-      </label>
-      <p class="settings-form__hint">{{ t("settings.intervalHint") }}</p>
-      <p v-if="settingsFeedback" class="feedback">{{ settingsFeedback }}</p>
-      <button class="primary-button" type="submit">{{ t("settings.save") }}</button>
-    </form>
-    <dl class="settings-meta">
-      <div>
-        <dt>{{ t("settings.passwordStatus") }}</dt>
-        <dd>{{ passwordStatusText }}</dd>
+    <div class="settings-page__body">
+      <nav class="settings-page__nav" :aria-label="t('settings.navLabel')">
+        <button
+          v-for="item in sections"
+          :key="item.id"
+          type="button"
+          class="settings-page__nav-btn"
+          :class="{ 'settings-page__nav-btn--active': activeSection === item.id }"
+          :aria-current="activeSection === item.id ? 'page' : undefined"
+          @click="activeSection = item.id"
+        >
+          <AppIcon :name="item.icon" />
+          <span>{{ t(`settings.nav.${item.id}`) }}</span>
+        </button>
+      </nav>
+
+      <div class="settings-page__content">
+        <SettingsAccountSection
+          v-if="activeSection === 'account'"
+          :password-status-text="passwordStatusText"
+          :session-expires-at="sessionExpiresAt"
+          @change-password="emit('change-password')"
+        />
+        <SettingsAppearanceSection v-else-if="activeSection === 'appearance'" />
+        <SettingsRefreshSection
+          v-else
+          :settings-form="settingsForm"
+          :settings-feedback="settingsFeedback"
+          @save="emit('save')"
+        />
       </div>
-      <div>
-        <dt>{{ t("settings.sessionExpiry") }}</dt>
-        <dd>{{ formatDate(sessionExpiresAt) }}</dd>
-      </div>
-    </dl>
+    </div>
   </section>
 </template>

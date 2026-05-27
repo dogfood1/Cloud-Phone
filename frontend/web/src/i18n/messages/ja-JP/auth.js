@@ -15,6 +15,12 @@ export default {
     changeTitle: "既定パスワードは使用できません",
     changeIntro:
       "パスワードが既定の admin のままです。新しいログインパスワードを設定してください。",
+    changeTitleVoluntary: "ログインパスワードを変更",
+    changeIntroVoluntary: "現在のパスワードを入力し、新しいログインパスワードを設定してください。",
+    currentPassword: "現在のパスワード",
+    currentPasswordPlaceholder: "現在のパスワードを入力",
+    cancel: "キャンセル",
+    savePassword: "パスワードを保存",
     newPassword: "新しいパスワード",
     newPasswordPlaceholder: "6 文字以上",
     confirmPassword: "新しいパスワード（確認）",

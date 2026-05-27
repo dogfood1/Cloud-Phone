@@ -62,7 +62,7 @@ const workspaceDevice = computed(() => {
   return props.devices.find((device) => device.serial === selected.serial) ?? selected;
 });
 
-const emit = defineEmits(["logout", "save-settings", "refresh-devices"]);
+const emit = defineEmits(["logout", "save-settings", "refresh-devices", "change-password"]);
 
 function handleOpenDevice(device) {
   selectedDevice.value = device;
@@ -88,7 +88,13 @@ function handleTabChange(tabId) {
       @update:active-tab="handleTabChange"
       @logout="emit('logout')"
     />
-    <main class="main-panel" :class="{ 'main-panel--workspace': selectedDevice }">
+    <main
+      class="main-panel"
+      :class="{
+        'main-panel--workspace': selectedDevice,
+        'main-panel--settings': !selectedDevice && activeTab === 'settings',
+      }"
+    >
       <DeviceWorkspace
         v-if="workspaceDevice"
         :device="workspaceDevice"
@@ -112,6 +118,7 @@ function handleTabChange(tabId) {
         :password-status-text="passwordStatusText"
         :session-expires-at="sessionExpiresAt"
         @save="emit('save-settings')"
+        @change-password="emit('change-password')"
       />
     </main>
   </div>

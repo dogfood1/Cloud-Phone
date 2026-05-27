@@ -1,8 +1,30 @@
 export default {
   settings: {
     eyebrow: "設定",
-    title: "表示と更新",
-    desc: "ギャラリーの更新間隔、UI 言語、セッション情報を設定します。",
+    title: "設定",
+    desc: "アカウント、外観、ギャラリー更新を管理します。",
+    navLabel: "設定カテゴリ",
+    nav: {
+      account: "アカウント",
+      appearance: "外観",
+      refresh: "更新",
+    },
+    sections: {
+      account: {
+        title: "アカウント",
+        desc: "セッション状態の確認、またはログインパスワードの変更。",
+        changePassword: "パスワードを変更",
+      },
+      appearance: {
+        title: "外観",
+        desc: "UI 言語とライト/ダークテーマを切り替えます。",
+        theme: "テーマ",
+      },
+      refresh: {
+        title: "更新",
+        desc: "デバイスギャラリーの一覧とスクリーンショットの自動更新間隔を設定します。",
+      },
+    },
     language: "UI 言語",
     languageHint: "切り替え後すぐに反映されます。設定はブラウザに保存されます。",
     deviceInterval: "デバイス一覧の更新間隔（秒）",

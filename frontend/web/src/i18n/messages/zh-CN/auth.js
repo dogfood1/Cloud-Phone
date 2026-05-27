@@ -15,6 +15,12 @@ export default {
     changeTitle: "默认密码不可继续使用",
     changeIntro:
       "检测到当前密码仍为默认值 admin。为了继续使用控制台，请先设置新的登录密码。",
+    changeTitleVoluntary: "修改登录密码",
+    changeIntroVoluntary: "请输入当前密码并设置新的登录密码。",
+    currentPassword: "当前密码",
+    currentPasswordPlaceholder: "请输入当前密码",
+    cancel: "取消",
+    savePassword: "保存密码",
     newPassword: "新密码",
     newPasswordPlaceholder: "至少 6 位",
     confirmPassword: "确认新密码",

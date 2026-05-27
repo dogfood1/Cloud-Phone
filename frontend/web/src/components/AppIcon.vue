@@ -10,7 +10,9 @@ import {
   Link,
   LogOut,
   Moon,
+  Palette,
   RefreshCw,
+  User,
   RotateCw,
   Settings,
   Smartphone,
@@ -92,6 +94,8 @@ const LUCIDE_ICONS = {
   terminal: Terminal,
   moon: Moon,
   logout: LogOut,
+  user: User,
+  palette: Palette,
   wifi: Wifi,
 };
 
