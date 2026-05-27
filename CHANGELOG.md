@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.8 - 2026-05-27
+
+- 首页左侧“设置”图标改为图标库实现（`lucide-vue-next`），统一线稿风格并提升清晰度
+
+### Sidebar settings icon
+- Migrate the sidebar settings icon to `lucide-vue-next`
+
 ## 0.9.7 - 2026-05-27
 
 - 改进工具栏图标：终端与旋转更清晰、比例更协调

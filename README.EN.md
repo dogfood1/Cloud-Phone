@@ -4,6 +4,8 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell.**
 
+Current version: **v0.9.8** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
+
 [中文](README.md) · **English**
 
 </div>

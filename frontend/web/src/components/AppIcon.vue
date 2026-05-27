@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { Settings } from "lucide-vue-next";
 
 import { DEVICE_TOOLBAR_ICONS } from "../icons/device-toolbar-icons.js";
 
@@ -18,8 +19,6 @@ const props = defineProps({
 const paths = {
   devices:
     "M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm1 14h8",
-  settings:
-    "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm8.5 4a7.4 7.4 0 0 0 .1-1 7.4 7.4 0 0 0-.1-1l1.8-1.4-1.3-2.2-2.1.8a7.6 7.6 0 0 0-1.7-1l-.3-2.3h-2.6l-.3 2.3a7.6 7.6 0 0 0-1.7 1l-2.1-.8-1.3 2.2L3.5 10a7.4 7.4 0 0 0-.1 1 7.4 7.4 0 0 0 .1 1L1.7 12.4l1.3 2.2 2.1-.8a7.6 7.6 0 0 0 1.7 1l.3 2.3h2.6l.3-2.3a7.6 7.6 0 0 0 1.7-1l2.1.8 1.3-2.2 1.8 1.4Z",
   sun: "M12 4V2m0 20v-2M4.9 4.9 3.5 3.5m16.4 16.4-1.4-1.4M4 12H2m20 0h-2M4.9 19.1l-1.4 1.4m16.4-16.4-1.4 1.4M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z",
   moon: "M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z",
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m5 14 5-5-5-5m5 5H9",
@@ -58,11 +57,26 @@ const iconPaths = computed(() => {
   return Array.isArray(value) ? value : [value];
 });
 
+const LUCIDE_ICONS = {
+  settings: Settings,
+};
+
+const lucideIcon = computed(() => LUCIDE_ICONS[props.name] ?? null);
 const strokeWidth = computed(() => (props.variant === "toolbar" ? 2 : 1.75));
 </script>
 
 <template>
+  <component
+    :is="lucideIcon"
+    v-if="lucideIcon"
+    class="app-icon"
+    :class="{ 'app-icon--toolbar': variant === 'toolbar' }"
+    :stroke-width="strokeWidth"
+    :size="24"
+    aria-hidden="true"
+  />
   <svg
+    v-else
     class="app-icon"
     :class="{ 'app-icon--toolbar': variant === 'toolbar' }"
     viewBox="0 0 24 24"
