@@ -4,9 +4,9 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里。**
 
-当前版本：**v0.9.1** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.9.3** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
-[English](README.EN.md) · **中文**
+[GitHub](https://github.com/yiyifred/Cloud-Phone) · [Gitee](https://gitee.com/yiyifred/Cloud-Phone) · [English](README.EN.md) · **中文**
 
 </div>
 
