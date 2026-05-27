@@ -6,14 +6,25 @@
 
 当前版本：**v0.9.3** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
-[GitHub](https://github.com/yiyifred/Cloud-Phone) · [Gitee](https://gitee.com/yiyifred/Cloud-Phone) · [English](README.EN.md) · **中文**
+[English](README.EN.md) · **中文**
 
 </div>
 
 ---
 
+## 相关链接
+
+| 平台 | 地址 |
+|------|------|
+| **GitHub** | [github.com/yiyifred/Cloud-Phone](https://github.com/yiyifred/Cloud-Phone) |
+| **Gitee** | [gitee.com/yiyifred/Cloud-Phone](https://gitee.com/yiyifred/Cloud-Phone) |
+| **LINUX DO** | [linux.do](https://linux.do/) |
+
+---
+
 ## 目录
 
+- [相关链接](#相关链接)
 - [为什么做这个项目](#为什么做这个项目)
 - [亮点](#亮点)
 - [截图（预留）](#截图预留)

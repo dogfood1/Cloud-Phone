@@ -4,14 +4,25 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell.**
 
-[GitHub](https://github.com/yiyifred/Cloud-Phone) · [Gitee](https://gitee.com/yiyifred/Cloud-Phone) · [中文](README.md) · **English**
+[中文](README.md) · **English**
 
 </div>
 
 ---
 
+## Links
+
+| Platform | URL |
+|----------|-----|
+| **GitHub** | [github.com/yiyifred/Cloud-Phone](https://github.com/yiyifred/Cloud-Phone) |
+| **Gitee** | [gitee.com/yiyifred/Cloud-Phone](https://gitee.com/yiyifred/Cloud-Phone) |
+| **LINUX DO** | [linux.do](https://linux.do/) |
+
+---
+
 ## Table of contents
 
+- [Links](#links)
 - [What it is](#what-it-is)
 - [Highlights](#highlights)
 - [Screenshots](#screenshots)
