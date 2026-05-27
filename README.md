@@ -358,3 +358,12 @@ scrcpy 本体遵循 **Apache License 2.0**（见 `backend/source/scrcpy/LICENSE`
 ---
 
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=yiyifred%2FCloud-Phone&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=yiyifred/Cloud-Phone&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=yiyifred/Cloud-Phone&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=yiyifred/Cloud-Phone&type=date&legend=top-left" />
+ </picture>
+</a>
