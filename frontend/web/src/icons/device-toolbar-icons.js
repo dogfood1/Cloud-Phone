@@ -36,6 +36,8 @@ export const DEVICE_TOOLBAR_ICONS = {
   file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z M14 2v6h6",
   link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
   "chevron-up": "M18 15l-6-6-6 6",
+  "chevron-left": "M15 18l-6-6 6-6",
+  "chevron-right": "M9 18l6-6-6-6",
   apps: ["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z"],
   terminal: ["M12 19h8", "M8 16l-4-4 4-4", "M4 19h.01", "M4 15h.01"],
 };

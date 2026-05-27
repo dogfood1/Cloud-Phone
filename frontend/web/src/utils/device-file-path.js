@@ -1,32 +1,11 @@
-export const DEVICE_FILES_ROOT = "/storage/emulated/0";
+export const DEVICE_FS_ROOT = "/";
+export const DEVICE_FILES_DEFAULT_OPEN = "/storage/emulated/0";
 
-export function toDisplayPath(devicePath) {
-  const normalized = normalizeDevicePath(devicePath);
-
-  if (normalized === DEVICE_FILES_ROOT) {
-    return "/";
-  }
-
-  if (normalized.startsWith(`${DEVICE_FILES_ROOT}/`)) {
-    return normalized.slice(DEVICE_FILES_ROOT.length);
-  }
-
-  return normalized;
-}
-
-export function fromDisplayPath(displayPath) {
-  const raw = String(displayPath ?? "").trim() || "/";
-
-  if (raw === "/" || raw === "") {
-    return DEVICE_FILES_ROOT;
-  }
-
-  const relative = raw.startsWith("/") ? raw : `/${raw}`;
-  return normalizeDevicePath(`${DEVICE_FILES_ROOT}${relative}`);
-}
+/** @deprecated use DEVICE_FILES_DEFAULT_OPEN */
+export const DEVICE_FILES_ROOT = DEVICE_FILES_DEFAULT_OPEN;
 
 export function normalizeDevicePath(input) {
-  const raw = String(input ?? "").trim() || DEVICE_FILES_ROOT;
+  const raw = String(input ?? "").trim() || DEVICE_FS_ROOT;
   const posix = raw.replace(/\\/g, "/");
   const parts = [];
 
@@ -43,20 +22,40 @@ export function normalizeDevicePath(input) {
     parts.push(segment);
   }
 
-  const joined = `/${parts.join("/")}`;
+  const joined = parts.length === 0 ? DEVICE_FS_ROOT : `/${parts.join("/")}`;
 
-  if (joined === "/storage/emulated" || joined === "/storage") {
-    return DEVICE_FILES_ROOT;
+  if (joined === DEVICE_FS_ROOT) {
+    return DEVICE_FS_ROOT;
   }
 
-  if (!joined.startsWith(DEVICE_FILES_ROOT)) {
-    throw new Error("路径超出设备存储范围");
-  }
-
-  return joined === "/storage/emulated/0/" ? DEVICE_FILES_ROOT : joined.replace(/\/+$/, "") || DEVICE_FILES_ROOT;
+  return joined.replace(/\/+$/, "") || DEVICE_FS_ROOT;
 }
 
-export function joinDisplayPath(parentDisplayPath, name) {
-  const base = parentDisplayPath === "/" ? "" : parentDisplayPath;
-  return `${base}/${name}`.replace(/\/+/g, "/");
+export function resolveDevicePath(input) {
+  const raw = String(input ?? "").trim();
+
+  if (!raw || raw === DEVICE_FS_ROOT) {
+    return normalizeDevicePath(DEVICE_FS_ROOT);
+  }
+
+  if (raw.startsWith("/")) {
+    return normalizeDevicePath(raw);
+  }
+
+  return normalizeDevicePath(`/${raw}`);
+}
+
+export function joinDevicePath(parentPath, name) {
+  const base = normalizeDevicePath(parentPath);
+  const tail = String(name).replace(/\\/g, "/").replace(/^\/+/, "");
+
+  if (!tail) {
+    return base;
+  }
+
+  if (base === DEVICE_FS_ROOT) {
+    return normalizeDevicePath(`${DEVICE_FS_ROOT}${tail}`);
+  }
+
+  return normalizeDevicePath(`${base}/${tail}`);
 }

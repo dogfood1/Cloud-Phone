@@ -45,8 +45,8 @@ Cloud Phone 是一个前后端分离的云手机项目仓库。后端提供 API 
 - 音量按钮点击展开「增加 / 减小」子按钮（替代按住与 Shift+按住）
 - 投屏画布置底、顶栏音量菜单叠在画布之上（z-index）
 - 投屏录屏：有画面保存 MP4，仅音频保存 MP3；投屏结束自动保存；修复禁用视频时无音频（server `started` 时序）
-- 设备工作区顶栏「文件管理」：设备在线即可打开（无需投屏）；浏览内部存储，实际根为 `/storage/emulated/0`，界面路径以 `/` 表示根；地址栏、上级、刷新；接口 `GET /api/devices/:serial/files?path=...`
-- 同步前端与后端版本号到 `0.7.14`
+- 设备工作区顶栏「文件管理」：设备在线即可打开（无需投屏）；文件系统根为 `/`，默认打开 `/storage/emulated/0`；地址栏显示真实绝对路径；后退/前进/向上/刷新；无权限时提示「权限不足」；接口 `GET /api/devices/:serial/files?path=...`
+- 同步前端与后端版本号到 `0.7.15`
 
 ### 启动方式
 ```powershell
@@ -114,8 +114,8 @@ Cloud Phone is a separated frontend/backend repository for a cloud phone project
 - Volume button expands increase/decrease sub-buttons (replaces hold and Shift+hold)
 - Cast canvas at bottom layer; toolbar volume menu above viewport (z-index)
 - Cast recording: MP4 with video cast, MP3 with audio-only; auto-save when cast ends; fix no audio when video disabled (server `started` race)
-- Device workspace toolbar Files: browse internal storage when the device is online (no cast required); real root `/storage/emulated/0` with UI paths under `/`; address bar, parent, refresh; `GET /api/devices/:serial/files?path=...`
-- Sync frontend and backend versions to `0.7.14`
+- Device workspace toolbar Files: when the device is online (no cast required); filesystem root `/`, default open `/storage/emulated/0`; real absolute paths in the address bar; back/forward/up/refresh; permission errors surfaced clearly; `GET /api/devices/:serial/files?path=...`
+- Sync frontend and backend versions to `0.7.15`
 
 ### Getting Started
 ```powershell

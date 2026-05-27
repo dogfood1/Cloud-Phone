@@ -1,4 +1,5 @@
 import { APP_VERSION } from "../config/version.js";
+import { DEVICE_FILES_DEFAULT_OPEN } from "../services/device-file-path.js";
 import { listDeviceFiles } from "../services/device-files.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
 import { listDeviceEncoders } from "../services/device-video-encoders.js";
@@ -73,7 +74,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
 
   if (method === "GET" && filesMatch) {
     const serial = decodeURIComponent(filesMatch[1]);
-    const requestedPath = url.searchParams.get("path") ?? "/";
+    const requestedPath = url.searchParams.get("path") ?? DEVICE_FILES_DEFAULT_OPEN;
 
     try {
       const listing = await listDeviceFiles(serial, requestedPath);

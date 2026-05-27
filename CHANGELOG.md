@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.15 - 2026-05-27
+
+- Device file explorer: filesystem root is `/`; default open folder is `/storage/emulated/0` (not the root); address bar shows real absolute paths; browse up to `/` via parent navigation
+- Back / forward history, up at `/` shows「已在文件系统根目录」; permission denied surfaces as「权限不足，无法访问此目录」
+- Backend listing split into `device-files-list.js` / `device-files-errors.js`; improved `ls -la` parse and directory type detection fallback
+
 ## 0.7.14 - 2026-05-27
 
 - Device file explorer (toolbar「文件管理」): browse internal storage rooted at `/storage/emulated/0` while UI shows `/`; `GET /api/devices/:serial/files?path=...` lists via `adb shell ls`; path normalized to prevent traversal outside root; no cast required when device is online

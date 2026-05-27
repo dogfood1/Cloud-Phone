@@ -34,7 +34,7 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     label: "文件管理",
     icon: "folder",
     kind: "files",
-    title: "浏览设备内部存储（/storage/emulated/0）",
+    title: "浏览设备文件系统（根为 /，默认打开 /storage/emulated/0）",
   },
   { id: "apps", label: "应用管理", icon: "apps", kind: "planned" },
   { id: "terminal", label: "终端", icon: "terminal", kind: "planned" },

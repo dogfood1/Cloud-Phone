@@ -1,5 +1,7 @@
-export async function fetchDeviceFiles(serial, displayPath = "/") {
-  const params = new URLSearchParams({ path: displayPath });
+import { DEVICE_FILES_DEFAULT_OPEN } from "./device-file-path.js";
+
+export async function fetchDeviceFiles(serial, devicePath = DEVICE_FILES_DEFAULT_OPEN) {
+  const params = new URLSearchParams({ path: devicePath });
   const url = `/api/devices/${encodeURIComponent(serial)}/files?${params}`;
   const response = await fetch(url, { credentials: "include" });
 
