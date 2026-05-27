@@ -13,6 +13,7 @@
 
 ## 0.9.4 - 2026-05-27
 
+- 同步 `backend/node/package-lock.json` 至 v0.9.4
 - 设备文件管理支持上传与下载：顶栏上传到当前目录，文件行下载到电脑（`adb push` / `adb pull`）
 - 新增 API：`PUT .../files/upload?path=`、`GET .../files/download?path=`
 - 上传/下载图标改为 Lucide `file-up` / `file-down` 风格
@@ -23,12 +24,14 @@
 
 ## 0.9.3 - 2026-05-27
 
+- README 新增「相关链接」板块：GitHub、Gitee、[LINUX DO](https://linux.do/) 独立成节；页眉补充 Gitee 入口
 - 重写 README：中英文分离，中文为主文件，英文独立到 README.EN.md；顶部互相跳转
 - 各功能截图（设备画廊、镜像投屏、摄像头投屏、文件管理、应用管理、终端）插入到对应功能小节下方
 - 截图文件路径统一为 `images/readme/*.png`，赞助二维码放在文末
 - 新增 LINUX DO 社区准则节；完善致谢表格，补充所有依赖项目链接
 
 ### README rewrite
+- Added **Links** section (GitHub, Gitee, LINUX DO); Gitee link in header
 - Split Chinese/English: `README.md` (Chinese) + `README.EN.md` (English)
 - Feature screenshots embedded in corresponding sections
 - Added LINUX DO community guidelines section
@@ -336,6 +339,24 @@
 - Add root `.env` configuration for separate backend and frontend ports
 - Split frontend and backend into independent dev servers with API proxy
 - Add root npm scripts `dev:backend` and `dev:frontend`
+
+## 0.2.2 - 2026-05-25
+
+- 内置各平台 ADB platform-tools（`backend/bin/adb/`：Windows / Linux / macOS），后端默认使用捆绑 `adb` 而非系统 PATH
+- 补充 assistant 文档（scrcpy 源码调研笔记，不参与构建）
+
+### Bundled ADB
+- Ship platform-tools per OS under `backend/bin/adb/` for consistent device discovery
+
+## 0.2.1 - 2026-05-25
+
+- 用户认证：登录、会话 Cookie、登出；`auth-service` / `auth-store` 与 JSON 用户存储
+- 后端 `app.js` 鉴权中间件与 `/api/auth/*` 路由；未登录访问 API 返回 401
+- 前端登录页与基础样式（`frontend/web` 静态页阶段）；强制改密流程 groundwork
+
+### Authentication (v0.2.1)
+- Login/logout with HTTP-only session cookies; protected API routes
+- Initial login UI before Vue 3 migration
 
 ## 0.2.0 - 2026-05-25
 
