@@ -4,9 +4,6 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { APP_VERSION } from "../config/version.js";
-import {
-  readLauncherPngFromApkFile,
-} from "../services/device-app-launcher-icon.js";
 import { getPackageDetail } from "../services/device-apps-detail.js";
 import { listInstalledApps } from "../services/device-apps-list.js";
 import {
@@ -30,7 +27,6 @@ import { readJsonBody, sendBuffer, sendJson } from "../utils/http.js";
 export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
   const installMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/install$/);
   const listMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps$/);
-  const iconMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/icon$/);
   const apkMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/apk$/);
   const stateMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/state$/);
   const detailMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)$/);
@@ -95,47 +91,6 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
         error: "device_apps_list_failed",
         message: error instanceof Error ? error.message : "读取应用列表失败",
       });
-    }
-
-    return true;
-  }
-
-  if (method === "GET" && iconMatch) {
-    const serial = decodeURIComponent(iconMatch[1]);
-    const packageName = decodeURIComponent(iconMatch[2]);
-    let localPath = null;
-
-    try {
-      const png = await runWithAdbLock(async () => {
-        const remote = await resolvePrimaryApkPath(serial, packageName);
-        localPath = await pullApkToTemp(serial, remote);
-
-        return readLauncherPngFromApkFile(localPath);
-      });
-
-      if (!png) {
-        sendJson(res, 404, {
-          success: false,
-          version: APP_VERSION,
-          error: "app_icon_missing",
-          message: "未解析到启动图标（可能为分包或超大 APK）。",
-        });
-      } else {
-        sendBuffer(res, 200, png, "image/png", {
-          "Cache-Control": "public, max-age=86400",
-        });
-      }
-    } catch (error) {
-      sendJson(res, 500, {
-        success: false,
-        version: APP_VERSION,
-        error: "app_icon_failed",
-        message: error instanceof Error ? error.message : "读取图标失败",
-      });
-    } finally {
-      if (localPath) {
-        await safeUnlink(localPath);
-      }
     }
 
     return true;

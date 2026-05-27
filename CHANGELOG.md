@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1 - 2026-05-27
+
+- App manager: resolve app display names via scrcpy-server `PackageManager.getApplicationLabel()` (`list_all_apps`, same approach as `scrcpy --list-apps`) so labels work on devices where `dumpsys` omits `application-label`
+- App manager: remove app icons and `/apps/:pkg/icon` API (no APK pull for launcher icons); list shows label + package name + system/frozen badges; detail opens in a modal; filter by app name or package name
+
 ## 0.8.0 - 2026-05-27
 
 - Device workspace toolbar App manager (`应用管理`): list installed apps with icon and package name; app detail panel (version / SDK / paths / state); uninstall with confirmation; user-level freeze/unfreeze; export APK; jump to `dataDir` in file explorer; install APK from local file

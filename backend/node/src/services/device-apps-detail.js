@@ -1,5 +1,6 @@
 import { runAdb } from "./adb-command.js";
 import { runWithAdbLock } from "./adb-lock.js";
+import { fetchScrcpyAppLabel } from "./device-apps-scrcpy-labels.js";
 import { isPackageDisabledForUser } from "./device-apps-list.js";
 
 /**
@@ -21,7 +22,17 @@ export async function getPackageDetail(serial, packageName) {
 
     const disabledForUser = await isPackageDisabledForUser(serial, packageName);
 
-    return parseDumpsysPackage(stdout, packageName, disabledForUser);
+    const detail = parseDumpsysPackage(stdout, packageName, disabledForUser);
+
+    if (!detail.label || detail.label === packageName) {
+      const scrcpyLabel = await fetchScrcpyAppLabel(serial, packageName).catch(() => "");
+
+      if (scrcpyLabel) {
+        detail.label = scrcpyLabel;
+      }
+    }
+
+    return detail;
   });
 }
 

@@ -238,6 +238,17 @@ public final class Device {
     }
 
     @SuppressLint("QueryPermissionsNeeded")
+    public static List<DeviceApp> listAllApps() {
+        List<DeviceApp> apps = new ArrayList<>();
+        PackageManager pm = FakeContext.get().getPackageManager();
+        for (ApplicationInfo appInfo : pm.getInstalledApplications(PackageManager.GET_META_DATA)) {
+            apps.add(toApp(pm, appInfo));
+        }
+
+        return apps;
+    }
+
+    @SuppressLint("QueryPermissionsNeeded")
     private static List<ApplicationInfo> getLaunchableApps(PackageManager pm) {
         List<ApplicationInfo> result = new ArrayList<>();
         for (ApplicationInfo appInfo : pm.getInstalledApplications(PackageManager.GET_META_DATA)) {

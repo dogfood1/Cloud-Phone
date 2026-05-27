@@ -265,6 +265,11 @@ public final class Server {
                 Ln.i("Processing Android apps... (this may take some time)");
                 Ln.i(LogUtils.buildAppListMessage());
             }
+            if (options.getListAllApps()) {
+                Workarounds.apply();
+                Ln.i("Processing Android apps... (this may take some time)");
+                Ln.i(LogUtils.buildAppListMessage("List of apps:", Device.listAllApps()));
+            }
             // Just print the requested data, do not mirror
             return;
         }

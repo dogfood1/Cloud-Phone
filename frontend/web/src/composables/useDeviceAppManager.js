@@ -1,7 +1,6 @@
 import { computed, ref, toRef, watch } from "vue";
 
 import {
-  deviceAppIconUrl,
   downloadDeviceAppApk,
   fetchDeviceAppDetail,
   fetchDeviceApps,
@@ -24,6 +23,7 @@ export function useDeviceAppManager(props, emit) {
   const listError = ref("");
   const query = ref("");
   const selected = ref(null);
+  const detailOpen = ref(false);
   const detail = ref(null);
   const detailError = ref("");
   const detailLoading = ref(false);
@@ -40,23 +40,15 @@ export function useDeviceAppManager(props, emit) {
       return apps.value;
     }
 
-    return apps.value.filter((row) => row.packageName.toLowerCase().includes(q));
+    return apps.value.filter((row) => {
+      const pkg = row.packageName.toLowerCase();
+      const label = String(row.label ?? "").toLowerCase();
+
+      return pkg.includes(q) || label.includes(q);
+    });
   });
 
   const selectedPackage = computed(() => selected.value?.packageName ?? null);
-
-  function iconUrlFor(pkg) {
-    const serial = deviceRef.value?.serial;
-    return serial ? deviceAppIconUrl(serial, pkg) : "";
-  }
-
-  function onAppIconError(event) {
-    const el = event.target;
-
-    if (el instanceof HTMLImageElement) {
-      el.style.visibility = "hidden";
-    }
-  }
 
   async function loadList() {
     const serial = deviceRef.value?.serial;
@@ -117,6 +109,16 @@ export function useDeviceAppManager(props, emit) {
   function selectApp(row) {
     selected.value = row;
     void loadDetail(row.packageName);
+  }
+
+  function openDetail(row) {
+    selectApp(row);
+    detailOpen.value = true;
+  }
+
+  function closeDetail() {
+    uninstallTarget.value = null;
+    detailOpen.value = false;
   }
 
   function handleClose() {
@@ -184,6 +186,7 @@ export function useDeviceAppManager(props, emit) {
       uninstallTarget.value = null;
       selected.value = null;
       detail.value = null;
+      detailOpen.value = false;
       await loadList();
     } catch (error) {
       actionHint.value = getErrorMessage(error, "卸载失败");
@@ -256,6 +259,7 @@ export function useDeviceAppManager(props, emit) {
     if (isOpen) {
       query.value = "";
       selected.value = null;
+      detailOpen.value = false;
       detail.value = null;
       detailError.value = "";
       actionHint.value = "";
@@ -270,6 +274,7 @@ export function useDeviceAppManager(props, emit) {
     listError,
     query,
     selected,
+    detailOpen,
     detail,
     detailError,
     detailLoading,
@@ -280,10 +285,10 @@ export function useDeviceAppManager(props, emit) {
     uninstallTarget,
     filteredApps,
     selectedPackage,
-    iconUrlFor,
-    onAppIconError,
     loadList,
     selectApp,
+    openDetail,
+    closeDetail,
     handleClose,
     handleBackdropClick,
     handleFreezeToggle,

@@ -1,5 +1,6 @@
 import { runAdb } from "./adb-command.js";
 import { runWithAdbLock } from "./adb-lock.js";
+import { fetchScrcpyAppLabels } from "./device-apps-scrcpy-labels.js";
 
 /**
  * @param {string} stdout
@@ -61,29 +62,32 @@ function isSystemApkPath(apkPath) {
 
 /**
  * @param {string} serial
- * @returns {Promise<Array<{ packageName: string, apkPath: string, system: boolean, enabled: boolean }>>}
+ * @returns {Promise<Array<{ packageName: string, label: string, apkPath: string, system: boolean, enabled: boolean }>>}
  */
 export async function listInstalledApps(serial) {
   return runWithAdbLock(async () => {
-    const { stdout: allOut } = await runAdb(["-s", serial, "shell", "pm", "list", "packages", "-f"], {
-      timeout: 120_000,
-    });
-    const { stdout: disabledOut } = await runAdb(
-      ["-s", serial, "shell", "pm", "list", "packages", "-f", "-d"],
-      { timeout: 120_000 },
-    );
+    const [{ stdout: allOut }, { stdout: disabledOut }, scrcpyLabels] = await Promise.all([
+      runAdb(["-s", serial, "shell", "pm", "list", "packages", "-f"], { timeout: 120_000 }),
+      runAdb(["-s", serial, "shell", "pm", "list", "packages", "-f", "-d"], { timeout: 120_000 }),
+      fetchScrcpyAppLabels(serial).catch(() => new Map()),
+    ]);
 
     const all = parsePmListPackages(allOut);
     const disabled = new Set(parsePmListPackages(disabledOut).keys());
 
-    const rows = [...all.entries()].map(([packageName, apkPath]) => ({
-      packageName,
-      apkPath,
-      system: isSystemApkPath(apkPath),
-      enabled: !disabled.has(packageName),
-    }));
+    const rows = [...all.entries()].map(([packageName, apkPath]) => {
+      const scrcpyApp = scrcpyLabels.get(packageName);
 
-    rows.sort((a, b) => a.packageName.localeCompare(b.packageName));
+      return {
+        packageName,
+        label: scrcpyApp?.label ?? packageName,
+        apkPath,
+        system: scrcpyApp?.system ?? isSystemApkPath(apkPath),
+        enabled: !disabled.has(packageName),
+      };
+    });
+
+    rows.sort((a, b) => a.label.localeCompare(b.label, "zh-CN") || a.packageName.localeCompare(b.packageName));
     return rows;
   });
 }

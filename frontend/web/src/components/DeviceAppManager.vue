@@ -20,6 +20,7 @@ const {
   listError,
   query,
   selected,
+  detailOpen,
   detail,
   detailError,
   detailLoading,
@@ -30,10 +31,10 @@ const {
   uninstallTarget,
   filteredApps,
   selectedPackage,
-  iconUrlFor,
-  onAppIconError,
   loadList,
   selectApp,
+  openDetail,
+  closeDetail,
   handleClose,
   handleBackdropClick,
   handleFreezeToggle,
@@ -108,12 +109,26 @@ const {
             v-model="query"
             type="search"
             class="device-apps__search-input"
-            placeholder="筛选包名…"
+            placeholder="筛选应用名或包名…"
             autocomplete="off"
           />
         </div>
 
         <p v-if="actionHint" class="device-apps__hint">{{ actionHint }}</p>
+
+        <div v-if="listLoading" class="device-apps__progress" role="status">
+          <div class="device-apps__progress-row">
+            <span class="device-apps__progress-label">
+              正在获取应用列表…
+            </span>
+          </div>
+          <div class="device-apps__progress-bar" aria-hidden="true">
+            <div
+              class="device-apps__progress-bar-fill"
+              :class="{ 'device-apps__progress-bar-fill--indeterminate': listLoading }"
+            />
+          </div>
+        </div>
 
         <div class="device-apps__body">
           <div class="device-apps__list-wrap">
@@ -128,18 +143,10 @@ const {
                   type="button"
                   class="device-apps__row"
                   :class="{ 'device-apps__row--active': selectedPackage === row.packageName }"
-                  @click="selectApp(row)"
+                  @click="openDetail(row)"
                 >
-                  <span class="device-apps__icon-wrap">
-                    <img
-                      class="device-apps__icon"
-                      :src="iconUrlFor(row.packageName)"
-                      :alt="''"
-                      loading="lazy"
-                      @error="onAppIconError"
-                    />
-                  </span>
                   <span class="device-apps__row-text">
+                    <span class="device-apps__name">{{ row.label || "—" }}</span>
                     <span class="device-apps__pkg">{{ row.packageName }}</span>
                     <span class="device-apps__badges">
                       <span v-if="row.system" class="device-apps__badge">系统</span>
@@ -152,12 +159,28 @@ const {
               </li>
             </ul>
           </div>
+        </div>
 
-          <aside class="device-apps__detail" aria-live="polite">
-            <template v-if="!selected">
-              <p class="device-apps__placeholder">选择左侧应用查看详情</p>
-            </template>
-            <template v-else>
+        <div
+          v-if="detailOpen"
+          class="device-apps__detail-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="应用详情"
+          @click="closeDetail"
+        >
+          <div class="device-apps__detail-card" @click.stop>
+            <header class="device-apps__detail-header">
+              <div class="device-apps__detail-headings">
+                <h4 class="device-apps__detail-title">{{ detail?.label ?? selectedPackage }}</h4>
+                <p class="device-apps__detail-sub">{{ selectedPackage }}</p>
+              </div>
+              <button type="button" class="device-files__close" title="关闭" @click="closeDetail">
+                ×
+              </button>
+            </header>
+
+            <div class="device-apps__detail-body" aria-live="polite">
               <p v-if="detailLoading" class="device-files__status">正在读取详情…</p>
               <p
                 v-else-if="detailError"
@@ -166,7 +189,6 @@ const {
                 {{ detailError }}
               </p>
               <div v-else-if="detail" class="device-apps__detail-inner">
-                <h4 class="device-apps__detail-title">{{ detail.label }}</h4>
                 <dl class="device-apps__dl">
                   <div>
                     <dt>包名</dt>
@@ -201,47 +223,45 @@ const {
                     <dd class="device-apps__mono">{{ detail.codePath }}</dd>
                   </div>
                 </dl>
-
-                <div class="device-apps__detail-btns">
-                  <button
-                    type="button"
-                    class="device-apps__btn"
-                    :disabled="actionBusy || detail.system"
-                    :title="
-                      detail.system ? '不建议卸载系统应用' : ''
-                    "
-                    @click="requestUninstall"
-                  >
-                    卸载…
-                  </button>
-                  <button
-                    type="button"
-                    class="device-apps__btn"
-                    :disabled="actionBusy"
-                    @click="handleFreezeToggle"
-                  >
-                    {{ detail.enabled ? "冻结" : "解冻" }}
-                  </button>
-                  <button
-                    type="button"
-                    class="device-apps__btn"
-                    :disabled="actionBusy"
-                    @click="handleExtractApk"
-                  >
-                    提取 APK
-                  </button>
-                  <button
-                    type="button"
-                    class="device-apps__btn"
-                    :disabled="!detail.dataDir"
-                    @click="handleOpenDataDir"
-                  >
-                    打开 data 目录
-                  </button>
-                </div>
               </div>
-            </template>
-          </aside>
+
+              <div class="device-apps__detail-btns">
+                <button
+                  type="button"
+                  class="device-apps__btn"
+                  :disabled="actionBusy || detail?.system"
+                  :title="detail?.system ? '不建议卸载系统应用' : ''"
+                  @click="requestUninstall"
+                >
+                  卸载…
+                </button>
+                <button
+                  type="button"
+                  class="device-apps__btn"
+                  :disabled="actionBusy"
+                  @click="handleFreezeToggle"
+                >
+                  {{ detail?.enabled ? "冻结" : "解冻" }}
+                </button>
+                <button
+                  type="button"
+                  class="device-apps__btn"
+                  :disabled="actionBusy"
+                  @click="handleExtractApk"
+                >
+                  提取 APK
+                </button>
+                <button
+                  type="button"
+                  class="device-apps__btn"
+                  :disabled="!detail?.dataDir"
+                  @click="handleOpenDataDir"
+                >
+                  打开 data 目录
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div

@@ -16,10 +16,6 @@ export async function fetchDeviceApps(serial) {
   return payload.apps ?? [];
 }
 
-export function deviceAppIconUrl(serial, packageName) {
-  return `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}/icon`;
-}
-
 export async function fetchDeviceAppDetail(serial, packageName) {
   const url = `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}`;
   const response = await fetch(url, { credentials: "include" });
