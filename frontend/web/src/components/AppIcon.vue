@@ -1,6 +1,24 @@
 <script setup>
 import { computed } from "vue";
-import { Settings } from "lucide-vue-next";
+import {
+  ArrowLeft,
+  Camera,
+  File,
+  Folder,
+  Grid3X3,
+  Home,
+  Link,
+  LogOut,
+  Moon,
+  RefreshCw,
+  RotateCw,
+  Settings,
+  Smartphone,
+  Sun,
+  Terminal,
+  Wifi,
+  Shield,
+} from "lucide-vue-next";
 
 import { DEVICE_TOOLBAR_ICONS } from "../icons/device-toolbar-icons.js";
 
@@ -58,7 +76,23 @@ const iconPaths = computed(() => {
 });
 
 const LUCIDE_ICONS = {
+  devices: Grid3X3,
+  "arrow-left": ArrowLeft,
+  camera: Camera,
+  file: File,
+  folder: Folder,
+  home: Home,
+  link: Link,
+  phone: Smartphone,
+  refresh: RefreshCw,
+  rotate: RotateCw,
   settings: Settings,
+  sun: Sun,
+  shield: Shield,
+  terminal: Terminal,
+  moon: Moon,
+  logout: LogOut,
+  wifi: Wifi,
 };
 
 const lucideIcon = computed(() => LUCIDE_ICONS[props.name] ?? null);

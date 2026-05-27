@@ -60,6 +60,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - Mirror + **camera** cast modes (OTG/UHID removed in v0.9.1)
 - Files, app manager, and terminal **without** an active cast session
 - Toolbar: navigation keys (press/hold), clipboard, record (MP4/MP3), screenshot flash
+- Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
 - `npm run dev` waits for backend health before Vite; light/dark theme
 
 ---

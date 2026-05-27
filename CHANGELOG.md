@@ -3,9 +3,11 @@
 ## 0.9.8 - 2026-05-27
 
 - 首页左侧“设置”图标改为图标库实现（`lucide-vue-next`），统一线稿风格并提升清晰度
+- 扩展图标库覆盖：设备/返回/终端/旋转/主题等常用图标迁移到 Lucide；补充焦点可见态与按钮/卡片 hover 细节
 
 ### Sidebar settings icon
 - Migrate the sidebar settings icon to `lucide-vue-next`
+- Expand Lucide coverage and improve focus/hover interactions
 
 ## 0.9.7 - 2026-05-27
 
