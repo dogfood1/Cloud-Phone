@@ -36,7 +36,7 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     kind: "files",
     title: "浏览设备文件系统（根为 /，默认打开 /storage/emulated/0）",
   },
-  { id: "apps", label: "应用管理", icon: "apps", kind: "planned" },
+  { id: "apps", label: "应用管理", icon: "apps", kind: "apps", title: "列出已安装应用、安装/卸载、冻结与导出 APK" },
   { id: "terminal", label: "终端", icon: "terminal", kind: "planned" },
 ];
 

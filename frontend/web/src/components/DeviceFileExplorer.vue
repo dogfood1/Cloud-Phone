@@ -9,6 +9,7 @@ import {
   DEVICE_FS_ROOT,
   joinDevicePath,
   normalizeDevicePath,
+  resolveDevicePath,
 } from "../utils/device-file-path.js";
 import { getErrorMessage } from "../utils/api.js";
 
@@ -20,6 +21,10 @@ const props = defineProps({
   open: {
     type: Boolean,
     default: false,
+  },
+  openPath: {
+    type: String,
+    default: null,
   },
 });
 
@@ -178,11 +183,12 @@ function entrySizeLabel(entry) {
   return formatFileSize(entry.size);
 }
 
-function resetExplorer() {
-  navHistory.value = [DEVICE_FILES_DEFAULT_OPEN];
+function resetExplorer(startPath = DEVICE_FILES_DEFAULT_OPEN) {
+  const start = normalizeDevicePath(startPath);
+  navHistory.value = [start];
   navIndex.value = 0;
-  currentPath.value = DEVICE_FILES_DEFAULT_OPEN;
-  addressInput.value = DEVICE_FILES_DEFAULT_OPEN;
+  currentPath.value = start;
+  addressInput.value = start;
   parentPath.value = null;
   atRoot.value = false;
   errorMessage.value = "";
@@ -193,8 +199,12 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      resetExplorer();
-      void loadDirectory(DEVICE_FILES_DEFAULT_OPEN, { fromHistory: true });
+      const start =
+        props.openPath && String(props.openPath).trim()
+          ? resolveDevicePath(props.openPath)
+          : DEVICE_FILES_DEFAULT_OPEN;
+      resetExplorer(start);
+      void loadDirectory(start, { fromHistory: true });
     }
   },
 );

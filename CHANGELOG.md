@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-05-27
+
+- Device workspace toolbar App manager (`应用管理`): list installed apps with icon and package name; app detail panel (version / SDK / paths / state); uninstall with confirmation; user-level freeze/unfreeze; export APK; jump to `dataDir` in file explorer; install APK from local file
+- Backend app APIs: `GET /api/devices/:serial/apps`, `GET /api/devices/:serial/apps/:pkg`, `DELETE /api/devices/:serial/apps/:pkg?confirm=1`, `POST /api/devices/:serial/apps/:pkg/state`, `GET /api/devices/:serial/apps/:pkg/icon`, `GET /api/devices/:serial/apps/:pkg/apk`, `PUT /api/devices/:serial/apps/install`
+- File explorer enhancement: support opening a specific absolute device path (`openPath`) so App manager can jump directly into app data folder
+
 ## 0.7.15 - 2026-05-27
 
 - Device file explorer: filesystem root is `/`; default open folder is `/storage/emulated/0` (not the root); address bar shows real absolute paths; browse up to `/` via parent navigation

@@ -18,6 +18,7 @@ export function useDeviceWorkspaceToolbar({
   mirrorSettingsRef,
   onHint,
   onOpenFiles,
+  onOpenApps,
 }) {
   const screenshotBusy = ref(false);
   const recordBusy = ref(false);
@@ -112,6 +113,10 @@ export function useDeviceWorkspaceToolbar({
       return true;
     }
 
+    if (action.kind === "apps") {
+      return !device.connected;
+    }
+
     if (action.kind === "files") {
       return !device.connected;
     }
@@ -152,6 +157,14 @@ export function useDeviceWorkspaceToolbar({
   function actionTitle(action) {
     if (action.kind === "planned") {
       return "即将推出";
+    }
+
+    if (action.kind === "apps") {
+      if (!device.connected) {
+        return "设备未在线";
+      }
+
+      return action.title ?? "管理已安装应用";
     }
 
     if (action.kind === "files") {
@@ -473,6 +486,11 @@ export function useDeviceWorkspaceToolbar({
 
     if (action.kind === "files") {
       onOpenFiles?.();
+      return;
+    }
+
+    if (action.kind === "apps") {
+      onOpenApps?.();
       return;
     }
 

@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 
 import AppIcon from "./AppIcon.vue";
+import DeviceAppManager from "./DeviceAppManager.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceFileExplorer from "./DeviceFileExplorer.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
@@ -30,6 +31,8 @@ const castOptions = ref(buildCastPayloadFromMirrorSettings(createDefaultMirrorSe
 const castViewportRef = ref(null);
 const leftPanelRef = ref(null);
 const filesExplorerOpen = ref(false);
+const filesExplorerPath = ref(null);
+const appsManagerOpen = ref(false);
 
 const {
   actions,
@@ -57,7 +60,11 @@ const {
     castHint.value = message;
   },
   onOpenFiles: () => {
+    filesExplorerPath.value = null;
     filesExplorerOpen.value = true;
+  },
+  onOpenApps: () => {
+    appsManagerOpen.value = true;
   },
 });
 
@@ -158,6 +165,17 @@ async function handleClose() {
 onBeforeUnmount(() => {
   void stopCast();
 });
+
+function handleFilesExplorerClose() {
+  filesExplorerOpen.value = false;
+  filesExplorerPath.value = null;
+}
+
+function handleOpenAppDataInFiles(devicePath) {
+  appsManagerOpen.value = false;
+  filesExplorerPath.value = devicePath;
+  filesExplorerOpen.value = true;
+}
 </script>
 
 <template>
@@ -271,7 +289,14 @@ onBeforeUnmount(() => {
     <DeviceFileExplorer
       :device="device"
       :open="filesExplorerOpen"
-      @close="filesExplorerOpen = false"
+      :open-path="filesExplorerPath"
+      @close="handleFilesExplorerClose"
+    />
+    <DeviceAppManager
+      :device="device"
+      :open="appsManagerOpen"
+      @close="appsManagerOpen = false"
+      @open-files="handleOpenAppDataInFiles"
     />
   </section>
 </template>

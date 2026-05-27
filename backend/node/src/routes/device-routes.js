@@ -1,3 +1,4 @@
+import { handleDeviceAppsRoute } from "./device-apps-routes.js";
 import { APP_VERSION } from "../config/version.js";
 import { DEVICE_FILES_DEFAULT_OPEN } from "../services/device-file-path.js";
 import { listDeviceFiles } from "../services/device-files.js";
@@ -6,6 +7,10 @@ import { listDeviceEncoders } from "../services/device-video-encoders.js";
 import { sendJson } from "../utils/http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname, url) {
+  if (await handleDeviceAppsRoute(req, res, method, pathname, url)) {
+    return true;
+  }
+
   const mirrorOptionsMatch = pathname.match(/^\/api\/devices\/([^/]+)\/mirror-options$/);
   const videoEncodersMatch = pathname.match(/^\/api\/devices\/([^/]+)\/video-encoders$/);
   const filesMatch = pathname.match(/^\/api\/devices\/([^/]+)\/files$/);
