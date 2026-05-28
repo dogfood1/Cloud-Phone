@@ -300,6 +300,12 @@
   margin-top: 0.25rem;
 }
 
+.add-device-modal__usb-actions .ghost-button,
+.add-device-modal__usb-actions .primary-button {
+  min-width: 5.5rem;
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .add-device-modal__grid {
     grid-template-columns: 1fr;
