@@ -216,7 +216,6 @@ defineExpose({
         请确认设备已 adb 连接、已执行 node tools/build-scrcpy-server.mjs，并使用 Chrome/Edge 浏览器。
       </span>
     </div>
-    <div v-else-if="isStreaming" class="device-cast-viewport__badge">scrcpy</div>
     <div
       v-if="screenshotFlashActive"
       class="device-cast-viewport__screenshot-flash"
