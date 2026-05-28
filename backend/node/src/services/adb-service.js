@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { runAdb } from "./adb-command.js";
 import { runWithAdbLock } from "./adb-lock.js";
 import { resolveAdbPath } from "./adb-path.js";
 import { getDeviceDisplayName } from "./device-display.js";
@@ -102,6 +103,14 @@ export async function listDevices() {
   return runWithAdbLock(listDevicesUnsafe);
 }
 
+export async function pairDeviceWithCode(host, port, pairingCode) {
+  return runWithAdbLock(async () => pairDeviceWithCodeUnsafe(host, port, pairingCode));
+}
+
+export async function connectDeviceByHost(host, preferredPort) {
+  return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort));
+}
+
 async function listDevicesUnsafe() {
   const adbPath = resolveAdbPath();
   const { stdout } = await execFileAsync(adbPath, ["devices", "-l"], {
@@ -132,4 +141,104 @@ async function listDevicesUnsafe() {
     adbPath,
     devices: enrichedDevices,
   };
+}
+
+async function pairDeviceWithCodeUnsafe(host, port, pairingCode) {
+  const target = `${host}:${port}`;
+
+  try {
+    const { stdout = "", stderr = "" } = await runAdb(["pair", target, pairingCode], {
+      timeout: 20_000,
+    });
+    const output = `${stdout}\n${stderr}`.trim();
+    const success =
+      /Successfully paired to|Pairing successful|already paired/i.test(output) &&
+      !/failed|error/i.test(output);
+
+    return {
+      success,
+      target,
+      output: output || "adb pair finished",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      target,
+      output: error instanceof Error ? error.message : "adb pair failed",
+    };
+  }
+}
+
+async function connectDeviceByHostUnsafe(host, preferredPort) {
+  const candidates = buildConnectPortCandidates(preferredPort);
+  const attempts = [];
+  let connectedEndpoint = null;
+
+  for (const port of candidates) {
+    const endpoint = `${host}:${port}`;
+
+    try {
+      const { stdout = "", stderr = "" } = await runAdb(["connect", endpoint], {
+        timeout: 4_000,
+      });
+      const output = `${stdout}\n${stderr}`.trim();
+      const ok = /connected to|already connected to/i.test(output);
+      attempts.push({ endpoint, ok, output });
+
+      if (ok) {
+        connectedEndpoint = endpoint;
+        break;
+      }
+    } catch (error) {
+      attempts.push({
+        endpoint,
+        ok: false,
+        output: error instanceof Error ? error.message : "connect failed",
+      });
+    }
+  }
+
+  const listed = await listDevicesUnsafe();
+  const matched =
+    listed.devices.find((item) => item.serial === connectedEndpoint) ||
+    listed.devices.find((item) => item.serial?.startsWith(`${host}:`)) ||
+    null;
+
+  return {
+    success: Boolean(matched && matched.connected),
+    connectedEndpoint: matched?.serial ?? connectedEndpoint,
+    device: matched,
+    attempts,
+  };
+}
+
+function buildConnectPortCandidates(preferredPort) {
+  const ports = new Set([5555]);
+  const base = Number(preferredPort);
+
+  if (Number.isFinite(base) && base > 0) {
+    for (let delta = -20; delta <= 20; delta += 1) {
+      const candidate = base + delta;
+
+      if (candidate >= 1024 && candidate <= 65535) {
+        ports.add(candidate);
+      }
+    }
+
+    // Wireless debugging often opens a different random high port.
+    for (let offset = 1; offset <= 60; offset += 1) {
+      const up = base + offset * 5;
+      const down = base - offset * 5;
+
+      if (up <= 65535) {
+        ports.add(up);
+      }
+
+      if (down >= 1024) {
+        ports.add(down);
+      }
+    }
+  }
+
+  return Array.from(ports);
 }

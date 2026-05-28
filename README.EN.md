@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell.**
 
-Current version: **v0.10.6** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
+Current version: **v0.10.7** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -64,7 +64,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android USB now has a guided flow (animation + new-device live status), Huawei/Apple remain placeholders
+- **Device entry**: top-right Add Device modal; Android now supports USB guide + pairing-code flow (IP/port/code with auto connect-port scan), Huawei/Apple remain placeholders
 
 ---
 

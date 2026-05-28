@@ -1,9 +1,10 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { Icon } from "@iconify/vue";
 import { useI18n } from "vue-i18n";
 
 import "../assets/add-device-modal.css";
+import { getErrorMessage, requestJson } from "../utils/api.js";
 
 const props = defineProps({
   devices: {
@@ -16,8 +17,15 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb
+const step = ref("platforms"); // platforms | android-usb | android-pair-code
 const baselineSerials = ref(new Set());
+const pairForm = ref({
+  host: "",
+  port: "",
+  pairingCode: "",
+});
+const pairPending = ref(false);
+const pairResult = ref(null);
 
 const platforms = [
   {
@@ -30,18 +38,6 @@ const platforms = [
 ];
 
 const currentDevices = computed(() => props.devices ?? []);
-
-const devicesBySerial = computed(() => {
-  const map = new Map();
-
-  for (const device of currentDevices.value) {
-    if (device?.serial) {
-      map.set(device.serial, device);
-    }
-  }
-
-  return map;
-});
 
 const trackedDevices = computed(() => {
   if (step.value !== "android-usb") {
@@ -83,16 +79,49 @@ function enterAndroidUsb() {
   step.value = "android-usb";
 }
 
+async function submitPairCode() {
+  pairPending.value = true;
+  pairResult.value = null;
+
+  try {
+    const host = pairForm.value.host.trim();
+    const port = Number.parseInt(pairForm.value.port, 10);
+    const pairingCode = pairForm.value.pairingCode.trim();
+
+    const result = await requestJson("/api/devices/pair-code", {
+      method: "POST",
+      body: { host, port, pairingCode },
+    });
+
+    pairResult.value = {
+      ok: Boolean(result.success),
+      message: result?.pair?.output || t("devices.addDeviceModal.pairCode.pairSuccess"),
+      connectOk: Boolean(result?.connect?.success),
+      connectMessage:
+        result?.connect?.connectedEndpoint ||
+        result?.connect?.attempts?.find((item) => item.ok)?.endpoint ||
+        t("devices.addDeviceModal.pairCode.connectFailed"),
+    };
+  } catch (error) {
+    pairResult.value = {
+      ok: false,
+      message: getErrorMessage(error, t("devices.addDeviceModal.pairCode.pairFailed")),
+      connectOk: false,
+      connectMessage: t("devices.addDeviceModal.pairCode.connectSkipped"),
+    };
+  } finally {
+    pairPending.value = false;
+  }
+}
+
+function enterPairCodeStep() {
+  step.value = "android-pair-code";
+  pairResult.value = null;
+}
+
 function backToPlatforms() {
   step.value = "platforms";
 }
-
-watch(
-  () => props.devices,
-  () => {
-    // keep reactive when devices update during wizard
-  },
-);
 </script>
 
 <template>
@@ -109,6 +138,8 @@ watch(
             {{
               step === "android-usb"
                 ? t("devices.addDeviceModal.usb.title")
+                : step === "android-pair-code"
+                  ? t("devices.addDeviceModal.pairCode.title")
                 : t("devices.addDeviceModal.title")
             }}
           </h2>
@@ -116,6 +147,8 @@ watch(
             {{
               step === "android-usb"
                 ? t("devices.addDeviceModal.usb.desc")
+                : step === "android-pair-code"
+                  ? t("devices.addDeviceModal.pairCode.desc")
                 : t("devices.addDeviceModal.desc")
             }}
           </p>
@@ -158,6 +191,17 @@ watch(
                   {{ t("devices.addDeviceModal.usb.action") }}
                 </span>
               </button>
+              <button
+                v-else-if="item.id === 'android' && mode === 'pairCode'"
+                type="button"
+                class="add-device-modal__mode-btn"
+                @click="enterPairCodeStep"
+              >
+                <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
+                <span class="add-device-modal__mode-badge">
+                  {{ t("devices.addDeviceModal.pairCode.action") }}
+                </span>
+              </button>
               <template v-else>
                 <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
                 <span class="add-device-modal__mode-badge">
@@ -172,7 +216,7 @@ watch(
         </article>
       </div>
 
-      <div v-else class="add-device-modal__usb">
+      <div v-else-if="step === 'android-usb'" class="add-device-modal__usb">
         <div class="add-device-modal__usb-layout">
           <div class="add-device-modal__usb-hero" aria-hidden="true">
             <div class="usb-hero__phone" />
@@ -228,6 +272,76 @@ watch(
           <button type="button" class="primary-button" @click="emit('close')">
             {{ t("devices.addDeviceModal.usb.done") }}
           </button>
+        </div>
+      </div>
+
+      <div v-else-if="step === 'android-pair-code'" class="add-device-modal__pair-code">
+        <div class="add-device-modal__pair-hint">
+          <h3>{{ t("devices.addDeviceModal.pairCode.stepsTitle") }}</h3>
+          <ol>
+            <li>{{ t("devices.addDeviceModal.pairCode.stepDevOptions") }}</li>
+            <li>{{ t("devices.addDeviceModal.pairCode.stepWirelessDebug") }}</li>
+            <li>{{ t("devices.addDeviceModal.pairCode.stepUsePairCode") }}</li>
+          </ol>
+        </div>
+
+        <form class="add-device-modal__pair-form" @submit.prevent="submitPairCode">
+          <label>
+            <span>{{ t("devices.addDeviceModal.pairCode.ipPort") }}</span>
+            <div class="add-device-modal__pair-row">
+              <input
+                v-model.trim="pairForm.host"
+                type="text"
+                required
+                :placeholder="t('devices.addDeviceModal.pairCode.ipPlaceholder')"
+              />
+              <input
+                v-model.trim="pairForm.port"
+                type="number"
+                min="1"
+                max="65535"
+                required
+                :placeholder="t('devices.addDeviceModal.pairCode.portPlaceholder')"
+              />
+            </div>
+          </label>
+          <label>
+            <span>{{ t("devices.addDeviceModal.pairCode.codeLabel") }}</span>
+            <input
+              v-model.trim="pairForm.pairingCode"
+              type="text"
+              required
+              :placeholder="t('devices.addDeviceModal.pairCode.codePlaceholder')"
+            />
+          </label>
+
+          <div class="add-device-modal__pair-actions">
+            <button type="button" class="ghost-button" @click="backToPlatforms">
+              {{ t("common.back") }}
+            </button>
+            <button type="submit" class="primary-button" :disabled="pairPending">
+              {{
+                pairPending
+                  ? t("devices.addDeviceModal.pairCode.pairing")
+                  : t("devices.addDeviceModal.pairCode.submit")
+              }}
+            </button>
+          </div>
+        </form>
+
+        <div v-if="pairResult" class="add-device-modal__pair-result">
+          <p :class="pairResult.ok ? 'result-ok' : 'result-fail'">
+            {{ pairResult.ok ? t("devices.addDeviceModal.pairCode.pairSuccess") : t("devices.addDeviceModal.pairCode.pairFailed") }}
+            ：{{ pairResult.message }}
+          </p>
+          <p :class="pairResult.connectOk ? 'result-ok' : 'result-fail'">
+            {{
+              pairResult.connectOk
+                ? t("devices.addDeviceModal.pairCode.connectSuccess")
+                : t("devices.addDeviceModal.pairCode.connectFailed")
+            }}
+            ：{{ pairResult.connectMessage }}
+          </p>
         </div>
       </div>
     </section>

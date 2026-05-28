@@ -1,7 +1,7 @@
 import http from "node:http";
 
 import { APP_VERSION } from "./config/version.js";
-import { listDevices } from "./services/adb-service.js";
+import { connectDeviceByHost, listDevices, pairDeviceWithCode } from "./services/adb-service.js";
 import { captureDeviceScreenshot } from "./services/device-screenshot.js";
 import {
   changePassword,
@@ -247,6 +247,43 @@ export function createApp() {
           success: false,
           version: APP_VERSION,
           error: "devices_list_failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+
+    if (method === "POST" && pathname === "/api/devices/pair-code") {
+      try {
+        const body = await readProtectedJsonBody(req, res);
+        const host = String(body.host ?? "").trim();
+        const port = Number(body.port);
+        const pairingCode = String(body.pairingCode ?? "").trim();
+
+        if (!host || !Number.isInteger(port) || port <= 0 || port > 65535 || !pairingCode) {
+          sendProtectedJson(res, 400, {
+            success: false,
+            version: APP_VERSION,
+            error: "invalid_pair_payload",
+            message: "host / port / pairingCode are required.",
+          });
+          return;
+        }
+
+        const pairResult = await pairDeviceWithCode(host, port, pairingCode);
+        const connectResult = pairResult.success ? await connectDeviceByHost(host, port) : null;
+
+        sendProtectedJson(res, pairResult.success ? 200 : 400, {
+          success: pairResult.success,
+          version: APP_VERSION,
+          pair: pairResult,
+          connect: connectResult,
+        });
+      } catch (error) {
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "pair_code_failed",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
