@@ -178,47 +178,49 @@ watch(
       </div>
 
       <div v-else class="add-device-modal__usb">
-        <div class="add-device-modal__usb-hero" aria-hidden="true">
-          <div class="usb-hero__phone" />
-          <div class="usb-hero__cable">
-            <span class="usb-hero__cable-line" />
-            <span class="usb-hero__plug" />
+        <div class="add-device-modal__usb-layout">
+          <div class="add-device-modal__usb-hero" aria-hidden="true">
+            <div class="usb-hero__phone" />
+            <div class="usb-hero__cable">
+              <span class="usb-hero__cable-line" />
+              <span class="usb-hero__plug" />
+            </div>
           </div>
-        </div>
 
-        <div class="add-device-modal__usb-status">
-          <p class="add-device-modal__usb-summary">
-            {{
-              t("devices.addDeviceModal.usb.summary", {
-                total: trackedSummary.total,
-                connected: trackedSummary.connected,
-                unauthorized: trackedSummary.unauthorized,
-              })
-            }}
-          </p>
-          <ul class="add-device-modal__usb-list">
-            <li v-for="device in trackedDevices" :key="device.serial" class="add-device-modal__usb-item">
-              <div class="add-device-modal__usb-item-main">
-                <strong>{{ device.displayName || device.serial }}</strong>
-                <span class="add-device-modal__usb-item-sub">{{ device.serial }}</span>
-              </div>
-              <span
-                class="add-device-modal__usb-state"
-                :class="{
-                  'add-device-modal__usb-state--ok': device.connected,
-                  'add-device-modal__usb-state--warn': device.state === 'unauthorized',
-                }"
-              >
-                {{
-                  device.connected
-                    ? t("devices.addDeviceModal.usb.stateConnected")
-                    : device.state === "unauthorized"
-                      ? t("devices.addDeviceModal.usb.stateUnauthorized")
-                      : t("devices.addDeviceModal.usb.stateDetecting")
-                }}
-              </span>
-            </li>
-          </ul>
+          <div class="add-device-modal__usb-status">
+            <p class="add-device-modal__usb-summary">
+              {{
+                t("devices.addDeviceModal.usb.summary", {
+                  total: trackedSummary.total,
+                  connected: trackedSummary.connected,
+                  unauthorized: trackedSummary.unauthorized,
+                })
+              }}
+            </p>
+            <ul class="add-device-modal__usb-list">
+              <li v-for="device in trackedDevices" :key="device.serial" class="add-device-modal__usb-item">
+                <div class="add-device-modal__usb-item-main">
+                  <strong>{{ device.displayName || device.serial }}</strong>
+                  <span class="add-device-modal__usb-item-sub">{{ device.serial }}</span>
+                </div>
+                <span
+                  class="add-device-modal__usb-state"
+                  :class="{
+                    'add-device-modal__usb-state--ok': device.connected,
+                    'add-device-modal__usb-state--warn': device.state === 'unauthorized',
+                  }"
+                >
+                  {{
+                    device.connected
+                      ? t("devices.addDeviceModal.usb.stateConnected")
+                      : device.state === "unauthorized"
+                        ? t("devices.addDeviceModal.usb.stateUnauthorized")
+                        : t("devices.addDeviceModal.usb.stateDetecting")
+                  }}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="add-device-modal__usb-actions">
