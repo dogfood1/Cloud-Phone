@@ -345,7 +345,9 @@ input:focus-visible {
 }
 
 .panel-header__actions--row {
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .panel-header__buttons {
@@ -376,6 +378,12 @@ input:focus-visible {
 .panel-header__add-device .app-icon {
   width: 1rem;
   height: 1rem;
+}
+
+.panel-header__refresh-time {
+  color: var(--muted);
+  font-size: 0.86rem;
+  white-space: nowrap;
 }
 
 .panel-header__desc {
@@ -2425,7 +2433,7 @@ code {
   }
 
   .panel-header__actions {
-    align-items: flex-start;
+    align-items: center;
     width: 100%;
   }
 

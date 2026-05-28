@@ -69,6 +69,9 @@ const statusText = computed(() => {
         <p class="panel-header__desc">{{ t("devices.desc") }}</p>
       </div>
       <div class="panel-header__actions panel-header__actions--row">
+        <span class="panel-header__refresh-time">
+          {{ t("devices.lastUpdate", { time: refreshLabel }) }}
+        </span>
         <span class="status-pill">{{ statusText }}</span>
         <button
           type="button"
@@ -82,13 +85,7 @@ const statusText = computed(() => {
       </div>
     </header>
 
-    <div class="devices-toolbar">
-      <p class="devices-toolbar__meta">
-        <span>{{ t("devices.lastUpdate", { time: refreshLabel }) }}</span>
-        <span v-if="adbPath" class="devices-toolbar__adb" :title="adbPath">
-          {{ t("devices.adbReady") }}
-        </span>
-      </p>
+    <div v-if="summary.offline > 0" class="devices-toolbar">
       <p v-if="summary.offline > 0" class="devices-toolbar__hint">
         {{ t("devices.offlineHint", { count: summary.offline }) }}
       </p>
