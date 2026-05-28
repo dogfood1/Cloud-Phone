@@ -377,6 +377,18 @@
   margin-top: 0.2rem;
 }
 
+.add-device-modal__pair-actions--full {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.add-device-modal__pair-actions--full .ghost-button,
+.add-device-modal__pair-actions--full .primary-button {
+  flex: 1;
+  min-width: 0;
+}
+
 .add-device-modal__pair-result {
   grid-column: 1 / -1;
   display: grid;
@@ -421,6 +433,13 @@
   border: 1px dashed var(--line);
   border-radius: var(--radius-sm);
   background: var(--bg-subtle);
+}
+
+.add-device-modal__qr-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .add-device-modal__qr-loading {

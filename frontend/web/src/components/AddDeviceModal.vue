@@ -462,8 +462,11 @@ function backToPlatforms() {
           </ol>
         </div>
 
-        <form class="add-device-modal__pair-form" @submit.prevent="submitQrPairing">
+        <form class="add-device-modal__pair-form">
           <div class="add-device-modal__qr-panel">
+            <p class="add-device-modal__qr-title">
+              {{ t("devices.addDeviceModal.qr.imageTitle") }}
+            </p>
             <div v-if="qrLoading" class="add-device-modal__qr-loading">
               {{ t("devices.addDeviceModal.qr.generating") }}
             </div>
@@ -477,23 +480,23 @@ function backToPlatforms() {
               {{ t("devices.addDeviceModal.qr.pairCodeHint", { code: qrSession.pairingCode }) }}
             </p>
           </div>
-
-          <div class="add-device-modal__pair-actions">
-            <button type="button" class="ghost-button" @click="backToPlatforms">
-              {{ t("common.back") }}
-            </button>
-            <button type="button" class="ghost-button" :disabled="qrLoading || pairPending" @click="createQrSession">
-              {{ t("devices.addDeviceModal.qr.refresh") }}
-            </button>
-            <button type="submit" class="primary-button" :disabled="pairPending">
-              {{
-                pairPending
-                  ? t("devices.addDeviceModal.pairCode.pairing")
-                  : t("devices.addDeviceModal.qr.confirmScanned")
-              }}
-            </button>
-          </div>
         </form>
+
+        <div class="add-device-modal__pair-actions add-device-modal__pair-actions--full">
+          <button type="button" class="ghost-button" @click="backToPlatforms">
+            {{ t("common.back") }}
+          </button>
+          <button type="button" class="ghost-button" :disabled="qrLoading || pairPending" @click="createQrSession">
+            {{ t("devices.addDeviceModal.qr.refresh") }}
+          </button>
+          <button type="button" class="primary-button" :disabled="pairPending" @click="submitQrPairing">
+            {{
+              pairPending
+                ? t("devices.addDeviceModal.pairCode.pairing")
+                : t("devices.addDeviceModal.qr.confirmScanned")
+            }}
+          </button>
+        </div>
 
         <div v-if="pairResult" class="add-device-modal__pair-result">
           <p :class="pairResult.ok ? 'result-ok' : 'result-fail'">
