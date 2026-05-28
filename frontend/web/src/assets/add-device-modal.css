@@ -71,7 +71,7 @@
   filter: grayscale(1);
 }
 
-.add-device-modal__card .app-icon {
+.add-device-modal__icon {
   width: 2rem;
   height: 2rem;
   color: var(--muted);
