@@ -9,6 +9,16 @@ export default {
       desc: "選擇要接入的裝置類型（以下功能尚未開放）",
       comingSoon: "未開發",
       close: "關閉",
+      usb: {
+        title: "Android · USB 連線",
+        desc: "請將資料線插入手機，並在手機上允許 USB 偵錯授權。",
+        action: "開始",
+        done: "完成",
+        summary: "偵測到 {total} 台裝置：{connected} 已連線，{unauthorized} 待授權。",
+        stateConnected: "已連線",
+        stateUnauthorized: "待授權",
+        stateDetecting: "偵測中",
+      },
       platforms: {
         android: "安卓",
         harmony: "鴻蒙",

@@ -9,6 +9,16 @@ export default {
       desc: "接続するデバイスの種類を選択（未実装）",
       comingSoon: "未開発",
       close: "閉じる",
+      usb: {
+        title: "Android · USB 接続",
+        desc: "USB ケーブルを端末に接続し、USB デバッグの承認を許可してください。",
+        action: "開始",
+        done: "完了",
+        summary: "{total} 台検出：{connected} 接続済み、{unauthorized} 承認待ち。",
+        stateConnected: "接続済み",
+        stateUnauthorized: "承認待ち",
+        stateDetecting: "検出中",
+      },
       platforms: {
         android: "Android",
         harmony: "HarmonyOS",

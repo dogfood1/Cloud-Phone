@@ -5,6 +5,7 @@ export default {
     show: "Show",
     hide: "Hide",
     retry: "Retry",
+    back: "Back",
   },
   sidebar: {
     brandTitle: "Device console",

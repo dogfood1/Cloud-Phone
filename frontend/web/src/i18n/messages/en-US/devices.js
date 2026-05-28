@@ -9,6 +9,16 @@ export default {
       desc: "Choose a device type to connect (not available yet)",
       comingSoon: "Coming soon",
       close: "Close",
+      usb: {
+        title: "Android · USB connection",
+        desc: "Plug the USB cable into your phone and allow USB debugging authorization on the device.",
+        action: "Start",
+        done: "Done",
+        summary: "Detected {total} device(s): {connected} connected, {unauthorized} awaiting authorization.",
+        stateConnected: "Connected",
+        stateUnauthorized: "Awaiting authorization",
+        stateDetecting: "Detecting",
+      },
       platforms: {
         android: "Android",
         harmony: "HarmonyOS",

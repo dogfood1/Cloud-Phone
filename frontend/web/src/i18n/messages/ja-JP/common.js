@@ -5,6 +5,7 @@ export default {
     show: "表示",
     hide: "非表示",
     retry: "再試行",
+    back: "戻る",
   },
   sidebar: {
     brandTitle: "デバイスコンソール",

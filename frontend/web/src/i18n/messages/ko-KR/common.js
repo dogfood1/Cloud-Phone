@@ -5,6 +5,7 @@ export default {
     show: "표시",
     hide: "숨기기",
     retry: "다시 시도",
+    back: "뒤로",
   },
   sidebar: {
     brandTitle: "기기 콘솔",

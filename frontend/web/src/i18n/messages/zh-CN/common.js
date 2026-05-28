@@ -5,6 +5,7 @@ export default {
     show: "显示",
     hide: "隐藏",
     retry: "重试",
+    back: "返回",
   },
   sidebar: {
     brandTitle: "设备控制台",

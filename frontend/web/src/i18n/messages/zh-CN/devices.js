@@ -9,6 +9,16 @@ export default {
       desc: "选择要接入的设备类型（以下功能尚未开放）",
       comingSoon: "未开发",
       close: "关闭",
+      usb: {
+        title: "安卓 · USB 连接",
+        desc: "请将数据线插入手机，并在手机上允许 USB 调试授权。",
+        action: "开始",
+        done: "完成",
+        summary: "检测到 {total} 台设备：{connected} 已连接，{unauthorized} 待认证。",
+        stateConnected: "已连接",
+        stateUnauthorized: "待认证",
+        stateDetecting: "检测中",
+      },
       platforms: {
         android: "安卓",
         harmony: "鸿蒙",

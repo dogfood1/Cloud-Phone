@@ -117,6 +117,10 @@ const statusText = computed(() => {
       />
     </div>
 
-    <AddDeviceModal v-if="showAddDeviceModal" @close="showAddDeviceModal = false" />
+    <AddDeviceModal
+      v-if="showAddDeviceModal"
+      :devices="devices"
+      @close="showAddDeviceModal = false"
+    />
   </section>
 </template>

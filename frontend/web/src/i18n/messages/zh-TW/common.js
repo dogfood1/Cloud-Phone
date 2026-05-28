@@ -5,6 +5,7 @@ export default {
     show: "顯示",
     hide: "隱藏",
     retry: "重試",
+    back: "返回",
   },
   sidebar: {
     brandTitle: "裝置控制台",

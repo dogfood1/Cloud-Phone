@@ -9,6 +9,16 @@ export default {
       desc: "연결할 기기 유형 선택 (아직 제공되지 않음)",
       comingSoon: "미개발",
       close: "닫기",
+      usb: {
+        title: "Android · USB 연결",
+        desc: "USB 케이블을 휴대폰에 연결하고, 기기에서 USB 디버깅 권한을 허용하세요.",
+        action: "시작",
+        done: "완료",
+        summary: "{total}대 감지: {connected} 연결됨, {unauthorized} 인증 대기.",
+        stateConnected: "연결됨",
+        stateUnauthorized: "인증 대기",
+        stateDetecting: "감지 중",
+      },
       platforms: {
         android: "Android",
         harmony: "HarmonyOS",
