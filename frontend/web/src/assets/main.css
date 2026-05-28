@@ -919,6 +919,50 @@ h2 {
   overflow: hidden;
 }
 
+.device-workspace__mobile-cast-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.device-workspace__mobile-cast-toggle:hover {
+  border-color: var(--line-strong);
+  color: var(--accent-soft);
+}
+
+.device-workspace__mobile-cast-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.device-workspace__mobile-cast-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line));
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--danger);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.device-workspace__mobile-cast-stop:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .device-workspace__pane {
   border: 1px dashed var(--line);
   border-radius: var(--radius-lg);
@@ -2479,21 +2523,45 @@ code {
 
   .device-workspace__split {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto;
+    align-content: start;
+  }
+
+  .device-workspace__split--mobile-options-collapsed {
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .device-workspace__pane--left {
     max-height: 46vh;
   }
 
+  .device-workspace__pane--right {
+    height: 100%;
+    min-height: 0;
+  }
+
   .device-workspace__toolbar {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.15rem;
+    overflow: hidden;
+    gap: 0.35rem;
+    padding-bottom: 0;
   }
 
   .device-workspace__action {
-    min-width: 3.25rem;
-    min-height: 3rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0.28rem;
+  }
+
+  .device-workspace__action-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+
+  .device-workspace__action-label {
+    display: none;
+  }
+
+  .device-workspace__mobile-cast-toggle {
+    width: fit-content;
   }
 }

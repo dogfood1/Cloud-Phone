@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import AppIcon from "./AppIcon.vue";
 import DeviceAppManager from "./DeviceAppManager.vue";
@@ -38,6 +38,9 @@ const filesExplorerOpen = ref(false);
 const filesExplorerPath = ref(null);
 const appsManagerOpen = ref(false);
 const terminalOpen = ref(false);
+const mobileCastOptionsOpen = ref(false);
+const isMobileLayout = ref(false);
+const mobileCastOptionsInitialized = ref(false);
 
 const {
   actions,
@@ -131,6 +134,11 @@ async function startCast(options) {
     }
 
     await viewport.beginCast(payload);
+    if (isMobileLayout.value) {
+      mobileCastOptionsOpen.value = false;
+      await nextTick();
+      window.dispatchEvent(new Event("resize"));
+    }
   } catch (error) {
     isCasting.value = false;
     castHint.value = getErrorMessage(error, "投屏启动失败");
@@ -182,7 +190,34 @@ async function handleClose() {
   emit("close");
 }
 
+function updateMobileLayoutState() {
+  isMobileLayout.value = window.innerWidth <= 560;
+
+  if (isMobileLayout.value && !mobileCastOptionsInitialized.value) {
+    mobileCastOptionsOpen.value = true;
+    mobileCastOptionsInitialized.value = true;
+  }
+
+  if (!isMobileLayout.value) {
+    mobileCastOptionsOpen.value = true;
+  }
+}
+
+async function toggleMobileCastOptions() {
+  mobileCastOptionsOpen.value = !mobileCastOptionsOpen.value;
+  if (!mobileCastOptionsOpen.value) {
+    await nextTick();
+    window.dispatchEvent(new Event("resize"));
+  }
+}
+
+onMounted(() => {
+  updateMobileLayoutState();
+  window.addEventListener("resize", updateMobileLayoutState);
+});
+
 onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateMobileLayoutState);
   void stopCast();
 });
 
@@ -284,8 +319,33 @@ function handleOpenAppDataInFiles(devicePath) {
       </div>
     </header>
 
-    <div class="device-workspace__split">
+    <div
+      class="device-workspace__split"
+      :class="{
+        'device-workspace__split--mobile-options-open': isMobileLayout && mobileCastOptionsOpen,
+        'device-workspace__split--mobile-options-collapsed': isMobileLayout && !mobileCastOptionsOpen,
+      }"
+    >
+      <div v-if="isMobileLayout" class="device-workspace__mobile-cast-actions">
+        <button
+          type="button"
+          class="device-workspace__mobile-cast-toggle"
+          @click="toggleMobileCastOptions"
+        >
+          {{ mobileCastOptionsOpen ? "收起投屏选项" : "打开投屏选项" }}
+        </button>
+        <button
+          v-if="!mobileCastOptionsOpen"
+          type="button"
+          class="device-workspace__mobile-cast-stop"
+          :disabled="!isCasting || castBusy"
+          @click="stopCast"
+        >
+          取消投屏
+        </button>
+      </div>
       <DeviceWorkspaceLeftPanel
+        v-show="!isMobileLayout || mobileCastOptionsOpen"
         ref="leftPanelRef"
         class="device-workspace__pane device-workspace__pane--left"
         :device="device"
@@ -298,6 +358,7 @@ function handleOpenAppDataInFiles(devicePath) {
         @camera-control="handleCameraControl"
       />
       <DeviceCastViewport
+        v-show="!isMobileLayout || !mobileCastOptionsOpen"
         ref="castViewportRef"
         v-model:cast-options="castOptions"
         class="device-workspace__pane device-workspace__pane--right"

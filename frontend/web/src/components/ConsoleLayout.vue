@@ -93,7 +93,14 @@ function closeMobileSidebar() {
 
 <template>
   <div class="console-layout">
-    <button type="button" class="mobile-sidebar-toggle" @click="openMobileSidebar">菜单</button>
+    <button
+      v-if="!workspaceDevice"
+      type="button"
+      class="mobile-sidebar-toggle"
+      @click="openMobileSidebar"
+    >
+      菜单
+    </button>
     <button
       v-if="mobileSidebarOpen"
       type="button"
