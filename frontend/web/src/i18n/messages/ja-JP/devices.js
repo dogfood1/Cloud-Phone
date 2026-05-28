@@ -14,6 +14,11 @@ export default {
         harmony: "HarmonyOS",
         apple: "Apple",
       },
+      androidModes: {
+        usb: "USB 接続",
+        qr: "QR コード接続",
+        pairCode: "ペアリングコード接続",
+      },
     },
     refreshNow: "今すぐ更新",
     lastUpdate: "最終更新: {time}",

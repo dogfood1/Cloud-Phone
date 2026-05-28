@@ -14,6 +14,11 @@ export default {
         harmony: "鸿蒙",
         apple: "苹果",
       },
+      androidModes: {
+        usb: "USB 连接",
+        qr: "二维码连接",
+        pairCode: "配对码连接",
+      },
     },
     refreshNow: "立即刷新",
     lastUpdate: "最近更新：{time}",
