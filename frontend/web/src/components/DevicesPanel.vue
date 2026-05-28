@@ -79,9 +79,6 @@ const statusText = computed(() => {
             <AppIcon name="plus" />
             <span>{{ t("devices.addDevice") }}</span>
           </button>
-          <button type="button" class="ghost-button" @click="emit('refresh')">
-            {{ t("devices.refreshNow") }}
-          </button>
         </div>
       </div>
     </header>
