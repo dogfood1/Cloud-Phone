@@ -9,6 +9,49 @@ export function normalizeRotationDeg(degrees) {
   return ((deg % 360) + 360) % 360;
 }
 
+function rotatePointInverse(x, y, width, height, deg) {
+  if (!deg) {
+    return { x, y, width, height };
+  }
+
+  const cx = width / 2;
+  const cy = height / 2;
+  const dx = x - cx;
+  const dy = y - cy;
+
+  let rdx = dx;
+  let rdy = dy;
+
+  switch (deg) {
+    case 90:
+      // Inverse of rotate(90deg) is rotate(-90deg): (x, y) -> (y, -x)
+      rdx = dy;
+      rdy = -dx;
+      break;
+    case 180:
+      rdx = -dx;
+      rdy = -dy;
+      break;
+    case 270:
+      // Inverse of rotate(270deg) is rotate(-270deg)=rotate(90deg): (x, y) -> (-y, x)
+      rdx = -dy;
+      rdy = dx;
+      break;
+    default:
+      break;
+  }
+
+  const unrotatedWidth = deg === 90 || deg === 270 ? height : width;
+  const unrotatedHeight = deg === 90 || deg === 270 ? width : height;
+
+  return {
+    x: rdx + unrotatedWidth / 2,
+    y: rdy + unrotatedHeight / 2,
+    width: unrotatedWidth,
+    height: unrotatedHeight,
+  };
+}
+
 /**
  * Rotate preview wrapper (not the canvas bitmap) so WebCodecs layout is unaffected.
  * For 90°/270° we swap rotator width/height to match the viewport so the canvas
@@ -63,12 +106,22 @@ export function applyStagePreviewRotation(rotator, degrees, viewport = null) {
  * Crop pointer to the active video area inside the canvas (letterboxing), like ws-scrcpy
  * InteractionHandler.buildTouchOnClient.
  */
-export function mapClientToVideoLocal(clientX, clientY, canvas, videoSize) {
+export function mapClientToVideoLocal(clientX, clientY, canvas, videoSize, rotator = null) {
   const rect = canvas.getBoundingClientRect();
-  let touchX = clientX - rect.left;
-  let touchY = clientY - rect.top;
-  let clientWidth = canvas.clientWidth || rect.width || 1;
-  let clientHeight = canvas.clientHeight || rect.height || 1;
+  const deg = rotator ? normalizeRotationDeg(Number(rotator.dataset?.rotation || 0)) : 0;
+
+  const rawWidth = Math.max(1, rect.width || canvas.clientWidth || 1);
+  const rawHeight = Math.max(1, rect.height || canvas.clientHeight || 1);
+
+  const rotatedLocalX = clientX - rect.left;
+  const rotatedLocalY = clientY - rect.top;
+
+  const inv = rotatePointInverse(rotatedLocalX, rotatedLocalY, rawWidth, rawHeight, deg);
+
+  let touchX = inv.x;
+  let touchY = inv.y;
+  let clientWidth = inv.width || 1;
+  let clientHeight = inv.height || 1;
   const { width: videoWidth, height: videoHeight } = videoSize;
 
   if (!videoWidth || !videoHeight) {
@@ -97,30 +150,13 @@ export function mapClientToVideoLocal(clientX, clientY, canvas, videoSize) {
 
 /**
  * Map screen coordinates to normalized [0,1] on the unrotated canvas.
- * Uses inverse of the rotator CSS rotation.
+ * Uses inverse of the rotator CSS rotation, then crops letterboxing.
  */
 export function clientToCanvasNormalized(event, canvas, rotator = null, videoSize = null) {
-  const wrapper = rotator ?? canvas.parentElement;
-  const deg = wrapper ? normalizeRotationDeg(Number(wrapper.dataset?.rotation || 0)) : 0;
   const size = videoSize ?? { width: canvas.clientWidth || 1, height: canvas.clientHeight || 1 };
-  const local = mapClientToVideoLocal(event.clientX, event.clientY, canvas, size);
+  const local = mapClientToVideoLocal(event.clientX, event.clientY, canvas, size, rotator);
   let nx = local.x / (local.width || 1);
   let ny = local.y / (local.height || 1);
-
-  switch (deg) {
-    case 90:
-      [nx, ny] = [ny, 1 - nx];
-      break;
-    case 180:
-      nx = 1 - nx;
-      ny = 1 - ny;
-      break;
-    case 270:
-      [nx, ny] = [1 - ny, nx];
-      break;
-    default:
-      break;
-  }
 
   return { nx, ny };
 }

@@ -2,7 +2,7 @@
  * ws-scrcpy touch mapping + DOWN/MOVE/UP state machine (InteractionHandler).
  */
 
-import { mapClientToVideoLocal, normalizeRotationDeg } from "./canvas-rotation.js";
+import { mapClientToVideoLocal } from "./canvas-rotation.js";
 import {
   BUTTON_PRIMARY,
   MOTION_ACTION,
@@ -154,26 +154,9 @@ export function buildTouchOnClient(event, target, screenSize, rotator, options =
   const { clientX, clientY } = useCoalesced
     ? resolvePointerClientXY(event, target)
     : resolveEventClientXY(event, target);
-  const local = mapClientToVideoLocal(clientX, clientY, target, screenSize);
-
-  const deg = rotator ? normalizeRotationDeg(Number(rotator.dataset?.rotation || 0)) : 0;
-  let nx = local.x / (local.width || 1);
-  let ny = local.y / (local.height || 1);
-
-  switch (deg) {
-    case 90:
-      [nx, ny] = [ny, 1 - nx];
-      break;
-    case 180:
-      nx = 1 - nx;
-      ny = 1 - ny;
-      break;
-    case 270:
-      [nx, ny] = [1 - ny, nx];
-      break;
-    default:
-      break;
-  }
+  const local = mapClientToVideoLocal(clientX, clientY, target, screenSize, rotator);
+  const nx = local.x / (local.width || 1);
+  const ny = local.y / (local.height || 1);
 
   const x = Math.round(Math.min(1, Math.max(0, nx)) * screenSize.width);
   const y = Math.round(Math.min(1, Math.max(0, ny)) * screenSize.height);
