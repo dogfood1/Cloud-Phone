@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Icon } from "@iconify/vue";
+import QRCode from "qrcode";
 import { useI18n } from "vue-i18n";
 
 import "../assets/add-device-modal.css";
@@ -17,7 +18,7 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb | android-pair-code
+const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr
 const baselineSerials = ref(new Set());
 const pairForm = ref({
   host: "",
@@ -26,6 +27,9 @@ const pairForm = ref({
 });
 const pairPending = ref(false);
 const pairResult = ref(null);
+const qrSession = ref(null);
+const qrImageUrl = ref("");
+const qrLoading = ref(false);
 
 const platforms = [
   {
@@ -114,9 +118,99 @@ async function submitPairCode() {
   }
 }
 
+async function createQrSession() {
+  qrLoading.value = true;
+  pairResult.value = null;
+
+  try {
+    const result = await requestJson("/api/devices/qr-session", {
+      method: "POST",
+      body: {},
+    });
+    const session = {
+      serviceName: String(result.serviceName ?? ""),
+      pairingCode: String(result.pairingCode ?? ""),
+      qrPayload: String(result.qrPayload ?? ""),
+    };
+
+    if (!session.serviceName || !session.pairingCode || !session.qrPayload) {
+      throw new Error(t("devices.addDeviceModal.qr.invalid"));
+    }
+
+    qrSession.value = session;
+    qrImageUrl.value = await QRCode.toDataURL(session.qrPayload, {
+      margin: 1,
+      width: 240,
+    });
+  } catch (error) {
+    qrSession.value = null;
+    qrImageUrl.value = "";
+    pairResult.value = {
+      ok: false,
+      message: getErrorMessage(error, t("devices.addDeviceModal.qr.createFailed")),
+      connectOk: false,
+      connectMessage: t("devices.addDeviceModal.pairCode.connectSkipped"),
+    };
+  } finally {
+    qrLoading.value = false;
+  }
+}
+
+async function submitQrPairing() {
+  if (!qrSession.value) {
+    pairResult.value = {
+      ok: false,
+      message: t("devices.addDeviceModal.qr.createFailed"),
+      connectOk: false,
+      connectMessage: t("devices.addDeviceModal.pairCode.connectSkipped"),
+    };
+    return;
+  }
+
+  pairPending.value = true;
+  pairResult.value = null;
+
+  try {
+    const result = await requestJson("/api/devices/pair-qr", {
+      method: "POST",
+      body: {
+        serviceName: qrSession.value.serviceName,
+        pairingCode: qrSession.value.pairingCode,
+      },
+    });
+
+    pairResult.value = {
+      ok: Boolean(result.success),
+      message: result?.pair?.output || t("devices.addDeviceModal.pairCode.pairSuccess"),
+      connectOk: Boolean(result?.connect?.success),
+      connectMessage:
+        result?.connect?.connectedEndpoint ||
+        result?.connect?.attempts?.find((item) => item.ok)?.endpoint ||
+        t("devices.addDeviceModal.pairCode.connectFailed"),
+    };
+  } catch (error) {
+    pairResult.value = {
+      ok: false,
+      message: getErrorMessage(error, t("devices.addDeviceModal.pairCode.pairFailed")),
+      connectOk: false,
+      connectMessage: t("devices.addDeviceModal.pairCode.connectSkipped"),
+    };
+  } finally {
+    pairPending.value = false;
+  }
+}
+
 function enterPairCodeStep() {
   step.value = "android-pair-code";
   pairResult.value = null;
+}
+
+function enterQrStep() {
+  step.value = "android-qr";
+  qrSession.value = null;
+  qrImageUrl.value = "";
+  pairResult.value = null;
+  createQrSession();
 }
 
 function backToPlatforms() {
@@ -203,10 +297,23 @@ function backToPlatforms() {
                 </span>
               </button>
               <template v-else>
-                <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
-                <span class="add-device-modal__mode-badge">
-                  {{ t("devices.addDeviceModal.comingSoon") }}
-                </span>
+                <button
+                  v-if="item.id === 'android' && mode === 'qr'"
+                  type="button"
+                  class="add-device-modal__mode-btn"
+                  @click="enterQrStep"
+                >
+                  <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
+                  <span class="add-device-modal__mode-badge">
+                    {{ t("devices.addDeviceModal.qr.action") }}
+                  </span>
+                </button>
+                <template v-else>
+                  <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
+                  <span class="add-device-modal__mode-badge">
+                    {{ t("devices.addDeviceModal.comingSoon") }}
+                  </span>
+                </template>
               </template>
             </li>
           </ul>
@@ -324,6 +431,65 @@ function backToPlatforms() {
                 pairPending
                   ? t("devices.addDeviceModal.pairCode.pairing")
                   : t("devices.addDeviceModal.pairCode.submit")
+              }}
+            </button>
+          </div>
+        </form>
+
+        <div v-if="pairResult" class="add-device-modal__pair-result">
+          <p :class="pairResult.ok ? 'result-ok' : 'result-fail'">
+            {{ pairResult.ok ? t("devices.addDeviceModal.pairCode.pairSuccess") : t("devices.addDeviceModal.pairCode.pairFailed") }}
+            ：{{ pairResult.message }}
+          </p>
+          <p :class="pairResult.connectOk ? 'result-ok' : 'result-fail'">
+            {{
+              pairResult.connectOk
+                ? t("devices.addDeviceModal.pairCode.connectSuccess")
+                : t("devices.addDeviceModal.pairCode.connectFailed")
+            }}
+            ：{{ pairResult.connectMessage }}
+          </p>
+        </div>
+      </div>
+
+      <div v-else-if="step === 'android-qr'" class="add-device-modal__pair-code">
+        <div class="add-device-modal__pair-hint">
+          <h3>{{ t("devices.addDeviceModal.qr.stepsTitle") }}</h3>
+          <ol>
+            <li>{{ t("devices.addDeviceModal.qr.stepWirelessDebug") }}</li>
+            <li>{{ t("devices.addDeviceModal.qr.stepPairQr") }}</li>
+            <li>{{ t("devices.addDeviceModal.qr.stepScanFromPhone") }}</li>
+          </ol>
+        </div>
+
+        <form class="add-device-modal__pair-form" @submit.prevent="submitQrPairing">
+          <div class="add-device-modal__qr-panel">
+            <div v-if="qrLoading" class="add-device-modal__qr-loading">
+              {{ t("devices.addDeviceModal.qr.generating") }}
+            </div>
+            <img
+              v-else-if="qrImageUrl"
+              class="add-device-modal__qr-image"
+              :src="qrImageUrl"
+              :alt="t('devices.addDeviceModal.qr.imageAlt')"
+            />
+            <p v-if="qrSession" class="add-device-modal__qr-code">
+              {{ t("devices.addDeviceModal.qr.pairCodeHint", { code: qrSession.pairingCode }) }}
+            </p>
+          </div>
+
+          <div class="add-device-modal__pair-actions">
+            <button type="button" class="ghost-button" @click="backToPlatforms">
+              {{ t("common.back") }}
+            </button>
+            <button type="button" class="ghost-button" :disabled="qrLoading || pairPending" @click="createQrSession">
+              {{ t("devices.addDeviceModal.qr.refresh") }}
+            </button>
+            <button type="submit" class="primary-button" :disabled="pairPending">
+              {{
+                pairPending
+                  ? t("devices.addDeviceModal.pairCode.pairing")
+                  : t("devices.addDeviceModal.qr.confirmScanned")
               }}
             </button>
           </div>

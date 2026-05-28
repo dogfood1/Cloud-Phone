@@ -1,7 +1,13 @@
 import http from "node:http";
 
 import { APP_VERSION } from "./config/version.js";
-import { connectDeviceByHost, listDevices, pairDeviceWithCode } from "./services/adb-service.js";
+import {
+  connectDeviceByHost,
+  createQrPairingSession,
+  listDevices,
+  pairDeviceByQrService,
+  pairDeviceWithCode,
+} from "./services/adb-service.js";
 import { captureDeviceScreenshot } from "./services/device-screenshot.js";
 import {
   changePassword,
@@ -284,6 +290,61 @@ export function createApp() {
           success: false,
           version: APP_VERSION,
           error: "pair_code_failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+
+    if (method === "POST" && pathname === "/api/devices/qr-session") {
+      try {
+        const session = await createQrPairingSession();
+        sendProtectedJson(res, 200, {
+          success: true,
+          version: APP_VERSION,
+          ...session,
+        });
+      } catch (error) {
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "qr_session_failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+      return;
+    }
+
+    if (method === "POST" && pathname === "/api/devices/pair-qr") {
+      try {
+        const body = await readProtectedJsonBody(req, res);
+        const serviceName = String(body.serviceName ?? "").trim();
+        const pairingCode = String(body.pairingCode ?? "").trim();
+
+        if (!serviceName || !pairingCode) {
+          sendProtectedJson(res, 400, {
+            success: false,
+            version: APP_VERSION,
+            error: "invalid_qr_pair_payload",
+            message: "serviceName / pairingCode are required.",
+          });
+          return;
+        }
+
+        const result = await pairDeviceByQrService(serviceName, pairingCode);
+
+        sendProtectedJson(res, result.success ? 200 : 400, {
+          success: result.success,
+          version: APP_VERSION,
+          pair: result.pair,
+          connect: result.connect,
+          discovery: result.discovery,
+        });
+      } catch (error) {
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "pair_qr_failed",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }

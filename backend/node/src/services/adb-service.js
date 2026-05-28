@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import bonjourService from "bonjour-service";
 import { promisify } from "node:util";
 
 import { runAdb } from "./adb-command.js";
@@ -8,6 +10,7 @@ import { getDeviceDisplayName } from "./device-display.js";
 import { getDeviceIpAddress } from "./device-ip.js";
 
 const execFileAsync = promisify(execFile);
+const { Bonjour } = bonjourService;
 
 function parseDeviceList(stdout) {
   return stdout
@@ -111,6 +114,22 @@ export async function connectDeviceByHost(host, preferredPort) {
   return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort));
 }
 
+export async function createQrPairingSession() {
+  const serviceName = randomToken(10);
+  const pairingCode = randomDigits(6);
+  const payload = `WIFI:T:ADB;S:${serviceName};P:${pairingCode};;`;
+
+  return {
+    serviceName,
+    pairingCode,
+    qrPayload: payload,
+  };
+}
+
+export async function pairDeviceByQrService(serviceName, pairingCode) {
+  return runWithAdbLock(async () => pairDeviceByQrServiceUnsafe(serviceName, pairingCode));
+}
+
 async function listDevicesUnsafe() {
   const adbPath = resolveAdbPath();
   const { stdout } = await execFileAsync(adbPath, ["devices", "-l"], {
@@ -212,6 +231,63 @@ async function connectDeviceByHostUnsafe(host, preferredPort) {
   };
 }
 
+async function pairDeviceByQrServiceUnsafe(serviceName, pairingCode) {
+  const discoveredPairService = await waitForMdnsService({
+    serviceName,
+    serviceType: "_adb-tls-pairing._tcp",
+    timeoutMs: 25_000,
+  });
+
+  if (!discoveredPairService) {
+    return {
+      success: false,
+      pair: {
+        success: false,
+        target: `${serviceName}._adb-tls-pairing._tcp`,
+        output: "Pairing service was not discovered. Confirm phone scanned the QR code.",
+      },
+      connect: null,
+      discovery: null,
+    };
+  }
+
+  const pair = await pairDeviceWithCodeUnsafe(
+    discoveredPairService.host,
+    discoveredPairService.port,
+    pairingCode,
+  );
+
+  if (!pair.success) {
+    return {
+      success: false,
+      pair,
+      connect: null,
+      discovery: discoveredPairService,
+    };
+  }
+
+  const discoveredConnectService = await waitForMdnsService({
+    serviceType: "_adb-tls-connect._tcp",
+    host: discoveredPairService.host,
+    timeoutMs: 10_000,
+  });
+
+  const connect = await connectDeviceByHostUnsafe(
+    discoveredPairService.host,
+    discoveredConnectService?.port ?? discoveredPairService.port,
+  );
+
+  return {
+    success: Boolean(pair.success && connect.success),
+    pair,
+    connect,
+    discovery: {
+      pairing: discoveredPairService,
+      connect: discoveredConnectService,
+    },
+  };
+}
+
 function buildConnectPortCandidates(preferredPort) {
   const ports = new Set([5555]);
   const base = Number(preferredPort);
@@ -241,4 +317,185 @@ function buildConnectPortCandidates(preferredPort) {
   }
 
   return Array.from(ports);
+}
+
+async function waitForMdnsService({ serviceName, serviceType, host, timeoutMs }) {
+  const discovered = await discoverMdnsServiceWithBonjour({
+    serviceName,
+    serviceType,
+    host,
+    timeoutMs,
+  });
+
+  if (discovered) {
+    return discovered;
+  }
+
+  // Fallback to adb mdns services parsing if Bonjour discovery is unavailable.
+  return waitForMdnsServiceWithAdb({ serviceName, serviceType, host, timeoutMs });
+}
+
+async function waitForMdnsServiceWithAdb({ serviceName, serviceType, host, timeoutMs }) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const services = await listMdnsServicesWithAdb();
+    const matched = services.find((item) => matchMdnsService(item, { serviceName, serviceType, host }));
+
+    if (matched) {
+      return matched;
+    }
+
+    await sleep(700);
+  }
+
+  return null;
+}
+
+async function listMdnsServicesWithAdb() {
+  try {
+    const { stdout = "" } = await runAdb(["mdns", "services"], {
+      timeout: 5_000,
+    });
+
+    return stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map(parseMdnsLine)
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function discoverMdnsServiceWithBonjour({ serviceName, serviceType, host, timeoutMs }) {
+  const type = normalizeBonjourType(serviceType);
+
+  if (!type) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const bonjour = new Bonjour();
+    let browser = null;
+    let settled = false;
+
+    const finish = (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      try {
+        browser?.stop();
+      } catch {}
+      try {
+        bonjour.destroy();
+      } catch {}
+      resolve(value);
+    };
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    try {
+      browser = bonjour.find({ type }, (service) => {
+        const item = parseBonjourService(service);
+
+        if (!item) {
+          return;
+        }
+
+        if (matchMdnsService(item, { serviceName, serviceType, host })) {
+          finish(item);
+        }
+      });
+    } catch {
+      finish(null);
+    }
+  });
+}
+
+function parseBonjourService(service) {
+  const host = service?.addresses?.find((address) => /^\d{1,3}(\.\d{1,3}){3}$/.test(address));
+  const port = Number(service?.port);
+  const typeName = service?.type;
+
+  if (!host || !Number.isInteger(port) || port <= 0) {
+    return null;
+  }
+
+  const serviceType = typeName ? `_${typeName}._tcp` : null;
+  const name = String(service?.name ?? "").trim();
+  const fullName = serviceType ? `${name}.${serviceType}.` : name;
+
+  return {
+    raw: `${fullName} ${host}:${port}`,
+    fullName,
+    name,
+    serviceType,
+    host,
+    port,
+  };
+}
+
+function normalizeBonjourType(serviceType) {
+  if (!serviceType) {
+    return null;
+  }
+
+  return serviceType.replace(/^_/, "").replace(/\._tcp$/, "");
+}
+
+function matchMdnsService(item, { serviceName, serviceType, host }) {
+  if (serviceType && item.serviceType !== serviceType) {
+    return false;
+  }
+  if (serviceName && !item.name.includes(serviceName)) {
+    return false;
+  }
+  if (host && item.host !== host) {
+    return false;
+  }
+  return true;
+}
+
+function parseMdnsLine(line) {
+  // Example: "adb-xxxx._adb-tls-connect._tcp. 192.168.1.22:37123"
+  const match = line.match(/^(\S+)\s+([0-9.]+):(\d{1,5})$/);
+  if (!match) {
+    return null;
+  }
+
+  const fullName = match[1];
+  const host = match[2];
+  const port = Number.parseInt(match[3], 10);
+  const typeMatch = fullName.match(/(\._adb-tls-(?:pairing|connect)\._tcp)\.?$/);
+  const serviceType = typeMatch?.[1] ?? null;
+  const name = serviceType ? fullName.replace(serviceType, "").replace(/\.$/, "") : fullName;
+
+  return {
+    raw: line,
+    fullName,
+    name,
+    serviceType,
+    host,
+    port,
+  };
+}
+
+function randomToken(byteLength) {
+  return randomBytes(byteLength).toString("hex");
+}
+
+function randomDigits(length) {
+  let text = "";
+  while (text.length < length) {
+    text += Math.floor(Math.random() * 10).toString();
+  }
+  return text.slice(0, length);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

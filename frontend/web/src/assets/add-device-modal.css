@@ -353,6 +353,17 @@
   color: var(--text);
 }
 
+.add-device-modal__pair-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  min-height: 6rem;
+}
+
 .add-device-modal__pair-row {
   display: grid;
   grid-template-columns: 1fr 8rem;
@@ -390,6 +401,48 @@
   border: 1px solid rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
   color: #b91c1c;
+}
+
+.add-device-modal__qr-preview {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.add-device-modal__qr-panel {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  padding: 0.6rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+}
+
+.add-device-modal__qr-loading {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.add-device-modal__qr-image {
+  width: 240px;
+  height: 240px;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.add-device-modal__qr-code {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 @media (max-width: 560px) {
