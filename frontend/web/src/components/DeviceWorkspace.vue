@@ -6,6 +6,7 @@ import DeviceAppManager from "./DeviceAppManager.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceFileExplorer from "./DeviceFileExplorer.vue";
 import DeviceTerminal from "./DeviceTerminal.vue";
+import DeviceWorkspaceToolbar from "./DeviceWorkspaceToolbar.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
 import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
@@ -44,7 +45,7 @@ const mobileCastOptionsInitialized = ref(false);
 const isViewportFullscreen = ref(false);
 const fullscreenLayoutMode = ref("portrait");
 const fullscreenAutoRotationDeg = ref(0);
-const toolbarCollapsed = ref(false);
+const screenLongHorizontal = ref(window.innerWidth >= window.innerHeight);
 const fullscreenMobileToolbarActionIds = new Set([
   "recents",
   "home",
@@ -101,11 +102,6 @@ const toolbarActions = computed(() => {
 
   return actions.filter((action) => fullscreenMobileToolbarActionIds.has(action.id));
 });
-
-const toolbarRef = ref(null);
-function toggleToolbarCollapsed() {
-  toolbarCollapsed.value = !toolbarCollapsed.value;
-}
 
 function handleCameraControl(payload) {
   castViewportRef.value?.sendCameraControl?.(payload);
@@ -217,6 +213,7 @@ async function handleClose() {
 }
 
 function updateMobileLayoutState() {
+  screenLongHorizontal.value = window.innerWidth >= window.innerHeight;
   isMobileLayout.value = window.innerWidth <= 560;
 
   if (isMobileLayout.value && !mobileCastOptionsInitialized.value) {
@@ -297,9 +294,6 @@ function handleOpenAppDataInFiles(devicePath) {
 async function handleViewportFullscreenChange(isFullscreen) {
   isViewportFullscreen.value = isFullscreen;
   updateFullscreenLayoutMode();
-  if (isFullscreen) {
-    toolbarCollapsed.value = false;
-  }
   if (isFullscreen && isMobileLayout.value) {
     mobileCastOptionsOpen.value = false;
   }
@@ -307,7 +301,6 @@ async function handleViewportFullscreenChange(isFullscreen) {
     fullscreenAutoRotationDeg.value = 0;
     const restoreRotation = castOptions.value?.mirror?.video?.rotationDeg ?? 0;
     castViewportRef.value?.applyPreviewRotation?.(restoreRotation);
-    toolbarCollapsed.value = false;
   }
   await nextTick();
   window.dispatchEvent(new Event("resize"));
@@ -338,88 +331,25 @@ async function handleViewportFullscreenChange(isFullscreen) {
         </div>
       </div>
 
-      <div
-        ref="toolbarRef"
-        class="device-workspace__toolbar"
-        :class="{ 'device-workspace__toolbar--collapsed': isViewportFullscreen && toolbarCollapsed }"
-        role="toolbar"
-        aria-label="设备控制"
-      >
-        <template v-for="action in toolbarActions" :key="action.id">
-          <div
-            v-if="isVolumeMenuAction(action)"
-            class="device-workspace__action-anchor device-workspace__action-anchor--volume"
-          >
-            <button
-              type="button"
-              class="device-workspace__action"
-              :class="{ 'device-workspace__action--menu-open': volumeMenuOpen }"
-              :disabled="isActionDisabled(action)"
-              :title="actionTitle(action)"
-              :aria-expanded="volumeMenuOpen"
-              aria-haspopup="true"
-              @click="handleToolbarClick(action, $event)"
-            >
-              <span class="device-workspace__action-icon" aria-hidden="true">
-                <AppIcon :name="actionIcon(action)" variant="toolbar" />
-              </span>
-              <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
-            </button>
-            <div
-              v-show="volumeMenuOpen"
-              class="device-workspace__volume-menu"
-              role="group"
-              aria-label="音量调节"
-            >
-              <button
-                v-for="sub in volumeSubActions"
-                :key="sub.id"
-                type="button"
-                class="device-workspace__action device-workspace__action--sub"
-                :disabled="isActionDisabled(action)"
-                :title="sub.label"
-                @click.stop="handleVolumeSubAction(sub)"
-              >
-                <span class="device-workspace__action-icon" aria-hidden="true">
-                  <AppIcon :name="sub.icon" variant="toolbar" />
-                </span>
-                <span class="device-workspace__action-label">{{ sub.label }}</span>
-              </button>
-            </div>
-          </div>
-          <button
-            v-else
-            type="button"
-            class="device-workspace__action"
-            :class="{
-              'device-workspace__action--hold': usesPressHold(action),
-              'device-workspace__action--pressed': isActionPressed(action),
-              'device-workspace__action--recording': isActionRecording(action),
-            }"
-            :disabled="isActionDisabled(action)"
-            :title="actionTitle(action)"
-            @pointerdown="onToolbarPointerDown(action, $event)"
-            @pointerup="onToolbarPointerUp(action, $event)"
-            @pointercancel="onToolbarPointerUp(action, $event)"
-            @click="handleToolbarClick(action, $event)"
-          >
-            <span class="device-workspace__action-icon" aria-hidden="true">
-              <AppIcon :name="actionIcon(action)" variant="toolbar" />
-            </span>
-            <span class="device-workspace__action-label">{{ actionLabel(action) }}</span>
-          </button>
-        </template>
-      </div>
-      <button
-        v-if="isViewportFullscreen"
-        type="button"
-        class="device-workspace__toolbar-toggle"
-        :title="toolbarCollapsed ? '展开工具栏' : '折叠工具栏'"
-        @click="toggleToolbarCollapsed"
-      >
-        {{ toolbarCollapsed ? "◀" : "▶" }}
-      </button>
     </header>
+    <DeviceWorkspaceToolbar
+      :actions="toolbarActions"
+      :volume-sub-actions="volumeSubActions"
+      :volume-menu-open="volumeMenuOpen"
+      :is-volume-menu-action="isVolumeMenuAction"
+      :action-label="actionLabel"
+      :action-icon="actionIcon"
+      :action-title="actionTitle"
+      :is-action-disabled="isActionDisabled"
+      :uses-press-hold="usesPressHold"
+      :is-action-pressed="isActionPressed"
+      :is-action-recording="isActionRecording"
+      :on-toolbar-pointer-down="onToolbarPointerDown"
+      :on-toolbar-pointer-up="onToolbarPointerUp"
+      :handle-toolbar-click="handleToolbarClick"
+      :handle-volume-sub-action="handleVolumeSubAction"
+      :long-horizontal="screenLongHorizontal"
+    />
 
     <div
       class="device-workspace__split"
