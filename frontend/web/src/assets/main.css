@@ -176,6 +176,10 @@ input:focus-visible {
   margin-top: auto;
 }
 
+.sidebar__footer .theme-toggle {
+  width: 100%;
+}
+
 .sidebar__tab,
 .sidebar__logout {
   display: flex;
@@ -2332,6 +2336,14 @@ code {
     align-content: start;
     grid-auto-flow: row;
     grid-auto-columns: initial;
+  }
+
+  .sidebar__footer {
+    display: grid;
+    grid-auto-flow: row;
+    justify-items: stretch;
+    margin-left: 0;
+    gap: 0.7rem;
   }
 
   .main-panel {

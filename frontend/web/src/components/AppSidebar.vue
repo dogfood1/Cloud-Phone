@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AppIcon from "./AppIcon.vue";
+import ThemeToggle from "./ThemeToggle.vue";
 const props = defineProps({
   activeTab: {
     type: String,
@@ -51,6 +52,7 @@ const tabs = computed(() => [
     </nav>
 
     <div class="sidebar__footer">
+      <ThemeToggle />
       <button type="button" class="sidebar__logout" @click="emit('logout')">
         <AppIcon name="logout" />
         <span>{{ t("sidebar.logout") }}</span>
