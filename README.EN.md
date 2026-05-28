@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell.**
 
-Current version: **v0.10.0** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
+Current version: **v0.10.1** · Node backend + Vue 3 frontend · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -63,6 +63,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
+- **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
 
 ---
 
@@ -251,6 +252,8 @@ images/qr/             sponsorship QR codes
 ---
 
 ## API overview
+
+Protected routes require a valid session cookie (sign in first). JSON bodies and responses use AES-256-GCM envelopes after login; login returns an encrypted payload derived from your password. WebSocket paths require the session cookie; large file/APK uploads use raw `PUT` streams (auth only).
 
 | Method | Path | Description |
 |---|---|---|

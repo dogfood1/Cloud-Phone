@@ -9,17 +9,26 @@ import {
   handleDeviceTerminalWebSocket,
   parseTerminalWebSocketPath,
 } from "../routes/device-terminal-routes.js";
+import { verifyWebSocketSession } from "../middleware/ws-auth.js";
 import { logCastInfo } from "../services/scrcpy-cast/cast-logger.js";
 
 export function setupDeviceWebSocket(server) {
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on("upgrade", (request, socket, head) => {
+  server.on("upgrade", async (request, socket, head) => {
     const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
     const castRoute = parseCastWebSocketPath(requestUrl.pathname);
     const terminalRoute = parseTerminalWebSocketPath(requestUrl.pathname);
 
     if (!castRoute && !terminalRoute) {
+      socket.destroy();
+      return;
+    }
+
+    const authorized = await verifyWebSocketSession(request);
+
+    if (!authorized) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;
     }

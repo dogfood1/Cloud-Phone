@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里。**
 
-当前版本：**v0.10.0** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.10.1** · Node 后端 + Vue 3 前端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -67,6 +67,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
+| **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
 
 ---
 
@@ -251,6 +252,8 @@ Cloud-Phone/
 ---
 
 ## API 摘要
+
+除 `GET /api/auth/session`、`POST /api/auth/login`、`POST /api/auth/change-password` 外，均需先登录（会话 Cookie）。登录后 JSON 请求/响应使用 AES-256-GCM 加密；WebSocket 升级需有效会话；大文件/APK 上传为 `PUT` 二进制流（仅鉴权，响应 JSON 仍加密）。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|

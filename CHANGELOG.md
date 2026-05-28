@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.1 - 2026-05-27
+
+- 除登录/会话/改密外，全部 HTTP API 需有效会话 Cookie，未登录返回 401
+- JSON 响应统一 AES-256-GCM 加密；登录成功后下发会话 `encryptionKey`，前端存于 sessionStorage
+- 登录响应用密码派生密钥加密；设备列表、投屏、文件、应用、截图等接口请求体/响应体加密
+- WebSocket 投屏/终端升级需会话 Cookie；大文件 PUT 上传仍走二进制流（仅鉴权，响应 JSON 加密）
+
+### API session auth & encrypted payloads
+- Protect all `/api/*` and `/health` except auth bootstrap endpoints
+- AES-256-GCM envelopes for JSON; per-session encryption key after login
+- WebSocket upgrade requires session cookie; binary upload streams auth-only
+
 ## 0.10.0 - 2026-05-27
 
 - 设置页新增界面语言切换，支持简体中文、English、繁體中文、日本語、한국어

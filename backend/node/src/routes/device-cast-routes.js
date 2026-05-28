@@ -14,7 +14,7 @@ import {
 } from "../services/scrcpy-cast/index.js";
 import { summarizeStreamStats } from "../services/scrcpy-cast/stream-stats.js";
 import { proxyWebSocket } from "../services/scrcpy-cast/ws-scrcpy-ws-proxy.js";
-import { readJsonBody, sendJson } from "../utils/http.js";
+import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceCastRoute(req, res, method, pathname) {
   const startMatch = pathname.match(/^\/api\/devices\/([^/]+)\/cast\/start$/);
@@ -29,7 +29,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     try {
       await ensureScrcpyServerBuilt();
     } catch (buildError) {
-      sendJson(res, 503, {
+      sendProtectedJson(res, 503, {
         success: false,
         version: APP_VERSION,
         error: "scrcpy_server_build_failed",
@@ -42,11 +42,11 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     }
 
     try {
-      const body = await readJsonBody(req);
+      const body = await readProtectedJsonBody(req, res);
       logCastInfo(serial, "api.cast.start", { options: body ?? {} });
       const session = await startScrcpyCast(serial, body ?? {});
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         ...session,
@@ -55,7 +55,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
       logCastError(serial, "api.cast.start_failed", {
         message: error instanceof Error ? error.message : "unknown",
       });
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "cast_start_failed",
@@ -73,14 +73,14 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
       logCastInfo(serial, "api.cast.stop", {});
       const stopped = await stopScrcpyCast(serial);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
         stopped,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "cast_stop_failed",
@@ -95,7 +95,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     const serial = decodeURIComponent(statusMatch[1]);
     const session = getCastSession(serial);
 
-    sendJson(res, 200, {
+    sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       serial,

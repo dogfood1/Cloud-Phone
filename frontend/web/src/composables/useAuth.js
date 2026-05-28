@@ -1,7 +1,14 @@
 import { computed, reactive, ref } from "vue";
 
 import { i18n } from "../i18n/index.js";
-import { getErrorMessage, requestJson } from "../utils/api.js";
+import {
+  clearSessionEncryptionKey,
+  changePasswordRequest,
+  getErrorMessage,
+  hasSessionEncryptionKey,
+  loginRequest,
+  requestJson,
+} from "../utils/api.js";
 
 function t(key, params) {
   return i18n.global.t(key, params);
@@ -52,6 +59,14 @@ export function useAuth() {
 
     try {
       const result = await requestJson("/api/auth/session");
+
+      if (result.authenticated && !hasSessionEncryptionKey()) {
+        syncAuthState({ ...result, authenticated: false });
+        clearSessionEncryptionKey();
+        state.sessionStateText = t("auth.sessionMissing");
+        return false;
+      }
+
       syncAuthState(result);
       state.sessionStateText = result.authenticated
         ? t("auth.sessionValid")
@@ -76,10 +91,7 @@ export function useAuth() {
     state.loginFeedback = "";
 
     try {
-      const result = await requestJson("/api/auth/login", {
-        method: "POST",
-        body: { password: state.loginPassword },
-      });
+      const result = await loginRequest(state.loginPassword);
 
       syncAuthState(result);
 
@@ -121,12 +133,9 @@ export function useAuth() {
     state.changeFeedback = "";
 
     try {
-      const result = await requestJson("/api/auth/change-password", {
-        method: "POST",
-        body: {
-          currentPassword: state.currentPassword,
-          nextPassword: state.nextPassword,
-        },
+      const result = await changePasswordRequest({
+        currentPassword: state.currentPassword,
+        nextPassword: state.nextPassword,
       });
 
       syncAuthState(result);
@@ -177,6 +186,7 @@ export function useAuth() {
     try {
       await requestJson("/api/auth/logout", { method: "POST" });
     } finally {
+      clearSessionEncryptionKey();
       state.authenticated = false;
       state.requiresPasswordChange = false;
       state.sessionExpiresAt = null;

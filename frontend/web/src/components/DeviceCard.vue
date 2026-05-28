@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AppIcon from "./AppIcon.vue";
@@ -8,6 +8,7 @@ import {
   formatManufacturerLine,
   getDeviceStateLabel,
 } from "../utils/device-format.js";
+import { fetchEncryptedBinary } from "../utils/api.js";
 
 const props = defineProps({
   device: {
@@ -37,6 +38,7 @@ function handleKeydown(event) {
 
 const displaySrc = ref("");
 const screenshotFailed = ref(false);
+let screenshotObjectUrl = "";
 
 const manufacturerLine = formatManufacturerLine(props.device);
 const androidLine = formatAndroidVersion(props.device);
@@ -46,36 +48,37 @@ const screenshotAlt = computed(() =>
   t("devices.screenshotAlt", { name: props.device.displayName }),
 );
 
-function preloadScreenshot(url) {
+function revokeScreenshotObjectUrl() {
+  if (screenshotObjectUrl) {
+    URL.revokeObjectURL(screenshotObjectUrl);
+    screenshotObjectUrl = "";
+  }
+}
+
+async function preloadScreenshot(url) {
   if (!url || !props.device.connected) {
+    revokeScreenshotObjectUrl();
     displaySrc.value = "";
     return;
   }
 
   screenshotFailed.value = false;
 
-  if (!displaySrc.value) {
-    displaySrc.value = url;
-    return;
-  }
-
-  if (displaySrc.value === url) {
-    return;
-  }
-
-  const image = new Image();
-  image.onload = () => {
-    displaySrc.value = url;
-  };
-  image.onerror = () => {
-    if (displaySrc.value) {
-      return;
+  try {
+    const blob = await fetchEncryptedBinary(url, { mime: "image/png" });
+    revokeScreenshotObjectUrl();
+    screenshotObjectUrl = URL.createObjectURL(blob);
+    displaySrc.value = screenshotObjectUrl;
+  } catch {
+    if (!displaySrc.value) {
+      screenshotFailed.value = true;
     }
-
-    screenshotFailed.value = true;
-  };
-  image.src = url;
+  }
 }
+
+onUnmounted(() => {
+  revokeScreenshotObjectUrl();
+});
 
 watch(
   () => props.screenshotUrl,

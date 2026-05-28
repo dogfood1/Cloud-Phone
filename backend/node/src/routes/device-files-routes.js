@@ -12,7 +12,7 @@ import {
   pushDeviceFile,
 } from "../services/device-files-transfer.js";
 import { safeUnlink } from "../services/device-apps-mutate.js";
-import { sendBuffer, sendJson } from "../utils/http.js";
+import { sendProtectedBuffer, sendProtectedJson } from "../utils/protected-http.js";
 
 /**
  * @returns {Promise<boolean>}
@@ -27,7 +27,7 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
     const devicePath = url.searchParams.get("path");
 
     if (!devicePath?.trim()) {
-      sendJson(res, 400, {
+      sendProtectedJson(res, 400, {
         success: false,
         version: APP_VERSION,
         error: "path_required",
@@ -39,12 +39,12 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
     try {
       const { buffer, filename } = await pullDeviceFile(serial, devicePath);
 
-      sendBuffer(res, 200, buffer, "application/octet-stream", buildDownloadHeaders(filename));
+      sendProtectedBuffer(res, 200, buffer, "application/octet-stream", buildDownloadHeaders(filename));
     } catch (error) {
       const code = error?.code;
       const status = code === "not_found" ? 404 : code === "is_directory" ? 400 : 500;
 
-      sendJson(res, status, {
+      sendProtectedJson(res, status, {
         success: false,
         version: APP_VERSION,
         error: code ?? "device_file_download_failed",
@@ -60,7 +60,7 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
     const devicePath = url.searchParams.get("path");
 
     if (!devicePath?.trim()) {
-      sendJson(res, 400, {
+      sendProtectedJson(res, 400, {
         success: false,
         version: APP_VERSION,
         error: "path_required",
@@ -79,7 +79,7 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
       const st = await fs.promises.stat(tmpPath);
 
       if (!st.size) {
-        sendJson(res, 400, {
+        sendProtectedJson(res, 400, {
           success: false,
           version: APP_VERSION,
           error: "upload_empty_body",
@@ -90,7 +90,7 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
 
       const result = await pushDeviceFile(serial, devicePath, tmpPath);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -98,7 +98,7 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
         bytes: st.size,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: error?.code ?? "device_file_upload_failed",
@@ -118,14 +118,14 @@ export async function handleDeviceFilesRoute(req, res, method, pathname, url) {
     try {
       const listing = await listDeviceFiles(serial, requestedPath);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
         ...listing,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "device_files_failed",

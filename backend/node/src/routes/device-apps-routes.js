@@ -15,7 +15,11 @@ import {
   uninstallPackage,
 } from "../services/device-apps-mutate.js";
 import { runWithAdbLock } from "../services/adb-lock.js";
-import { readJsonBody, sendBuffer, sendJson } from "../utils/http.js";
+import {
+  readProtectedJsonBody,
+  sendProtectedBuffer,
+  sendProtectedJson,
+} from "../utils/protected-http.js";
 
 /**
  * @param {import("node:http").IncomingMessage} req
@@ -40,7 +44,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
       const st = await fs.promises.stat(tmpPath);
 
       if (!st.size) {
-        sendJson(res, 400, {
+        sendProtectedJson(res, 400, {
           success: false,
           version: APP_VERSION,
           error: "install_empty_body",
@@ -52,14 +56,14 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
 
       const result = await installLocalApk(serial, tmpPath);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
         ...result,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "install_failed",
@@ -78,14 +82,14 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     try {
       const apps = await listInstalledApps(serial);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
         apps,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "device_apps_list_failed",
@@ -110,11 +114,11 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
 
       const filename = `${packageName.replace(/[^\w.-]+/g, "_")}.apk`;
 
-      sendBuffer(res, 200, buffer, "application/vnd.android.package-archive", {
+      sendProtectedBuffer(res, 200, buffer, "application/vnd.android.package-archive", {
         "Content-Disposition": `attachment; filename="${filename}"`,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "apk_pull_failed",
@@ -134,10 +138,10 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     const packageName = decodeURIComponent(stateMatch[2]);
 
     try {
-      const body = await readJsonBody(req);
+      const body = await readProtectedJsonBody(req, res);
 
       if (typeof body.frozen !== "boolean") {
-        sendJson(res, 400, {
+        sendProtectedJson(res, 400, {
           success: false,
           version: APP_VERSION,
           error: "invalid_body",
@@ -150,7 +154,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
 
       const result = await setPackageFrozen(serial, packageName, frozen);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -159,7 +163,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
         ...result,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "freeze_failed",
@@ -177,7 +181,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     try {
       const detail = await getPackageDetail(serial, packageName);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -186,7 +190,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     } catch (error) {
       const code = error?.code === "package_not_found" ? 404 : 500;
 
-      sendJson(res, code, {
+      sendProtectedJson(res, code, {
         success: false,
         version: APP_VERSION,
         error: error?.code ?? "package_detail_failed",
@@ -203,7 +207,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     const confirm = url.searchParams.get("confirm");
 
     if (confirm !== "1") {
-      sendJson(res, 400, {
+      sendProtectedJson(res, 400, {
         success: false,
         version: APP_VERSION,
         error: "confirm_required",
@@ -215,7 +219,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
     try {
       const result = await uninstallPackage(serial, packageName);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -223,7 +227,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
         ...result,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "uninstall_failed",

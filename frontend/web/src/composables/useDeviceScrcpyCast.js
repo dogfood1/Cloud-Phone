@@ -17,6 +17,7 @@ import {
   serializeSetClipboard,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
+import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { readSystemClipboard, writeSystemClipboard } from "../utils/cast-clipboard.js";
 import { attachCastKeyboard } from "../utils/scrcpy-cast-keyboard.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
@@ -132,18 +133,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
     try {
       const options = unref(castOptionsRef) ?? { maxSize: 1024 };
-      const response = await fetch(`/api/devices/${encodeURIComponent(serial)}/cast/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(options),
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message ?? payload.error ?? "投屏启动失败");
-      }
-
+      const payload = await startDeviceCast(serial, options);
       await beginCast(payload);
     } catch (error) {
       status.value = "error";
@@ -455,10 +445,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     stopRequest = new AbortController();
 
     try {
-      await fetch(`/api/devices/${encodeURIComponent(serial)}/cast/stop`, {
-        method: "DELETE",
-        signal: stopRequest.signal,
-      });
+      await stopDeviceCast(serial, { signal: stopRequest.signal });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;

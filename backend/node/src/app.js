@@ -1,6 +1,5 @@
 import http from "node:http";
 
-import { AUTH_COOKIE_NAME } from "./config/auth.js";
 import { APP_VERSION } from "./config/version.js";
 import { listDevices } from "./services/adb-service.js";
 import { captureDeviceScreenshot } from "./services/device-screenshot.js";
@@ -10,12 +9,34 @@ import {
   getClearSessionCookie,
   getSessionCookie,
   loginWithPassword,
+  revokeSessionToken,
 } from "./services/auth-service.js";
 import { handleDeviceCastRoute } from "./routes/device-cast-routes.js";
 import { handleDeviceRoute } from "./routes/device-routes.js";
 import { handleScrcpyRoute } from "./routes/scrcpy-routes.js";
+import {
+  getSessionTokenFromCookies,
+  isPublicApiPath,
+  requireApiSession,
+} from "./middleware/api-auth.js";
 import { parseCookies } from "./utils/cookies.js";
-import { applyCors, readJsonBody, sendBuffer, sendEmpty, sendJson } from "./utils/http.js";
+import { applyCors, readJsonBody, sendEmpty, sendJson } from "./utils/http.js";
+import {
+  attachResponseEncryption,
+  readProtectedJsonBody,
+  sendPasswordProtectedJson,
+  sendProtectedBuffer,
+  sendProtectedJson,
+} from "./utils/protected-http.js";
+
+function sendUnauthorized(res) {
+  sendJson(res, 401, {
+    success: false,
+    version: APP_VERSION,
+    error: "unauthorized",
+    message: "Valid session required. Sign in first.",
+  });
+}
 
 export function createApp() {
   return http.createServer(async (req, res) => {
@@ -23,6 +44,7 @@ export function createApp() {
     const requestUrl = new URL(url ?? "/", "http://127.0.0.1");
     const { pathname } = requestUrl;
     const cookies = parseCookies(req.headers.cookie);
+    const sessionToken = getSessionTokenFromCookies(cookies);
 
     applyCors(req, res);
 
@@ -31,8 +53,27 @@ export function createApp() {
       return;
     }
 
+    if (pathname.startsWith("/api/") && !isPublicApiPath(pathname, method)) {
+      const session = await requireApiSession(sessionToken);
+
+      if (!session) {
+        sendUnauthorized(res);
+        return;
+      }
+
+      attachResponseEncryption(res, session.encryptionKey);
+    }
+
     if (method === "GET" && pathname === "/health") {
-      sendJson(res, 200, {
+      const session = await requireApiSession(sessionToken);
+
+      if (!session) {
+        sendUnauthorized(res);
+        return;
+      }
+
+      attachResponseEncryption(res, session.encryptionKey);
+      sendProtectedJson(res, 200, {
         status: "ok",
         service: "cloud-phone-node",
         version: APP_VERSION,
@@ -42,7 +83,7 @@ export function createApp() {
 
     if (method === "GET" && pathname === "/api/auth/session") {
       try {
-        const authStatus = await getAuthStatus(cookies[AUTH_COOKIE_NAME]);
+        const authStatus = await getAuthStatus(sessionToken);
 
         sendJson(res, 200, {
           success: true,
@@ -64,7 +105,8 @@ export function createApp() {
     if (method === "POST" && pathname === "/api/auth/login") {
       try {
         const body = await readJsonBody(req);
-        const result = await loginWithPassword(String(body.password ?? ""));
+        const password = String(body.password ?? "");
+        const result = await loginWithPassword(password);
 
         if (!result.success) {
           sendJson(res, 401, {
@@ -80,7 +122,7 @@ export function createApp() {
           ? { "Set-Cookie": getSessionCookie(result.session.token) }
           : {};
 
-        sendJson(
+        sendPasswordProtectedJson(
           res,
           200,
           {
@@ -90,14 +132,16 @@ export function createApp() {
             requiresPasswordChange: result.requiresPasswordChange,
             passwordConfigured: result.passwordConfigured,
             sessionExpiresAt: result.session?.expiresAt ?? null,
+            encryptionKey: result.session?.encryptionKey ?? null,
           },
+          password,
           headers,
         );
       } catch (error) {
         sendJson(res, 400, {
           success: false,
           version: APP_VERSION,
-          error: "Invalid request body.",
+          error: "invalid_request",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -106,43 +150,65 @@ export function createApp() {
 
     if (method === "POST" && pathname === "/api/auth/change-password") {
       try {
-        const body = await readJsonBody(req);
+        const session = await requireApiSession(sessionToken);
+        if (session) {
+          attachResponseEncryption(res, session.encryptionKey);
+        }
+
+        const body = session ? await readProtectedJsonBody(req, res) : await readJsonBody(req);
+
         const result = await changePassword(
           String(body.currentPassword ?? ""),
           String(body.nextPassword ?? ""),
         );
 
         if (!result.success) {
-          sendJson(res, 400, {
+          const payload = {
             success: false,
             version: APP_VERSION,
             code: result.code,
             message: result.message,
-          });
+          };
+
+          if (session) {
+            sendProtectedJson(res, 400, payload);
+          } else {
+            sendJson(res, 400, payload);
+          }
           return;
         }
 
-        sendJson(
-          res,
-          200,
-          {
-            success: true,
-            version: APP_VERSION,
-            authenticated: true,
-            requiresPasswordChange: false,
-            passwordConfigured: true,
-            sessionExpiresAt: result.session.expiresAt,
-            passwordUpdatedAt: result.passwordUpdatedAt,
-          },
-          {
-            "Set-Cookie": getSessionCookie(result.session.token),
-          },
-        );
+        const responsePayload = {
+          success: true,
+          version: APP_VERSION,
+          authenticated: true,
+          requiresPasswordChange: false,
+          passwordConfigured: true,
+          sessionExpiresAt: result.session.expiresAt,
+          passwordUpdatedAt: result.passwordUpdatedAt,
+          encryptionKey: result.session.encryptionKey,
+        };
+
+        const headers = {
+          "Set-Cookie": getSessionCookie(result.session.token),
+        };
+
+        if (session) {
+          sendProtectedJson(res, 200, responsePayload, headers);
+        } else {
+          sendPasswordProtectedJson(
+            res,
+            200,
+            responsePayload,
+            String(body.currentPassword ?? ""),
+            headers,
+          );
+        }
       } catch (error) {
         sendJson(res, 400, {
           success: false,
           version: APP_VERSION,
-          error: "Invalid request body.",
+          error: "invalid_request",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -150,7 +216,8 @@ export function createApp() {
     }
 
     if (method === "POST" && pathname === "/api/auth/logout") {
-      sendJson(
+      revokeSessionToken(sessionToken);
+      sendProtectedJson(
         res,
         200,
         {
@@ -168,7 +235,7 @@ export function createApp() {
       try {
         const { adbPath, devices } = await listDevices();
 
-        sendJson(res, 200, {
+        sendProtectedJson(res, 200, {
           success: true,
           version: APP_VERSION,
           adbPath,
@@ -176,10 +243,10 @@ export function createApp() {
           devices,
         });
       } catch (error) {
-        sendJson(res, 500, {
+        sendProtectedJson(res, 500, {
           success: false,
           version: APP_VERSION,
-          error: "Failed to query devices.",
+          error: "devices_list_failed",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -205,20 +272,22 @@ export function createApp() {
 
       try {
         const screenshot = await captureDeviceScreenshot(serial);
-        sendBuffer(res, 200, screenshot, "image/png");
+        sendProtectedBuffer(res, 200, screenshot, "image/png");
       } catch (error) {
-        sendJson(res, 500, {
+        sendProtectedJson(res, 500, {
           success: false,
           version: APP_VERSION,
-          error: "Failed to capture screenshot.",
+          error: "screenshot_failed",
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
       return;
     }
 
-    sendJson(res, 404, {
-      error: "Not Found",
+    sendProtectedJson(res, 404, {
+      success: false,
+      version: APP_VERSION,
+      error: "not_found",
     });
   });
 }

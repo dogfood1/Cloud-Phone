@@ -5,7 +5,7 @@ import {
   getScrcpySourceRoot,
   isScrcpyBinaryReady,
 } from "../config/scrcpy-paths.js";
-import { readJsonBody, sendJson } from "../utils/http.js";
+import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 import {
   SCRCPY_CAPABILITIES,
   createScrcpySession,
@@ -21,7 +21,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
       ? await runScrcpyCapabilities().catch(() => SCRCPY_CAPABILITIES)
       : SCRCPY_CAPABILITIES;
 
-    sendJson(res, 200, {
+    sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       platform: getScrcpyPlatformKey(),
@@ -34,7 +34,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
   }
 
   if (method === "GET" && pathname === "/api/scrcpy/sessions") {
-    sendJson(res, 200, {
+    sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       sessions: listScrcpySessions(),
@@ -48,7 +48,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
     const session = getScrcpySession(decodeURIComponent(sessionMatch[1]));
 
     if (!session) {
-      sendJson(res, 404, {
+      sendProtectedJson(res, 404, {
         success: false,
         version: APP_VERSION,
         error: "Session not found.",
@@ -56,7 +56,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
       return true;
     }
 
-    sendJson(res, 200, {
+    sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       session,
@@ -66,16 +66,16 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
 
   if (method === "POST" && pathname === "/api/scrcpy/sessions") {
     try {
-      const body = await readJsonBody(req);
+      const body = await readProtectedJsonBody(req, res);
       const session = await createScrcpySession(body ?? {});
 
-      sendJson(res, 201, {
+      sendProtectedJson(res, 201, {
         success: true,
         version: APP_VERSION,
         session,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "Failed to start scrcpy session.",
@@ -90,7 +90,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
     const session = await stopScrcpySession(decodeURIComponent(sessionMatch[1]));
 
     if (!session) {
-      sendJson(res, 404, {
+      sendProtectedJson(res, 404, {
         success: false,
         version: APP_VERSION,
         error: "Session not found.",
@@ -98,7 +98,7 @@ export async function handleScrcpyRoute(req, res, method, pathname) {
       return true;
     }
 
-    sendJson(res, 200, {
+    sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       session,

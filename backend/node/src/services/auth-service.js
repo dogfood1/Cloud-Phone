@@ -6,13 +6,15 @@ import {
   DEFAULT_PASSWORD,
   PASSWORD_MIN_LENGTH,
 } from "../config/auth.js";
+import { createSessionEncryptionKey } from "../utils/api-crypto.js";
 import { getAuthKeyMaterial, getPasswordRecord, savePasswordRecord } from "./auth-store.js";
+import { registerSession, removeSession } from "./session-store.js";
 
 const SESSION_SECRET_CONTEXT = "cloud-phone-session";
 
 export async function getAuthStatus(sessionToken) {
   const passwordRecord = getPasswordRecord();
-  const session = verifySessionToken(sessionToken);
+  const session = verifySessionTokenInternal(sessionToken);
 
   return {
     authenticated: Boolean(session),
@@ -103,6 +105,14 @@ export async function changePassword(currentPassword, nextPassword) {
   };
 }
 
+export function verifySessionToken(token) {
+  return verifySessionTokenInternal(token);
+}
+
+export function revokeSessionToken(token) {
+  removeSession(token);
+}
+
 export function getClearSessionCookie() {
   return serializeSessionCookie("", new Date(0));
 }
@@ -164,14 +174,19 @@ function createSessionToken() {
     "utf8",
   ).toString("base64url");
   const signature = signPayload(payload);
+  const token = `${payload}.${signature}`;
+  const encryptionKey = createSessionEncryptionKey();
+
+  registerSession(token, encryptionKey, expiresAt.toISOString());
 
   return {
-    token: `${payload}.${signature}`,
+    token,
     expiresAt: expiresAt.toISOString(),
+    encryptionKey: encryptionKey.toString("base64"),
   };
 }
 
-function verifySessionToken(token) {
+function verifySessionTokenInternal(token) {
   if (!token) {
     return null;
   }

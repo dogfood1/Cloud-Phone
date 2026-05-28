@@ -4,7 +4,7 @@ import { APP_VERSION } from "../config/version.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
 import { listDeviceCameras } from "../services/device-cameras.js";
 import { listDeviceEncoders } from "../services/device-video-encoders.js";
-import { sendJson } from "../utils/http.js";
+import { sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname, url) {
   if (await handleDeviceAppsRoute(req, res, method, pathname, url)) {
@@ -25,7 +25,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
     try {
       const cameras = await listDeviceCameras(serial);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -33,7 +33,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
         requiresSdk: 31,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         serial,
@@ -56,7 +56,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
         String(item.label ?? "").includes("(fallback)"),
       );
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
@@ -70,7 +70,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
       const fallbackEncoders = error?.encoders;
       const status = fallbackEncoders?.length ? 200 : 500;
 
-      sendJson(res, status, {
+      sendProtectedJson(res, status, {
         success: status === 200,
         version: APP_VERSION,
         serial,
@@ -90,14 +90,14 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
     try {
       const options = await getDeviceMirrorOptions(serial);
 
-      sendJson(res, 200, {
+      sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
         serial,
         ...options,
       });
     } catch (error) {
-      sendJson(res, 500, {
+      sendProtectedJson(res, 500, {
         success: false,
         version: APP_VERSION,
         error: "Failed to load mirror options.",
