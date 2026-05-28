@@ -1,6 +1,17 @@
 const ENVELOPE_VERSION = 1;
 
+function requireWebCryptoSubtle() {
+  if (globalThis.crypto?.subtle) {
+    return;
+  }
+
+  throw new Error(
+    "当前访问环境不支持 Web Crypto（crypto.subtle）。请使用 localhost 或 HTTPS 访问。",
+  );
+}
+
 export async function derivePasswordEnvelopeKey(password, purpose) {
+  requireWebCryptoSubtle();
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(String(password)),
@@ -28,6 +39,7 @@ export async function deriveLoginResponseKey(password) {
 }
 
 export async function encryptPayload(value, keyBytes) {
+  requireWebCryptoSubtle();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const cryptoKey = await importAesKey(keyBytes);
   const encoded = new TextEncoder().encode(JSON.stringify(value));
@@ -49,6 +61,7 @@ export async function encryptPayload(value, keyBytes) {
 }
 
 export async function decryptPayload(envelope, keyBytes) {
+  requireWebCryptoSubtle();
   if (!envelope?.encrypted || !envelope?.payload) {
     throw new Error("encrypted_payload_required");
   }

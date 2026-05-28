@@ -1,4 +1,5 @@
 import vue from "@vitejs/plugin-vue";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { defineConfig } from "vite";
 
 import { applyProjectEnv } from "../../tools/env-loader.js";
@@ -31,7 +32,8 @@ function backendHealthPlugin() {
       server.httpServer?.once("listening", () => {
         fetch(`${backendOrigin}/health`)
           .then((response) => {
-            if (!response.ok) {
+            // /health is protected and may return 401 when backend is healthy.
+            if (!response.ok && ![401, 403].includes(response.status)) {
               throw new Error(`HTTP ${response.status}`);
             }
           })
@@ -47,10 +49,11 @@ function backendHealthPlugin() {
 }
 
 export default defineConfig({
-  plugins: [vue(), backendHealthPlugin()],
+  plugins: [vue(), basicSsl(), backendHealthPlugin()],
   server: {
     host,
     port: frontendPort,
+    https: true,
     proxy: {
       "/api": apiProxy,
     },
