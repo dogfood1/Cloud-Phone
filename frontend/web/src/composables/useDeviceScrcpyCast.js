@@ -424,6 +424,12 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       degrees,
       viewportRef?.value ?? null,
     );
+
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    }
   }
 
   async function stopCast(options = {}) {

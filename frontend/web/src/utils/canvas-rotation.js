@@ -11,8 +11,10 @@ export function normalizeRotationDeg(degrees) {
 
 /**
  * Rotate preview wrapper (not the canvas bitmap) so WebCodecs layout is unaffected.
+ * For 90°/270° we swap rotator width/height to match the viewport so the canvas
+ * resizes (via ResizeObserver) instead of shrinking with a CSS scale transform.
  * @param {HTMLElement | null} rotator
- * @param {HTMLElement | null} viewport parent for 90°/270° scale-to-fit
+ * @param {HTMLElement | null} viewport parent used to measure available space
  */
 export function applyStagePreviewRotation(rotator, degrees, viewport = null) {
   if (!rotator) {
@@ -21,24 +23,40 @@ export function applyStagePreviewRotation(rotator, degrees, viewport = null) {
 
   const deg = normalizeRotationDeg(degrees);
   rotator.dataset.rotation = String(deg);
+  const parent = viewport ?? rotator.parentElement;
+
+  rotator.style.transformOrigin = "center center";
 
   if (!deg) {
+    rotator.style.position = "";
+    rotator.style.inset = "";
+    rotator.style.flex = "";
+    rotator.style.width = "";
+    rotator.style.height = "";
     rotator.style.transform = "";
     return;
   }
 
-  const parent = viewport ?? rotator.parentElement;
-  let scale = 1;
-
   if (parent && (deg === 90 || deg === 270)) {
-    const pw = parent.clientWidth || 1;
-    const ph = parent.clientHeight || 1;
-    scale = Math.min(pw / ph, ph / pw);
+    const pw = Math.max(1, parent.clientWidth);
+    const ph = Math.max(1, parent.clientHeight);
+    // Prevent flexbox from shrinking the "pre-rotated" layout box.
+    // We size the box as (ph x pw) so after rotate(90) it fits (pw x ph).
+    rotator.style.position = "absolute";
+    rotator.style.inset = "50% auto auto 50%";
+    rotator.style.flex = "0 0 auto";
+    rotator.style.width = `${ph}px`;
+    rotator.style.height = `${pw}px`;
+    rotator.style.transform = `translate(-50%, -50%) rotate(${deg}deg)`;
+    return;
   }
 
-  rotator.style.transformOrigin = "center center";
-  rotator.style.transform =
-    scale < 1 ? `rotate(${deg}deg) scale(${scale})` : `rotate(${deg}deg)`;
+  rotator.style.position = "";
+  rotator.style.inset = "";
+  rotator.style.flex = "";
+  rotator.style.width = "";
+  rotator.style.height = "";
+  rotator.style.transform = `rotate(${deg}deg)`;
 }
 
 /**
@@ -79,7 +97,7 @@ export function mapClientToVideoLocal(clientX, clientY, canvas, videoSize) {
 
 /**
  * Map screen coordinates to normalized [0,1] on the unrotated canvas.
- * Uses inverse of the rotator CSS transform (rotate + scale).
+ * Uses inverse of the rotator CSS rotation.
  */
 export function clientToCanvasNormalized(event, canvas, rotator = null, videoSize = null) {
   const wrapper = rotator ?? canvas.parentElement;

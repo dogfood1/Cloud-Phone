@@ -14,7 +14,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["cast-failed"]);
+const emit = defineEmits(["cast-failed", "fullscreen-change", "screen-size-change"]);
 
 const canvasRef = ref(null);
 const rotatorRef = ref(null);
@@ -28,6 +28,7 @@ const serialRef = toRef(() => props.device.serial);
 const {
   status,
   errorMessage,
+  getEffectiveScreenSize,
   beginCast,
   stopCast,
   sendNavigation,
@@ -65,21 +66,31 @@ function getFullscreenElement() {
 }
 
 function syncFullscreenState() {
-  isFullscreen.value = getFullscreenElement() === viewportRef.value;
+  const viewportEl = viewportRef.value;
+  const workspaceEl = viewportEl?.closest(".device-workspace") ?? null;
+  const fullscreenEl = getFullscreenElement();
+  const nextFullscreen =
+    fullscreenEl === viewportEl || (workspaceEl != null && fullscreenEl === workspaceEl);
+
+  isFullscreen.value = nextFullscreen;
+  emit("fullscreen-change", nextFullscreen);
 }
 
 async function toggleFullscreen() {
   const viewportEl = viewportRef.value;
+  const workspaceEl = viewportEl?.closest(".device-workspace") ?? null;
+  const targetEl = workspaceEl ?? viewportEl;
 
-  if (!viewportEl) {
+  if (!targetEl) {
     return;
   }
 
   try {
-    if (getFullscreenElement() === viewportEl) {
+    const fullscreenEl = getFullscreenElement();
+    if (fullscreenEl === targetEl || fullscreenEl === viewportEl) {
       await document.exitFullscreen();
     } else {
-      await viewportEl.requestFullscreen();
+      await targetEl.requestFullscreen();
     }
   } catch {
     // Ignore gesture/permission errors from Fullscreen API.
@@ -111,6 +122,17 @@ watch(hasError, (failed) => {
     emit("cast-failed");
   }
 });
+
+watch(
+  () => {
+    const size = getEffectiveScreenSize();
+    return `${size.width}x${size.height}`;
+  },
+  () => {
+    const size = getEffectiveScreenSize();
+    emit("screen-size-change", { width: size.width, height: size.height });
+  },
+);
 
 if (typeof document !== "undefined") {
   document.addEventListener("fullscreenchange", syncFullscreenState);
@@ -144,6 +166,7 @@ defineExpose({
   sendCameraControl,
   pasteClipboardToDevice,
   copyClipboardFromDevice,
+  getEffectiveScreenSize,
 });
 </script>
 

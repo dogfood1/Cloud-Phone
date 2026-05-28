@@ -41,6 +41,19 @@ const terminalOpen = ref(false);
 const mobileCastOptionsOpen = ref(false);
 const isMobileLayout = ref(false);
 const mobileCastOptionsInitialized = ref(false);
+const isViewportFullscreen = ref(false);
+const fullscreenLayoutMode = ref("portrait");
+const fullscreenAutoRotationDeg = ref(0);
+const fullscreenMobileToolbarActionIds = new Set([
+  "recents",
+  "home",
+  "back",
+  "screen-off",
+  "power",
+  "volume",
+  "screenshot",
+  "record",
+]);
 
 const {
   actions,
@@ -80,6 +93,125 @@ const {
 });
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
+const toolbarActions = computed(() => {
+  if (!(isMobileLayout.value && isViewportFullscreen.value)) {
+    return actions;
+  }
+
+  return actions.filter((action) => fullscreenMobileToolbarActionIds.has(action.id));
+});
+
+const toolbarRef = ref(null);
+const toolbarDragActive = ref(false);
+const toolbarDragPointerId = ref(null);
+const toolbarDragOffset = ref({ x: 0, y: 0 });
+const toolbarDragPos = ref({ x: null, y: null });
+
+const fullscreenToolbarStyle = computed(() => {
+  if (!(isMobileLayout.value && isViewportFullscreen.value)) {
+    return null;
+  }
+
+  if (toolbarDragPos.value.x == null || toolbarDragPos.value.y == null) {
+    return null;
+  }
+
+  return {
+    left: `${toolbarDragPos.value.x}px`,
+    top: `${toolbarDragPos.value.y}px`,
+    right: "auto",
+    bottom: "auto",
+  };
+});
+
+function clampToolbarPos(x, y) {
+  const fullscreenEl = document.fullscreenElement;
+  const boundsEl = fullscreenEl instanceof HTMLElement ? fullscreenEl : document.documentElement;
+  const rect = boundsEl.getBoundingClientRect();
+  const toolbarEl = toolbarRef.value instanceof HTMLElement ? toolbarRef.value : null;
+  const tbRect = toolbarEl?.getBoundingClientRect();
+
+  const tbW = tbRect?.width ?? 0;
+  const tbH = tbRect?.height ?? 0;
+
+  const insetTop = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0;
+  void insetTop;
+
+  const padding = 8;
+  const minX = rect.left + padding;
+  const minY = rect.top + padding;
+  const maxX = rect.left + rect.width - tbW - padding;
+  const maxY = rect.top + rect.height - tbH - padding;
+
+  const nextX = Math.min(Math.max(x, minX), Math.max(minX, maxX));
+  const nextY = Math.min(Math.max(y, minY), Math.max(minY, maxY));
+  return { x: nextX - rect.left, y: nextY - rect.top };
+}
+
+function setToolbarPosFromClient(clientX, clientY) {
+  const fullscreenEl = document.fullscreenElement;
+  const boundsEl = fullscreenEl instanceof HTMLElement ? fullscreenEl : document.documentElement;
+  const rect = boundsEl.getBoundingClientRect();
+  const rawX = clientX - toolbarDragOffset.value.x;
+  const rawY = clientY - toolbarDragOffset.value.y;
+  const clamped = clampToolbarPos(rawX, rawY);
+  toolbarDragPos.value = { x: clamped.x, y: clamped.y };
+}
+
+function onToolbarDragPointerMove(event) {
+  if (!toolbarDragActive.value || toolbarDragPointerId.value !== event.pointerId) {
+    return;
+  }
+  event.preventDefault();
+  setToolbarPosFromClient(event.clientX, event.clientY);
+}
+
+function stopToolbarDrag() {
+  toolbarDragActive.value = false;
+  toolbarDragPointerId.value = null;
+}
+
+function onToolbarDragPointerUp(event) {
+  if (toolbarDragPointerId.value === event.pointerId) {
+    stopToolbarDrag();
+  }
+}
+
+function onToolbarDragStart(event) {
+  if (!(isMobileLayout.value && isViewportFullscreen.value)) {
+    return;
+  }
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+  if (event.target.closest("button")) {
+    return;
+  }
+
+  const toolbarEl = toolbarRef.value instanceof HTMLElement ? toolbarRef.value : null;
+  if (!toolbarEl) {
+    return;
+  }
+
+  toolbarDragActive.value = true;
+  toolbarDragPointerId.value = event.pointerId;
+
+  const rect = toolbarEl.getBoundingClientRect();
+  toolbarDragOffset.value = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+
+  if (toolbarDragPos.value.x == null || toolbarDragPos.value.y == null) {
+    const fullscreenEl = document.fullscreenElement;
+    const boundsEl = fullscreenEl instanceof HTMLElement ? fullscreenEl : document.documentElement;
+    const bounds = boundsEl.getBoundingClientRect();
+    toolbarDragPos.value = { x: rect.left - bounds.left, y: rect.top - bounds.top };
+  }
+
+  try {
+    toolbarEl.setPointerCapture(event.pointerId);
+  } catch {
+    // ignore
+  }
+}
 
 function handleCameraControl(payload) {
   castViewportRef.value?.sendCameraControl?.(payload);
@@ -203,6 +335,37 @@ function updateMobileLayoutState() {
   }
 }
 
+function updateFullscreenLayoutMode() {
+  const fullscreenEl = document.fullscreenElement;
+  const fullscreenWidth = fullscreenEl?.clientWidth ?? 0;
+  const fullscreenHeight = fullscreenEl?.clientHeight ?? 0;
+  const currentWidth =
+    fullscreenWidth > 0 ? fullscreenWidth : (window.visualViewport?.width ?? window.innerWidth);
+  const currentHeight =
+    fullscreenHeight > 0 ? fullscreenHeight : (window.visualViewport?.height ?? window.innerHeight);
+  const currentLongHorizontal = currentWidth >= currentHeight;
+  fullscreenLayoutMode.value = currentLongHorizontal ? "landscape" : "portrait";
+
+  // Mobile fullscreen: rotate preview (0/90) to minimize black bars (maximize scale).
+  if (!(isMobileLayout.value && isViewportFullscreen.value)) {
+    fullscreenAutoRotationDeg.value = 0;
+    return;
+  }
+
+  const targetSize = castViewportRef.value?.getEffectiveScreenSize?.() ?? { width: 0, height: 0 };
+  const targetW = Math.max(0, Number(targetSize.width) || 0);
+  const targetH = Math.max(0, Number(targetSize.height) || 0);
+  if (!targetW || !targetH || !currentWidth || !currentHeight) {
+    fullscreenAutoRotationDeg.value = 0;
+    return;
+  }
+
+  const scale0 = Math.min(currentWidth / targetW, currentHeight / targetH);
+  const scale90 = Math.min(currentWidth / targetH, currentHeight / targetW);
+  fullscreenAutoRotationDeg.value = scale90 > scale0 ? 90 : 0;
+  castViewportRef.value?.applyPreviewRotation?.(fullscreenAutoRotationDeg.value);
+}
+
 async function toggleMobileCastOptions() {
   mobileCastOptionsOpen.value = !mobileCastOptionsOpen.value;
   if (!mobileCastOptionsOpen.value) {
@@ -213,11 +376,22 @@ async function toggleMobileCastOptions() {
 
 onMounted(() => {
   updateMobileLayoutState();
+  updateFullscreenLayoutMode();
   window.addEventListener("resize", updateMobileLayoutState);
+  window.addEventListener("resize", updateFullscreenLayoutMode);
+  window.addEventListener("orientationchange", updateFullscreenLayoutMode);
+  window.addEventListener("pointermove", onToolbarDragPointerMove, { passive: false });
+  window.addEventListener("pointerup", onToolbarDragPointerUp);
+  window.addEventListener("pointercancel", onToolbarDragPointerUp);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", updateMobileLayoutState);
+  window.removeEventListener("resize", updateFullscreenLayoutMode);
+  window.removeEventListener("orientationchange", updateFullscreenLayoutMode);
+  window.removeEventListener("pointermove", onToolbarDragPointerMove);
+  window.removeEventListener("pointerup", onToolbarDragPointerUp);
+  window.removeEventListener("pointercancel", onToolbarDragPointerUp);
   void stopCast();
 });
 
@@ -231,10 +405,33 @@ function handleOpenAppDataInFiles(devicePath) {
   filesExplorerPath.value = devicePath;
   filesExplorerOpen.value = true;
 }
+
+async function handleViewportFullscreenChange(isFullscreen) {
+  isViewportFullscreen.value = isFullscreen;
+  updateFullscreenLayoutMode();
+  if (isFullscreen && isMobileLayout.value) {
+    mobileCastOptionsOpen.value = false;
+  }
+  if (!isFullscreen) {
+    fullscreenAutoRotationDeg.value = 0;
+    const restoreRotation = castOptions.value?.mirror?.video?.rotationDeg ?? 0;
+    castViewportRef.value?.applyPreviewRotation?.(restoreRotation);
+    stopToolbarDrag();
+    toolbarDragPos.value = { x: null, y: null };
+  }
+  await nextTick();
+  window.dispatchEvent(new Event("resize"));
+}
 </script>
 
 <template>
-  <section class="device-workspace">
+  <section
+    class="device-workspace"
+    :class="{
+      'device-workspace--fullscreen-landscape': isViewportFullscreen && fullscreenLayoutMode === 'landscape',
+      'device-workspace--fullscreen-portrait': isViewportFullscreen && fullscreenLayoutMode === 'portrait',
+    }"
+  >
     <header class="device-workspace__header">
       <div class="device-workspace__intro">
         <button type="button" class="device-workspace__back" @click="handleClose">
@@ -251,8 +448,15 @@ function handleOpenAppDataInFiles(devicePath) {
         </div>
       </div>
 
-      <div class="device-workspace__toolbar" role="toolbar" aria-label="设备控制">
-        <template v-for="action in actions" :key="action.id">
+      <div
+        ref="toolbarRef"
+        class="device-workspace__toolbar"
+        role="toolbar"
+        aria-label="设备控制"
+        :style="fullscreenToolbarStyle"
+        @pointerdown="onToolbarDragStart"
+      >
+        <template v-for="action in toolbarActions" :key="action.id">
           <div
             v-if="isVolumeMenuAction(action)"
             class="device-workspace__action-anchor device-workspace__action-anchor--volume"
@@ -365,6 +569,8 @@ function handleOpenAppDataInFiles(devicePath) {
         :device="device"
         :casting="isCasting"
         @cast-failed="handleCastFailed"
+        @fullscreen-change="handleViewportFullscreenChange"
+        @screen-size-change="updateFullscreenLayoutMode"
       />
     </div>
 

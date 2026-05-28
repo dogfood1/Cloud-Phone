@@ -2567,4 +2567,118 @@ code {
   .device-workspace__mobile-cast-toggle {
     width: fit-content;
   }
+
+  .device-workspace:fullscreen,
+  .device-workspace:-webkit-full-screen {
+    background: var(--bg-preview);
+    width: 100%;
+    height: 100%;
+    gap: 0;
+  }
+
+  .device-workspace:fullscreen .device-workspace__header,
+  .device-workspace:-webkit-full-screen .device-workspace__header {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .device-workspace:fullscreen .device-workspace__intro,
+  .device-workspace:-webkit-full-screen .device-workspace__intro,
+  .device-workspace:fullscreen .device-workspace__mobile-cast-actions,
+  .device-workspace:-webkit-full-screen .device-workspace__mobile-cast-actions,
+  .device-workspace:fullscreen .device-workspace__pane--left,
+  .device-workspace:-webkit-full-screen .device-workspace__pane--left {
+    display: none !important;
+  }
+
+  .device-workspace:fullscreen .device-workspace__split,
+  .device-workspace:-webkit-full-screen .device-workspace__split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+  }
+
+  .device-workspace:fullscreen .device-workspace__pane--right,
+  .device-workspace:-webkit-full-screen .device-workspace__pane--right {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .device-workspace:fullscreen .device-cast-viewport,
+  .device-workspace:-webkit-full-screen .device-cast-viewport {
+    width: 100%;
+    height: 100%;
+  }
+
+  .device-workspace:fullscreen .device-workspace__toolbar,
+  .device-workspace:-webkit-full-screen .device-workspace__toolbar {
+    position: absolute;
+    z-index: 60;
+    display: flex;
+    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    right: max(0.5rem, calc(env(safe-area-inset-right, 0px) + 0.35rem));
+    transform: none;
+    flex-direction: column;
+    justify-content: center;
+    max-height: none;
+    max-width: min(5rem, calc(100vw - 1rem));
+    left: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.4rem;
+    border: 1px solid var(--line);
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+    backdrop-filter: blur(var(--blur));
+    box-shadow: var(--shadow);
+    touch-action: none;
+  }
+
+  .device-workspace--fullscreen-portrait:fullscreen .device-workspace__toolbar,
+  .device-workspace--fullscreen-portrait:-webkit-full-screen .device-workspace__toolbar {
+    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    right: max(0.5rem, calc(env(safe-area-inset-right, 0px) + 0.35rem));
+    left: auto;
+    flex-direction: column;
+    justify-content: center;
+    transform: none;
+    max-width: min(5rem, calc(100vw - 1rem));
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .device-workspace--fullscreen-landscape:fullscreen .device-workspace__toolbar,
+  .device-workspace--fullscreen-landscape:-webkit-full-screen .device-workspace__toolbar {
+    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: auto;
+    flex-direction: row;
+    justify-content: center;
+    transform: none;
+    max-width: none;
+    max-height: min(3.4rem, calc(100vh - 1rem));
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .device-workspace:fullscreen .device-workspace__toolbar .device-workspace__action,
+  .device-workspace:-webkit-full-screen .device-workspace__toolbar .device-workspace__action {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.2rem;
+  }
+
+  .device-workspace:fullscreen .device-workspace__toolbar .device-workspace__action-icon,
+  .device-workspace:-webkit-full-screen .device-workspace__toolbar .device-workspace__action-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
 }
+
