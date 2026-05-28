@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, toRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRef, watch } from "vue";
 
 import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
 
@@ -58,6 +58,33 @@ const isStreaming = computed(() => status.value === "streaming");
 const isStarting = computed(() => status.value === "starting");
 const hasError = computed(() => status.value === "error");
 const screenshotFlashActive = ref(false);
+const isFullscreen = ref(false);
+
+function getFullscreenElement() {
+  return document.fullscreenElement ?? null;
+}
+
+function syncFullscreenState() {
+  isFullscreen.value = getFullscreenElement() === viewportRef.value;
+}
+
+async function toggleFullscreen() {
+  const viewportEl = viewportRef.value;
+
+  if (!viewportEl) {
+    return;
+  }
+
+  try {
+    if (getFullscreenElement() === viewportEl) {
+      await document.exitFullscreen();
+    } else {
+      await viewportEl.requestFullscreen();
+    }
+  } catch {
+    // Ignore gesture/permission errors from Fullscreen API.
+  }
+}
 
 function playScreenshotFlash() {
   screenshotFlashActive.value = false;
@@ -82,6 +109,16 @@ function onViewportPointerDown() {
 watch(hasError, (failed) => {
   if (failed) {
     emit("cast-failed");
+  }
+});
+
+if (typeof document !== "undefined") {
+  document.addEventListener("fullscreenchange", syncFullscreenState);
+}
+
+onBeforeUnmount(() => {
+  if (typeof document !== "undefined") {
+    document.removeEventListener("fullscreenchange", syncFullscreenState);
   }
 });
 
@@ -112,6 +149,14 @@ defineExpose({
 
 <template>
   <div ref="viewportRef" class="device-cast-viewport">
+    <button
+      type="button"
+      class="device-cast-viewport__fullscreen-btn"
+      :title="isFullscreen ? '退出全屏 (Esc)' : '全屏'"
+      @click="toggleFullscreen"
+    >
+      {{ isFullscreen ? "退出全屏" : "全屏" }}
+    </button>
     <div
       v-show="isStreaming || isStarting"
       class="device-cast-viewport__stage"
