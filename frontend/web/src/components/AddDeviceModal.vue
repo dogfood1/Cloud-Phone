@@ -61,11 +61,6 @@ const trackedDevices = computed(() => {
     }
   }
 
-  // if user had devices already, allow tracking by showing all as fallback
-  if (result.length === 0) {
-    return currentDevices.value.filter((device) => device?.serial);
-  }
-
   return result;
 });
 
@@ -197,7 +192,10 @@ watch(
                 })
               }}
             </p>
-            <ul class="add-device-modal__usb-list">
+            <p v-if="trackedDevices.length === 0" class="add-device-modal__usb-empty">
+              {{ t("devices.addDeviceModal.usb.empty") }}
+            </p>
+            <ul v-else class="add-device-modal__usb-list">
               <li v-for="device in trackedDevices" :key="device.serial" class="add-device-modal__usb-item">
                 <div class="add-device-modal__usb-item-main">
                   <strong>{{ device.displayName || device.serial }}</strong>

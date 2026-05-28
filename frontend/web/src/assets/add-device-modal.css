@@ -231,6 +231,16 @@
   font-size: 0.9rem;
 }
 
+.add-device-modal__usb-empty {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: 0.85rem;
+  background: var(--bg);
+}
+
 .add-device-modal__usb-list {
   display: grid;
   gap: 0.5rem;

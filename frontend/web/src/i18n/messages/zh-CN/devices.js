@@ -15,6 +15,7 @@ export default {
         action: "开始",
         done: "完成",
         summary: "检测到 {total} 台设备：{connected} 已连接，{unauthorized} 待认证。",
+        empty: "请插入新设备，已在实时监听 USB 接入状态。",
         stateConnected: "已连接",
         stateUnauthorized: "待认证",
         stateDetecting: "检测中",

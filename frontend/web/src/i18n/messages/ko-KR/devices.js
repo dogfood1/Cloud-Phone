@@ -15,6 +15,7 @@ export default {
         action: "시작",
         done: "완료",
         summary: "{total}대 감지: {connected} 연결됨, {unauthorized} 인증 대기.",
+        empty: "새 기기를 연결하세요. USB 연결 상태를 실시간으로 감지하고 있습니다.",
         stateConnected: "연결됨",
         stateUnauthorized: "인증 대기",
         stateDetecting: "감지 중",

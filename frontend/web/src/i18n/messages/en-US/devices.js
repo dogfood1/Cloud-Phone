@@ -15,6 +15,7 @@ export default {
         action: "Start",
         done: "Done",
         summary: "Detected {total} device(s): {connected} connected, {unauthorized} awaiting authorization.",
+        empty: "Insert a new device now. USB connection status is being monitored in real time.",
         stateConnected: "Connected",
         stateUnauthorized: "Awaiting authorization",
         stateDetecting: "Detecting",

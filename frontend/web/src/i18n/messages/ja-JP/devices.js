@@ -15,6 +15,7 @@ export default {
         action: "開始",
         done: "完了",
         summary: "{total} 台検出：{connected} 接続済み、{unauthorized} 承認待ち。",
+        empty: "新しい端末を接続してください。USB 接続状態をリアルタイムで監視中です。",
         stateConnected: "接続済み",
         stateUnauthorized: "承認待ち",
         stateDetecting: "検出中",

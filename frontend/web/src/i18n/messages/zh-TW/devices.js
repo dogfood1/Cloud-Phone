@@ -15,6 +15,7 @@ export default {
         action: "開始",
         done: "完成",
         summary: "偵測到 {total} 台裝置：{connected} 已連線，{unauthorized} 待授權。",
+        empty: "請插入新裝置，系統正在即時監聽 USB 接入狀態。",
         stateConnected: "已連線",
         stateUnauthorized: "待授權",
         stateDetecting: "偵測中",
