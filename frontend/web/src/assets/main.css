@@ -2291,8 +2291,83 @@ code {
 }
 
 @media (max-width: 560px) {
+  .console-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .sidebar {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.65rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .sidebar__brand,
+  .sidebar__footer span {
+    display: none;
+  }
+
+  .sidebar__footer {
+    margin-top: 0;
+  }
+
+  .sidebar__tabs {
+    flex: 1;
+    display: flex;
+    justify-content: space-evenly;
+    gap: 0.35rem;
+  }
+
+  .sidebar__tab,
+  .sidebar__logout {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    height: 2.9rem;
+    padding: 0 0.65rem;
+    font-size: 0.72rem;
+  }
+
+  .sidebar__tab .app-icon,
+  .sidebar__logout .app-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .main-panel {
+    padding: 0.95rem 0.9rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .main-panel--workspace {
+    padding: 0.75rem 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .device-gallery {
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .panel-header__actions {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .panel-header__buttons {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .device-files-overlay {
@@ -2324,5 +2399,25 @@ code {
   .modal-layer {
     align-items: flex-end;
     padding: 0.75rem;
+  }
+
+  .device-workspace__split {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .device-workspace__pane--left {
+    max-height: 46vh;
+  }
+
+  .device-workspace__toolbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.15rem;
+  }
+
+  .device-workspace__action {
+    min-width: 3.25rem;
+    min-height: 3rem;
   }
 }
