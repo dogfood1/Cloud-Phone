@@ -335,6 +335,29 @@ input:focus-visible {
   gap: 0.55rem;
 }
 
+.panel-header__actions--row {
+  align-items: flex-end;
+}
+
+.panel-header__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.panel-header__add-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-inline: 1rem;
+}
+
+.panel-header__add-device .app-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 .panel-header__desc {
   margin: 0.55rem 0 0;
   max-width: 36rem;

@@ -3,6 +3,18 @@ export default {
     eyebrow: "デバイス",
     title: "デバイスギャラリー",
     desc: "ADB 実機のモデル、IP、OS、シリアル、ライブスクリーンショットを表示します。",
+    addDevice: "デバイスを追加",
+    addDeviceModal: {
+      title: "デバイスを追加",
+      desc: "接続するデバイスの種類を選択（未実装）",
+      comingSoon: "未開発",
+      close: "閉じる",
+      platforms: {
+        android: "Android",
+        harmony: "HarmonyOS",
+        apple: "Apple",
+      },
+    },
     refreshNow: "今すぐ更新",
     lastUpdate: "最終更新: {time}",
     adbReady: "ADB 準備完了",

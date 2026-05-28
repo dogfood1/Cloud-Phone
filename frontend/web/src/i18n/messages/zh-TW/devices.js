@@ -3,6 +3,18 @@ export default {
     eyebrow: "裝置",
     title: "裝置畫廊",
     desc: "顯示 ADB 實機資訊：型號、IP、系統版本、序號與即時截圖。",
+    addDevice: "新增裝置",
+    addDeviceModal: {
+      title: "新增裝置",
+      desc: "選擇要接入的裝置類型（以下功能尚未開放）",
+      comingSoon: "未開發",
+      close: "關閉",
+      platforms: {
+        android: "安卓",
+        harmony: "鴻蒙",
+        apple: "蘋果",
+      },
+    },
     refreshNow: "立即重新整理",
     lastUpdate: "最近更新：{time}",
     adbReady: "ADB 已就緒",

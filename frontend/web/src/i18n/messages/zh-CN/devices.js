@@ -3,6 +3,18 @@ export default {
     eyebrow: "设备",
     title: "设备画廊",
     desc: "展示 ADB 实机信息：型号、IP、系统版本、序列号与实时截图。",
+    addDevice: "添加设备",
+    addDeviceModal: {
+      title: "添加设备",
+      desc: "选择要接入的设备类型（以下功能尚未开放）",
+      comingSoon: "未开发",
+      close: "关闭",
+      platforms: {
+        android: "安卓",
+        harmony: "鸿蒙",
+        apple: "苹果",
+      },
+    },
     refreshNow: "立即刷新",
     lastUpdate: "最近更新：{time}",
     adbReady: "ADB 已就绪",

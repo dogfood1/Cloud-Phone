@@ -3,6 +3,18 @@ export default {
     eyebrow: "기기",
     title: "기기 갤러리",
     desc: "ADB 실제 기기: 모델, IP, OS 버전, 시리얼, 실시간 스크린샷.",
+    addDevice: "기기 추가",
+    addDeviceModal: {
+      title: "기기 추가",
+      desc: "연결할 기기 유형 선택 (아직 제공되지 않음)",
+      comingSoon: "미개발",
+      close: "닫기",
+      platforms: {
+        android: "Android",
+        harmony: "HarmonyOS",
+        apple: "Apple",
+      },
+    },
     refreshNow: "지금 새로고침",
     lastUpdate: "마지막 업데이트: {time}",
     adbReady: "ADB 준비됨",

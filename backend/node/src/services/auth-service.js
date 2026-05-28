@@ -8,20 +8,25 @@ import {
 } from "../config/auth.js";
 import { createSessionEncryptionKey } from "../utils/api-crypto.js";
 import { getAuthKeyMaterial, getPasswordRecord, savePasswordRecord } from "./auth-store.js";
-import { registerSession, removeSession } from "./session-store.js";
+import { getSessionRecord, registerSession, removeSession } from "./session-store.js";
 
 const SESSION_SECRET_CONTEXT = "cloud-phone-session";
 
 export async function getAuthStatus(sessionToken) {
   const passwordRecord = getPasswordRecord();
   const session = verifySessionTokenInternal(sessionToken);
+  const hasActiveSession = Boolean(session && getSessionRecord(sessionToken));
+
+  if (!hasActiveSession) {
+    removeSession(sessionToken);
+  }
 
   return {
-    authenticated: Boolean(session),
+    authenticated: hasActiveSession,
     passwordConfigured: Boolean(passwordRecord),
     // Only prompt for password change after the default password was verified via login.
-    requiresPasswordChange: !passwordRecord && Boolean(session),
-    sessionExpiresAt: session?.expiresAt ?? null,
+    requiresPasswordChange: !passwordRecord && hasActiveSession,
+    sessionExpiresAt: hasActiveSession ? session?.expiresAt ?? null : null,
     passwordUpdatedAt: passwordRecord?.updatedAt ?? null,
   };
 }

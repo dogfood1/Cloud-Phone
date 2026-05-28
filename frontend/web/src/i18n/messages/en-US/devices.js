@@ -3,6 +3,18 @@ export default {
     eyebrow: "Devices",
     title: "Device gallery",
     desc: "ADB devices: model, IP, OS version, serial, and live screenshots.",
+    addDevice: "Add device",
+    addDeviceModal: {
+      title: "Add device",
+      desc: "Choose a device type to connect (not available yet)",
+      comingSoon: "Coming soon",
+      close: "Close",
+      platforms: {
+        android: "Android",
+        harmony: "HarmonyOS",
+        apple: "Apple",
+      },
+    },
     refreshNow: "Refresh now",
     lastUpdate: "Last update: {time}",
     adbReady: "ADB ready",

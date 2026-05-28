@@ -1,15 +1,18 @@
 <script setup>
 import { computed } from "vue";
 import {
+  Apple,
   ArrowLeft,
   Camera,
   File,
   Folder,
   Grid3X3,
+  Hexagon,
   Home,
   Link,
   LogOut,
   Moon,
+  Plus,
   Palette,
   RefreshCw,
   User,
@@ -79,8 +82,11 @@ const iconPaths = computed(() => {
 
 const LUCIDE_ICONS = {
   devices: Grid3X3,
+  apple: Apple,
   "arrow-left": ArrowLeft,
   camera: Camera,
+  harmony: Hexagon,
+  plus: Plus,
   file: File,
   folder: Folder,
   home: Home,

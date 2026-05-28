@@ -1,7 +1,9 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
+import AddDeviceModal from "./AddDeviceModal.vue";
+import AppIcon from "./AppIcon.vue";
 import DeviceCard from "./DeviceCard.vue";
 import { formatRefreshTime, summarizeDevices } from "../utils/device-format.js";
 
@@ -35,6 +37,7 @@ const props = defineProps({
 const emit = defineEmits(["refresh", "open-device"]);
 
 const { t } = useI18n();
+const showAddDeviceModal = ref(false);
 
 const summary = computed(() => summarizeDevices(props.devices));
 const refreshLabel = computed(() => formatRefreshTime(props.lastRefreshedAt));
@@ -65,11 +68,21 @@ const statusText = computed(() => {
         <h2>{{ t("devices.title") }}</h2>
         <p class="panel-header__desc">{{ t("devices.desc") }}</p>
       </div>
-      <div class="panel-header__actions">
+      <div class="panel-header__actions panel-header__actions--row">
         <span class="status-pill">{{ statusText }}</span>
-        <button type="button" class="ghost-button" @click="emit('refresh')">
-          {{ t("devices.refreshNow") }}
-        </button>
+        <div class="panel-header__buttons">
+          <button
+            type="button"
+            class="primary-button panel-header__add-device"
+            @click="showAddDeviceModal = true"
+          >
+            <AppIcon name="plus" />
+            <span>{{ t("devices.addDevice") }}</span>
+          </button>
+          <button type="button" class="ghost-button" @click="emit('refresh')">
+            {{ t("devices.refreshNow") }}
+          </button>
+        </div>
       </div>
     </header>
 
@@ -106,5 +119,7 @@ const statusText = computed(() => {
         @open="emit('open-device', $event)"
       />
     </div>
+
+    <AddDeviceModal v-if="showAddDeviceModal" @close="showAddDeviceModal = false" />
   </section>
 </template>
