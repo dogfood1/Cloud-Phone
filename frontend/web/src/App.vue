@@ -150,7 +150,7 @@ function saveSettingsForm() {
         />
       </div>
       <ConsoleLayout
-        v-else
+        v-else-if="!showAuthLayer"
         v-model:active-tab="activeTab"
         v-model:selected-device="selectedDevice"
         :devices="devices"

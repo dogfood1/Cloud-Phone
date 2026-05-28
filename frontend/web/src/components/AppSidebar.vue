@@ -8,6 +8,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  mobileOpen: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(["update:activeTab", "logout"]);
@@ -21,7 +25,7 @@ const tabs = computed(() => [
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'sidebar--mobile-open': mobileOpen }">
     <div class="sidebar__brand">
       <div class="sidebar__logo" aria-hidden="true">
         <AppIcon name="phone" />

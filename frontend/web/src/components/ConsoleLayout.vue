@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import AppSidebar from "./AppSidebar.vue";
 import DeviceWorkspace from "./DeviceWorkspace.vue";
@@ -51,6 +51,7 @@ const props = defineProps({
 
 const activeTab = defineModel("activeTab", { type: String, required: true });
 const selectedDevice = defineModel("selectedDevice", { type: Object, default: null });
+const mobileSidebarOpen = ref(false);
 
 const workspaceDevice = computed(() => {
   const selected = selectedDevice.value;
@@ -74,19 +75,42 @@ function handleCloseWorkspace() {
 
 function handleTabChange(tabId) {
   activeTab.value = tabId;
+  mobileSidebarOpen.value = false;
 
   if (tabId !== "devices") {
     selectedDevice.value = null;
   }
 }
+
+function openMobileSidebar() {
+  mobileSidebarOpen.value = true;
+}
+
+function closeMobileSidebar() {
+  mobileSidebarOpen.value = false;
+}
 </script>
 
 <template>
   <div class="console-layout">
+    <button type="button" class="mobile-sidebar-toggle" @click="openMobileSidebar">菜单</button>
+    <button
+      v-if="mobileSidebarOpen"
+      type="button"
+      class="mobile-sidebar-backdrop"
+      aria-label="关闭菜单"
+      @click="closeMobileSidebar"
+    />
     <AppSidebar
       :active-tab="activeTab"
+      :mobile-open="mobileSidebarOpen"
       @update:active-tab="handleTabChange"
-      @logout="emit('logout')"
+      @logout="
+        () => {
+          closeMobileSidebar();
+          emit('logout');
+        }
+      "
     />
     <main
       class="main-panel"

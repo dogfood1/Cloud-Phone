@@ -25,7 +25,7 @@ const emit = defineEmits(["login", "change-password"]);
 </script>
 
 <template>
-  <div class="modal-layer">
+  <div class="modal-layer modal-layer--auth">
     <AuthLoginModal
       v-if="showLoginModal"
       :state="state"
