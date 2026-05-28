@@ -2523,16 +2523,19 @@ code {
 
   .device-workspace__split {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    align-content: start;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+    min-height: 0;
   }
 
-  .device-workspace__split--mobile-options-collapsed {
+  .device-workspace__split--mobile-options-open {
     grid-template-rows: auto minmax(0, 1fr);
   }
 
   .device-workspace__pane--left {
-    max-height: 46vh;
+    height: 100%;
+    max-height: none;
+    min-height: 0;
   }
 
   .device-workspace__pane--right {
