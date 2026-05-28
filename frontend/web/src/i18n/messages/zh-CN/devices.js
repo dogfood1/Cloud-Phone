@@ -2,7 +2,7 @@ export default {
   devices: {
     eyebrow: "设备",
     title: "设备画廊",
-    desc: "展示 ADB 实机信息：型号、IP、系统版本、序列号与实时截图。",
+    desc: "",
     addDevice: "添加设备",
     addDeviceModal: {
       title: "添加设备",

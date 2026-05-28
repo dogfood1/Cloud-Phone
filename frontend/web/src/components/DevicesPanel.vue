@@ -70,16 +70,15 @@ const statusText = computed(() => {
       </div>
       <div class="panel-header__actions panel-header__actions--row">
         <span class="status-pill">{{ statusText }}</span>
-        <div class="panel-header__buttons">
-          <button
-            type="button"
-            class="primary-button panel-header__add-device"
-            @click="showAddDeviceModal = true"
-          >
-            <AppIcon name="plus" />
-            <span>{{ t("devices.addDevice") }}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="panel-header__add-device"
+          :aria-label="t('devices.addDevice')"
+          :title="t('devices.addDevice')"
+          @click="showAddDeviceModal = true"
+        >
+          <AppIcon name="plus" />
+        </button>
       </div>
     </header>
 

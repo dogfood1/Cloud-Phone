@@ -358,13 +358,24 @@ input:focus-visible {
 .panel-header__add-device {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding-inline: 1rem;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.panel-header__add-device:hover {
+  border-color: var(--line-strong);
+  color: var(--accent-soft);
 }
 
 .panel-header__add-device .app-icon {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .panel-header__desc {
