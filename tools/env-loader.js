@@ -46,12 +46,18 @@ export function getServerConfig() {
     "FRONTEND_PORT",
   );
 
+  const corsAllowOrigins = String(process.env.CORS_ALLOW_ORIGINS ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
   return {
     host,
     backendPort,
     frontendPort,
     backendOrigin: `http://127.0.0.1:${backendPort}`,
     frontendOrigin: `http://127.0.0.1:${frontendPort}`,
+    corsAllowOrigins,
   };
 }
 

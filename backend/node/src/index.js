@@ -16,6 +16,9 @@ process.on("uncaughtException", (error) => {
 });
 
 server.listen(backendPort, host, () => {
-  console.log(`Cloud Phone backend API: http://127.0.0.1:${backendPort}`);
+  console.log(`Cloud Phone backend API listening on http://${host}:${backendPort}`);
+  if (host === "0.0.0.0" || host === "::") {
+    console.log(`LAN access: http://<your-ip>:${backendPort}`);
+  }
   console.log("Start frontend: cd frontend/web && npm run dev");
 });

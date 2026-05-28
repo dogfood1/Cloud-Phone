@@ -57,12 +57,30 @@ export function applyCors(req, res) {
 }
 
 function isAllowedOrigin(origin) {
+  const configuredOrigins = serverConfig.corsAllowOrigins ?? [];
+  if (configuredOrigins.includes("*")) {
+    return true;
+  }
+
   const allowedOrigins = new Set([
     serverConfig.frontendOrigin,
     `http://localhost:${serverConfig.frontendPort}`,
     `http://127.0.0.1:${serverConfig.frontendPort}`,
     `http://[::1]:${serverConfig.frontendPort}`,
+    ...configuredOrigins,
   ]);
 
-  return allowedOrigins.has(origin);
+  if (allowedOrigins.has(origin)) {
+    return true;
+  }
+
+  // Allow frontend running on any host/IP with the configured frontend port.
+  try {
+    const value = new URL(origin);
+    const expectedPort = String(serverConfig.frontendPort);
+    const actualPort = value.port || (value.protocol === "https:" ? "443" : "80");
+    return actualPort === expectedPort;
+  } catch {
+    return false;
+  }
 }

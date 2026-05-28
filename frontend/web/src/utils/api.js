@@ -13,6 +13,52 @@ import {
 
 export { clearSessionEncryptionKey, hasSessionEncryptionKey, saveSessionEncryptionKey };
 
+let preferredApiRoute = null; // "proxy" | "direct"
+
+function buildLanBackendUrl(url) {
+  if (typeof window === "undefined" || typeof url !== "string" || !url.startsWith("/api/")) {
+    return null;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+  const hostname = window.location.hostname;
+
+  if (!hostname) {
+    return null;
+  }
+
+  return `${protocol}//${hostname}:3000${url}`;
+}
+
+function resolveApiUrlByRoute(url, route) {
+  if (route === "direct") {
+    return buildLanBackendUrl(url) ?? url;
+  }
+  return url;
+}
+
+async function fetchWithLanFallback(url, options) {
+  const primaryRoute = preferredApiRoute ?? "proxy";
+  const secondaryRoute = primaryRoute === "proxy" ? "direct" : "proxy";
+  const primaryUrl = resolveApiUrlByRoute(url, primaryRoute);
+
+  try {
+    const response = await fetch(primaryUrl, options);
+    preferredApiRoute = primaryRoute;
+    return response;
+  } catch (error) {
+    const fallbackUrl = resolveApiUrlByRoute(url, secondaryRoute);
+
+    if (!(error instanceof TypeError) || !fallbackUrl || fallbackUrl === primaryUrl) {
+      throw error;
+    }
+
+    const response = await fetch(fallbackUrl, options);
+    preferredApiRoute = secondaryRoute;
+    return response;
+  }
+}
+
 async function parseResponseBody(response) {
   const envelope = await response.json();
 
@@ -49,7 +95,7 @@ async function buildRequestBody(body, options = {}) {
 }
 
 export async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
+  const response = await fetchWithLanFallback(url, {
     method: options.method ?? "GET",
     credentials: "include",
     signal: options.signal,
@@ -82,7 +128,7 @@ export async function requestJson(url, options = {}) {
 }
 
 export async function loginRequest(password) {
-  const response = await fetch("/api/auth/login", {
+  const response = await fetchWithLanFallback("/api/auth/login", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -127,7 +173,7 @@ export async function parseEncryptedFetchResponse(response) {
 
 export async function changePasswordRequest(body) {
   const hasKey = hasSessionEncryptionKey();
-  const response = await fetch("/api/auth/change-password", {
+  const response = await fetchWithLanFallback("/api/auth/change-password", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -173,7 +219,7 @@ export async function changePasswordRequest(body) {
 }
 
 export async function fetchEncryptedBinary(url, options = {}) {
-  const response = await fetch(url, {
+  const response = await fetchWithLanFallback(url, {
     ...options,
     credentials: "include",
   });
