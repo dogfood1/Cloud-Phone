@@ -402,6 +402,21 @@ h2 {
   color: var(--muted);
 }
 
+.devices-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.devices-view > .panel-header,
+.devices-view > .devices-toolbar,
+.devices-view > .panel-feedback,
+.devices-view > .empty-state {
+  flex-shrink: 0;
+}
+
 .devices-toolbar {
   display: grid;
   gap: 0.35rem;
@@ -465,6 +480,12 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.15rem;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
 }
 
 .device-card {
