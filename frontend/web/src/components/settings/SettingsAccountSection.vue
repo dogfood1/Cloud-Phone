@@ -26,11 +26,11 @@ const { t } = useI18n();
     <dl class="settings-rows">
       <div class="settings-row">
         <dt class="settings-row__label">{{ t("settings.passwordStatus") }}</dt>
-        <dd>{{ passwordStatusText }}</dd>
+        <dd><span class="settings-value">{{ passwordStatusText }}</span></dd>
       </div>
       <div class="settings-row">
         <dt class="settings-row__label">{{ t("settings.sessionExpiry") }}</dt>
-        <dd>{{ formatDate(sessionExpiresAt) }}</dd>
+        <dd><span class="settings-value">{{ formatDate(sessionExpiresAt) }}</span></dd>
       </div>
     </dl>
 

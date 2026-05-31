@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp"
-    android:layout_marginBottom="24dp"
+    android:layout_marginBottom="8dp"
     android:background="@drawable/bg_auth_card"
     android:orientation="vertical"
     android:padding="16dp">
 
+    <include layout="@layout/include_settings_section_header" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/settings_server_title"
-        android:textColor="@color/auth_text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="@string/settings_section_server_desc"
+        android:text="@string/settings_server_current"
         android:textColor="@color/auth_text_secondary"
-        android:textSize="13sp" />
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/textServerEndpoint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_settings_stat_chip"
+        android:fontFamily="monospace"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
         android:textColor="@color/auth_text_primary"
-        android:textSize="15sp" />
+        android:textSize="14sp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonChangeServer"
         style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/settings_change_server" />
+        android:layout_marginTop="14dp"
+        android:text="@string/settings_change_server"
+        app:cornerRadius="10dp" />
 </LinearLayout>

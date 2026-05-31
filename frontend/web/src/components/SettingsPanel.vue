@@ -41,7 +41,7 @@ const sections = [
 
 <template>
   <section class="settings-page">
-    <header class="panel-header">
+    <header class="panel-header settings-page__hero">
       <div>
         <p class="eyebrow">{{ t("settings.eyebrow") }}</p>
         <h2>{{ t("settings.title") }}</h2>

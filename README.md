@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.16** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.17** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -227,6 +227,8 @@ images/readme/
 | **外观** | 界面语言（5 种 locale 偏好）、浅色/深色主题（Material3 DayNight） |
 | **刷新** | 设备列表 / 截图刷新间隔（1–120 秒），保存后设备页轮询立即按新间隔运行 |
 | **服务器** | 显示当前 `host:port`，一键更换并重新登录 |
+
+设置页采用 Hero 头部 + 分区图标卡片；Web 与 Android 主题色统一为绿色（`#16a34a`）。
 
 ### 设备工作区
 

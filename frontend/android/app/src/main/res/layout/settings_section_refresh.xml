@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp"
@@ -7,26 +8,13 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/settings_section_refresh_title"
-        android:textColor="@color/auth_text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+    <include layout="@layout/include_settings_section_header" />
 
-    <TextView
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="@string/settings_section_refresh_desc"
-        android:textColor="@color/auth_text_secondary"
-        android:textSize="13sp" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
         android:hint="@string/settings_device_interval">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -38,6 +26,7 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -55,6 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:lineSpacingExtra="2dp"
         android:text="@string/settings_interval_hint"
         android:textColor="@color/auth_text_secondary"
         android:textSize="12sp" />
@@ -64,6 +54,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:background="@drawable/bg_settings_stat_chip"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
         android:textColor="@color/auth_primary"
         android:textSize="13sp"
         android:visibility="gone" />
@@ -73,5 +66,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="@string/settings_save" />
+        android:text="@string/settings_save"
+        app:cornerRadius="10dp" />
 </LinearLayout>

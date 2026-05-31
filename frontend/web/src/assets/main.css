@@ -11,12 +11,12 @@
   --bg-preview: #f1f5f9;
   --bg-image: #e2e8f0;
   --line: rgba(15, 23, 42, 0.1);
-  --line-strong: rgba(14, 165, 233, 0.35);
+  --line-strong: rgba(22, 163, 74, 0.35);
   --text: #0f172a;
   --muted: #475569;
   --text-muted: #475569;
-  --accent: #0284c7;
-  --accent-soft: #0369a1;
+  --accent: #16a34a;
+  --accent-soft: #15803d;
   --accent-contrast: #ffffff;
   --success: #16a34a;
   --success-soft: rgba(22, 163, 74, 0.12);
@@ -32,8 +32,8 @@
   --radius-lg: 1.25rem;
   --radius-md: 0.9rem;
   --body-gradient:
-    radial-gradient(circle at 0% 0%, rgba(34, 197, 94, 0.08), transparent 34%),
-    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.08), transparent 30%),
+    radial-gradient(circle at 0% 0%, rgba(34, 197, 94, 0.12), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(22, 163, 74, 0.08), transparent 30%),
     linear-gradient(180deg, #f8fafc 0%, #eef2f7 52%, #e8edf4 100%);
 }
 
@@ -47,13 +47,13 @@
   --bg-preview: #0b1220;
   --bg-image: #020617;
   --line: rgba(148, 163, 184, 0.18);
-  --line-strong: rgba(56, 189, 248, 0.35);
+  --line-strong: rgba(34, 197, 94, 0.35);
   --text: #f8fafc;
   --muted: #94a3b8;
   --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-soft: #7dd3fc;
-  --accent-contrast: #f8fafc;
+  --accent: #22c55e;
+  --accent-soft: #4ade80;
+  --accent-contrast: #052e16;
   --success: #22c55e;
   --success-soft: rgba(34, 197, 94, 0.16);
   --primary: #22c55e;
@@ -65,8 +65,8 @@
   --shadow: 0 20px 50px rgba(2, 6, 23, 0.45);
   --overlay: rgba(2, 6, 23, 0.65);
   --body-gradient:
-    radial-gradient(circle at 0% 0%, rgba(34, 197, 94, 0.12), transparent 32%),
-    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 28%),
+    radial-gradient(circle at 0% 0%, rgba(34, 197, 94, 0.14), transparent 32%),
+    radial-gradient(circle at 100% 0%, rgba(22, 163, 74, 0.1), transparent 28%),
     linear-gradient(180deg, #0b1220 0%, #0f172a 52%, #111827 100%);
 }
 
@@ -2220,7 +2220,7 @@ code {
 .device-apps__progress-bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--accent, #3b82f6);
+  background: var(--accent, #16a34a);
   transition: width 220ms ease;
 }
 
@@ -2459,8 +2459,8 @@ code {
 }
 
 .device-apps__btn--primary {
-  border-color: var(--accent, #3b82f6);
-  background: color-mix(in srgb, var(--accent, #3b82f6) 12%, transparent);
+  border-color: var(--accent, #16a34a);
+  background: color-mix(in srgb, var(--accent, #16a34a) 12%, transparent);
 }
 
 .device-apps__btn--danger {

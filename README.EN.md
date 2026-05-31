@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.16** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.17** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -230,6 +230,8 @@ Mirrors the web `SettingsPanel` sections:
 | **Appearance** | UI locale preference (5 codes), light/dark theme (Material3 DayNight) |
 | **Refresh** | Device list / screenshot intervals (1–120 s); Devices tab polling picks up new values immediately |
 | **Server** | Current `host:port`, switch server and sign in again |
+
+Settings use a hero header and section icon cards; web and Android share a green theme (`#16a34a`).
 
 ### Device workspace
 

@@ -65,6 +65,7 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         endpoint = ServerEndpointStore.read(requireContext());
+        SettingsSectionUi.decorate(view);
         bindAccountSection(view);
         bindAppearanceSection(view);
         bindRefreshSection(view);

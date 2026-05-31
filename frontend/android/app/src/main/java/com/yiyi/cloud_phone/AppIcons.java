@@ -85,4 +85,20 @@ final class AppIcons {
     static IconicsDrawable back(Context context) {
         return drawable(context, "cmd_arrow_left", R.color.auth_text_primary, 24);
     }
+
+    static IconicsDrawable settingsAccount(Context context) {
+        return drawable(context, "cmd_account_circle", R.color.auth_primary, 20);
+    }
+
+    static IconicsDrawable settingsAppearance(Context context) {
+        return drawable(context, "cmd_palette", R.color.auth_primary, 20);
+    }
+
+    static IconicsDrawable settingsRefresh(Context context) {
+        return drawable(context, "cmd_refresh", R.color.auth_primary, 20);
+    }
+
+    static IconicsDrawable settingsServer(Context context) {
+        return drawable(context, "cmd_server", R.color.auth_primary, 20);
+    }
 }
