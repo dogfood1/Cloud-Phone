@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.15** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.16** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -141,6 +141,7 @@ images/readme/
 
 - `POST .../cast/start` 启动；浏览器连 `WebSocket .../cast/ws`；`cast/start` 与 `cast/status` 返回 `startupLogs`（adb push、forward、shell 等）
 - 右侧画布在连接阶段显示启动日志（含「前端 scrcpy 启动成功」等），**首帧渲染后自动隐藏**；全屏模式同样显示在同一块画布上
+- 非全屏时控制工具栏固定于设备名称下方；全屏时仍为悬浮工具栏
 - 设备端自编译 **scrcpy-server 4.0**（缺 jar 时后端 Gradle 自动编译）；启动前 `pkill` 残留进程，避免 **8886** 占用
 - 参数经 WebSocket **type 101** 热更新（`codecOptions` / stream extras）；投屏中会锁定左侧表单，防止误改
 - 画布触控：坐标按**解码后视频尺寸**映射（与 server `PositionMapper` 一致）；鼠标悬停/按下/拖动/抬起走 scrcpy SDK 协议
@@ -236,6 +237,7 @@ images/readme/
   - 摄像头：摄像头、视频、音频（含 `audioCode`、`bufferMs` 等，流 extra 与 Web 对齐）
 - 修改参数在离开页面时自动保存
 - **右侧投屏画布**：点击 **开始** 在工作区内联投屏（左 44% 设置 / 右 56% 画布）；启动阶段显示连接日志（含后端 adb push / forward / shell 与前端 WebSocket 步骤），首帧出现后自动隐藏
+- **投屏工具栏**：非全屏时位于设备名下方全宽横条；全屏时底部悬浮
 - **全屏** 按钮可携带当前会话进入横屏全屏，无需重复启动后端
 
 ### 全屏投屏

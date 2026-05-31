@@ -331,25 +331,26 @@ async function handleViewportFullscreenChange(isFullscreen) {
         </div>
       </div>
 
+      <DeviceWorkspaceToolbar
+        :actions="toolbarActions"
+        :volume-sub-actions="volumeSubActions"
+        :volume-menu-open="volumeMenuOpen"
+        :is-volume-menu-action="isVolumeMenuAction"
+        :action-label="actionLabel"
+        :action-icon="actionIcon"
+        :action-title="actionTitle"
+        :is-action-disabled="isActionDisabled"
+        :uses-press-hold="usesPressHold"
+        :is-action-pressed="isActionPressed"
+        :is-action-recording="isActionRecording"
+        :on-toolbar-pointer-down="onToolbarPointerDown"
+        :on-toolbar-pointer-up="onToolbarPointerUp"
+        :handle-toolbar-click="handleToolbarClick"
+        :handle-volume-sub-action="handleVolumeSubAction"
+        :long-horizontal="screenLongHorizontal"
+        :floating="isViewportFullscreen"
+      />
     </header>
-    <DeviceWorkspaceToolbar
-      :actions="toolbarActions"
-      :volume-sub-actions="volumeSubActions"
-      :volume-menu-open="volumeMenuOpen"
-      :is-volume-menu-action="isVolumeMenuAction"
-      :action-label="actionLabel"
-      :action-icon="actionIcon"
-      :action-title="actionTitle"
-      :is-action-disabled="isActionDisabled"
-      :uses-press-hold="usesPressHold"
-      :is-action-pressed="isActionPressed"
-      :is-action-recording="isActionRecording"
-      :on-toolbar-pointer-down="onToolbarPointerDown"
-      :on-toolbar-pointer-up="onToolbarPointerUp"
-      :handle-toolbar-click="handleToolbarClick"
-      :handle-volume-sub-action="handleVolumeSubAction"
-      :long-horizontal="screenLongHorizontal"
-    />
 
     <div
       class="device-workspace__split"

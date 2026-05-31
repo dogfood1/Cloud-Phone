@@ -66,16 +66,25 @@ defineProps({
     type: Boolean,
     required: true,
   },
+  floating: {
+    type: Boolean,
+    default: false,
+  },
 });
 </script>
 
 <template>
-  <div class="device-workspace-toolbar-layer" aria-label="设备控制工具栏">
+  <div
+    class="device-workspace-toolbar-layer"
+    :class="{ 'device-workspace-toolbar-layer--floating': floating }"
+    aria-label="设备控制工具栏"
+  >
     <div
       class="device-workspace__toolbar device-workspace-toolbar-layer__toolbar"
       :class="{
-        'device-workspace-toolbar-layer__toolbar--horizontal': longHorizontal,
-        'device-workspace-toolbar-layer__toolbar--vertical': !longHorizontal,
+        'device-workspace-toolbar-layer__toolbar--docked': !floating,
+        'device-workspace-toolbar-layer__toolbar--horizontal': floating && longHorizontal,
+        'device-workspace-toolbar-layer__toolbar--vertical': floating && !longHorizontal,
       }"
       role="toolbar"
       aria-label="设备控制"

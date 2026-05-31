@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.16 - 2026-05-30
+
+- Web 设备工作区：非全屏时工具栏固定于页面顶部、设备名称下方横向排列；全屏仍使用悬浮工具栏
+- Android 设备工作区：投屏工具栏移至设备名下方全宽横条，投屏时显示；全屏模式保持底部悬浮
+
 ## 0.12.15 - 2026-05-30
 
 - 投屏启动日志：后端 `cast/start` 与 `cast/status` 返回 `startupLogs`（adb push scrcpy-server、forward、shell、WebSocket 管道等）

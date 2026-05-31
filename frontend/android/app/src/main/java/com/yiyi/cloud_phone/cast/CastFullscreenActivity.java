@@ -167,6 +167,7 @@ public class CastFullscreenActivity extends AppCompatActivity {
 
 
         toolbarDock = findViewById(R.id.castToolbarDock);
+        toolbarDock.setBackgroundResource(R.drawable.cast_panel_bg);
 
         castViewport.bind(findViewById(R.id.castViewportRoot), new CastViewportController.Host() {
 
@@ -238,20 +239,21 @@ public class CastFullscreenActivity extends AppCompatActivity {
             }
         }, false);
 
-        castViewport.attachToolbar(findViewById(R.id.castToolbar), new CastInteractionController.ToolbarHandler() {
-            @Override
-            public void onStopRequested() {
-                stopCastAndFinish();
-            }
-
-            @Override
-            public void onRotateRequested() {
-                castViewport.rotatePreview();
-            }
-        });
-        new CastToolbarController(
+        castViewport.attachToolbarDock(
+                findViewById(R.id.castToolbar),
                 findViewById(R.id.castToolbarScroll),
-                findViewById(R.id.castToolbarToggle)
+                findViewById(R.id.castToolbarToggle),
+                new CastViewportController.ToolbarHandler() {
+                    @Override
+                    public void onStopRequested() {
+                        stopCastAndFinish();
+                    }
+
+                    @Override
+                    public void onRotateRequested() {
+                        castViewport.rotatePreview();
+                    }
+                }
         );
 
 

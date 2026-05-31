@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/castToolbarDock"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/auth_surface"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="6dp"
+    android:visibility="gone">
+
+    <HorizontalScrollView
+        android:id="@+id/castToolbarScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/castToolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingEnd="4dp" />
+    </HorizontalScrollView>
+
+    <ImageButton
+        android:id="@+id/castToolbarToggle"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/cast_toolbar_button_bg"
+        android:contentDescription="@string/cast_toolbar_collapse"
+        android:padding="8dp"
+        android:scaleType="centerInside" />
+</LinearLayout>

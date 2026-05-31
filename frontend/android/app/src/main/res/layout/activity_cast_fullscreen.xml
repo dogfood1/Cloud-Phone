@@ -8,47 +8,13 @@
 
     <include layout="@layout/include_cast_viewport" />
 
-    <LinearLayout
-        android:id="@+id/castToolbarDock"
+    <include
+        layout="@layout/include_cast_toolbar_dock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/cast_panel_bg"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingVertical="6dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="4dp"
-        android:visibility="gone">
-
-        <HorizontalScrollView
-            android:id="@+id/castToolbarScroll"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxWidth="320dp"
-            android:fillViewport="true"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/castToolbar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingEnd="4dp" />
-        </HorizontalScrollView>
-
-        <ImageButton
-            android:id="@+id/castToolbarToggle"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/cast_toolbar_button_bg"
-            android:contentDescription="@string/cast_toolbar_collapse"
-            android:padding="8dp"
-            android:scaleType="centerInside" />
-    </LinearLayout>
+        android:layout_marginBottom="16dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/castErrorClose"

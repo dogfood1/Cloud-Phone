@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.15** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.16** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -140,6 +140,7 @@ Images are embedded in the corresponding feature sections below.
 
 - `POST .../cast/start` to start; browser connects to `WebSocket .../cast/ws`; `cast/start` and `cast/status` return `startupLogs` (adb push, forward, shell, etc.)
 - The right canvas shows startup logs while connecting (including frontend scrcpy ready); logs **hide after the first rendered frame**; fullscreen uses the same canvas overlay
+- Non-fullscreen toolbar is docked below the device name; fullscreen keeps the floating toolbar
 - Device runs a locally built **scrcpy-server 4.0** (backend auto-builds via Gradle when missing)
 - Startup kills leftover `com.genymobile.scrcpy.Server` processes to avoid port **8886** conflicts
 - Stream extras go over WebSocket type **101** (`codecOptions` / stream extras); left panel locks while casting to avoid accidental edits
@@ -239,6 +240,7 @@ Mirrors the web `SettingsPanel` sections:
   - Camera: camera, video, audio (`audioCode`, buffer fields, stream extras aligned with web)
 - Changes auto-save when you leave the page
 - **Right cast canvas:** **Start** casts inline in the workspace (settings left, canvas right); connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
+- **Cast toolbar:** docked below the device name when not fullscreen; floating bar at the bottom in fullscreen
 - **Fullscreen** can reuse the active session without calling `cast/start` again
 
 ### Fullscreen cast

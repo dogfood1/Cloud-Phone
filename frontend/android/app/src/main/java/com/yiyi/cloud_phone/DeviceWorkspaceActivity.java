@@ -39,7 +39,6 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
 import com.yiyi.cloud_phone.cast.CastFullscreenActivity;
-
 import com.yiyi.cloud_phone.cast.CastViewportController;
 
 import com.yiyi.cloud_phone.workspace.CastMode;
@@ -95,6 +94,8 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
     private TextView textHint;
 
     private MaterialButton buttonStartCast;
+
+    private View castToolbarDock;
 
     private final CastViewportController castViewport = new CastViewportController();
 
@@ -170,7 +171,7 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         buttonStartCast.setOnClickListener(v -> onStartCastRequested());
 
-
+        castToolbarDock = findViewById(R.id.castToolbarDock);
 
         castViewport.bind(findViewById(R.id.castViewportRoot), new CastViewportController.Host() {
 
@@ -234,6 +235,12 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
                 buttonStartCast.setEnabled(deviceConnected || active);
 
+                if (castToolbarDock != null) {
+
+                    castToolbarDock.setVisibility(active ? View.VISIBLE : View.GONE);
+
+                }
+
             }
 
 
@@ -251,6 +258,23 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
             }
 
         }, true);
+
+        castViewport.attachToolbarDock(
+                findViewById(R.id.castToolbar),
+                findViewById(R.id.castToolbarScroll),
+                findViewById(R.id.castToolbarToggle),
+                new CastViewportController.ToolbarHandler() {
+                    @Override
+                    public void onStopRequested() {
+                        onStartCastRequested();
+                    }
+
+                    @Override
+                    public void onRotateRequested() {
+                        castViewport.rotatePreview();
+                    }
+                }
+        );
 
         castViewport.setFullscreenClickListener(v -> {
             if (!castViewport.isCasting()) {

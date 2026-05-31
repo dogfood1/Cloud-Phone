@@ -20,17 +20,11 @@ final class CastInteractionController {
             "torch", "zoom-out", "zoom-in", "stop"
     };
 
-    interface ToolbarHandler {
-        void onStopRequested();
-
-        void onRotateRequested();
-    }
-
     private final AppCompatActivity activity;
     private final CastMode castMode;
     private final TextureHolder textureHolder;
     private final CastWebSocketSession webSocketSession;
-    private final CastInteractionController.ToolbarHandler toolbarHandler;
+    private final CastViewportController.ToolbarHandler toolbarHandler;
     private boolean interactionEnabled = true;
     private int videoWidth;
     private int videoHeight;
@@ -50,7 +44,7 @@ final class CastInteractionController {
             CastMode castMode,
             TextureHolder textureHolder,
             CastWebSocketSession webSocketSession,
-            ToolbarHandler toolbarHandler
+            CastViewportController.ToolbarHandler toolbarHandler
     ) {
         this.activity = activity;
         this.castMode = castMode;

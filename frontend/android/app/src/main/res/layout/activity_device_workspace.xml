@@ -49,6 +49,14 @@
             app:cornerRadius="10dp" />
     </LinearLayout>
 
+    <include
+        layout="@layout/include_cast_toolbar_dock"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerBar" />
+
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineSplit"
         android:layout_width="wrap_content"
@@ -65,7 +73,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/guidelineSplit"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerBar">
+        app:layout_constraintTop_toBottomOf="@id/castToolbarDock">
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutCastMode"
@@ -125,7 +133,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/guidelineSplit"
-        app:layout_constraintTop_toBottomOf="@id/headerBar">
+        app:layout_constraintTop_toBottomOf="@id/castToolbarDock">
 
         <include layout="@layout/include_cast_viewport" />
     </FrameLayout>

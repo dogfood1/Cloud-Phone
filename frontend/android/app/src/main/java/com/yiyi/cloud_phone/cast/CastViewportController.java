@@ -42,6 +42,12 @@ public final class CastViewportController {
         void onCastFailed(String message);
     }
 
+    public interface ToolbarHandler {
+        void onStopRequested();
+
+        void onRotateRequested();
+    }
+
     private Host host;
     private FrameLayout rootLayout;
     private TextureView textureView;
@@ -98,7 +104,7 @@ public final class CastViewportController {
         setupTextureView();
     }
 
-    public void attachToolbar(View toolbarRoot, CastInteractionController.ToolbarHandler toolbarHandler) {
+    public void attachToolbar(View toolbarRoot, ToolbarHandler toolbarHandler) {
         AppCompatActivity activity = host.activity();
         interactionController = new CastInteractionController(
                 activity,
@@ -125,6 +131,16 @@ public final class CastViewportController {
         interactionController.bind((LinearLayout) toolbarRoot);
         interactionController.setInteractionEnabled(host.castMode() != CastMode.CAMERA);
         interactionController.setPreviewRotation(previewRotation);
+    }
+
+    public void attachToolbarDock(
+            View toolbarRoot,
+            android.widget.HorizontalScrollView toolbarScroll,
+            android.widget.ImageButton toolbarToggle,
+            ToolbarHandler toolbarHandler
+    ) {
+        attachToolbar(toolbarRoot, toolbarHandler);
+        new CastToolbarController(toolbarScroll, toolbarToggle);
     }
 
     public void setFullscreenClickListener(View.OnClickListener listener) {
