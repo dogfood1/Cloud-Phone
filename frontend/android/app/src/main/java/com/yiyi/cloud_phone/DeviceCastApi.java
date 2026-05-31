@@ -8,6 +8,15 @@ public final class DeviceCastApi {
     private DeviceCastApi() {
     }
 
+    public static JSONObject getCastStatus(
+            Context context,
+            String host,
+            int port,
+            String serial
+    ) throws Exception {
+        return CloudPhoneApiClient.getDeviceCastStatus(context, host, port, serial);
+    }
+
     public static JSONObject startCast(
             Context context,
             String host,

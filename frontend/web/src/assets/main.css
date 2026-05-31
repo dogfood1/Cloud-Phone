@@ -1183,6 +1183,47 @@ h2 {
   color: #ffb4b4;
 }
 
+.device-cast-viewport__overlay--logs {
+  place-content: stretch;
+  align-items: stretch;
+  justify-items: stretch;
+  padding: 1rem;
+}
+
+.device-cast-viewport__log-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+  padding: 0.85rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: var(--radius-md);
+  background: rgb(8 12 20 / 88%);
+}
+
+.device-cast-viewport__log-title {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.device-cast-viewport__log-text {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .device-cast-viewport__badge {
   position: absolute;
   right: 0.75rem;

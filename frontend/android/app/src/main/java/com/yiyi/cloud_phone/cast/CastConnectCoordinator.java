@@ -10,9 +10,11 @@ import okhttp3.OkHttpClient;
 
 final class CastConnectCoordinator {
     interface Host {
-        void onBackendStarted(byte[] streamParams);
+        void onBackendStarted(org.json.JSONObject session, byte[] streamParams);
 
-        void onStreamReady();
+        void onWebSocketOpen();
+
+        void onInitialInfo();
 
         void onStreamError(String message);
     }
@@ -41,7 +43,7 @@ final class CastConnectCoordinator {
                 new CastSessionController.Callback() {
                     @Override
                     public void onCastStarted(JSONObject sessionPayload, byte[] streamParams) {
-                        hostCallback.onBackendStarted(streamParams);
+                        hostCallback.onBackendStarted(sessionPayload, streamParams);
                     }
 
                     @Override
@@ -65,12 +67,12 @@ final class CastConnectCoordinator {
         session.connect(client, host, port, url, streamParams, new CastWebSocketSession.Listener() {
             @Override
             public void onOpen() {
-                // waiting for frames
+                hostCallback.onWebSocketOpen();
             }
 
             @Override
             public void onStreamReady() {
-                hostCallback.onStreamReady();
+                hostCallback.onInitialInfo();
             }
 
             @Override

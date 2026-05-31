@@ -1,5 +1,6 @@
 import { runAdb, spawnAdbShell } from "../adb-command.js";
 import { logCastInfo } from "./cast-logger.js";
+import { appendCastStartupLog } from "./startup-log.js";
 import { buildServerShellCommand } from "./server-args.js";
 import { attachShellMonitor } from "./shell-monitor.js";
 
@@ -37,6 +38,7 @@ export async function ensureServerShell(session, options = {}) {
     socketName: session.socketName,
     localPort: session.localPort,
   });
+  appendCastStartupLog(session, "后端：启动 scrcpy-server shell");
 
   const shellProcess = spawnAdbShell(session.serial, shellCommand);
   session.shellProcess = shellProcess;
@@ -49,6 +51,7 @@ export async function ensureServerShell(session, options = {}) {
     scid: session.scid === -1 ? "default" : `0x${session.scid.toString(16)}`,
     tunnel: session.tunnelMode,
   });
+  appendCastStartupLog(session, `后端：scrcpy-server shell 已启动 (pid ${shellProcess.pid ?? "?"})`);
 
   await delay(450);
 

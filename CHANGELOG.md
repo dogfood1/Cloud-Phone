@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.15 - 2026-05-30
+
+- 投屏启动日志：后端 `cast/start` 与 `cast/status` 返回 `startupLogs`（adb push scrcpy-server、forward、shell、WebSocket 管道等）
+- Web / Android：点击「开始投屏」后在右侧投屏画布显示连接日志；首帧渲染后自动隐藏（全屏与否均在同一块画布）
+- Android 设备工作区：左设置 / 右画布内联投屏，全屏按钮可携带已有会话进入全屏，避免重复 `cast/start`
+
 ## 0.12.14 - 2026-05-29
 
 - Android 全屏投屏：工具箱底部常驻并支持折叠/展开；画布 letterbox 对齐 Web（长边贴长边，尽量减少黑边）

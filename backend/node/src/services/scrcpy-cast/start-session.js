@@ -7,6 +7,7 @@ import { ensureScrcpyServerBuilt } from "../scrcpy-build.js";
 import { runWithAdbLock } from "../adb-lock.js";
 import { adbForward, adbForwardTcp, adbPush, clearDeviceTunnels, listAdbForward } from "../adb-command.js";
 import { logCastError, logCastInfo, logCastWarn } from "./cast-logger.js";
+import { appendCastStartupLog } from "./startup-log.js";
 import { listCastFeatures, resolveCastServerOptions } from "./cast-options.js";
 import { resolveVideoStreamSummary } from "./video-stream-config.js";
 import { connectControlSocket } from "./control-bridge.js";
@@ -79,20 +80,28 @@ export async function startScrcpyCast(serial, options = {}) {
     serverExitCode: null,
     serverExitSignal: null,
     startedAt: Date.now(),
+    startupLogs: [],
   };
+
+  appendCastStartupLog(session, "后端：开始 cast/start 会话");
+  appendCastStartupLog(session, `后端：scrcpy-server 就绪 (${SCRCPY_SERVER_VERSION})`);
 
   setCastSession(serial, session);
 
   try {
     await runWithAdbLock(async () => {
       logCastInfo(serial, "adb.tunnels.clear", {});
+      appendCastStartupLog(session, "adb：清理旧 forward 隧道");
       await clearDeviceTunnels(serial);
 
       logCastInfo(serial, "adb.push.begin", { remote: getRemoteJarPath() });
+      appendCastStartupLog(session, "adb：push scrcpy-server.jar 开始");
       await adbPush(serial, jarPath, getRemoteJarPath());
       logCastInfo(serial, "adb.push.done", { remote: getRemoteJarPath() });
+      appendCastStartupLog(session, "adb：push scrcpy-server.jar 完成");
 
       logCastInfo(serial, "adb.forward.begin", { localPort, socketName });
+      appendCastStartupLog(session, "adb：建立 forward 隧道开始");
       if (isWsScrcpy) {
         // ws-scrcpy modified server listens on tcp:8886 on device
         await adbForwardTcp(serial, localPort, 8886);
@@ -106,6 +115,7 @@ export async function startScrcpyCast(serial, options = {}) {
         socketName,
         forwardList,
       });
+      appendCastStartupLog(session, `adb：forward 隧道完成 (local:${localPort})`);
     });
   } catch (error) {
     logCastError(serial, "cast.start.adb_failed", {
@@ -123,6 +133,7 @@ export async function startScrcpyCast(serial, options = {}) {
     tunnel: CAST_TUNNEL_FORWARD,
     message: "Forward tunnel ready; scrcpy framed stream starts when WebSocket connects",
   });
+  appendCastStartupLog(session, "后端：cast/start 完成，等待 WebSocket 连接");
 
   const encoded = encodeURIComponent(serial);
   const features = listCastFeatures(serverOptions);
@@ -143,6 +154,7 @@ export async function startScrcpyCast(serial, options = {}) {
     controlWsPath: serverOptions.control ? `/api/devices/${encoded}/cast/control/ws` : null,
     audio: serverOptions.audio,
     control: serverOptions.control,
+    startupLogs: session.startupLogs ?? [],
   };
 }
 
@@ -160,12 +172,14 @@ export async function ensureCastVideoPipe(serial) {
       localPort: session.localPort,
       serverExited: session.serverExited ?? false,
     });
+    appendCastStartupLog(session, "后端：准备 WebSocket 视频管道");
     await ensureServerShell(session, session.castOptions ?? {});
     logCastInfo(serial, "video.pipe.web_cast_ready", {
       localPort: session.localPort,
       shellPid: session.shellProcess?.pid ?? null,
       serverExited: session.serverExited ?? false,
     });
+    appendCastStartupLog(session, "后端：WebSocket 视频管道就绪");
     return session;
   }
 

@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.14** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.15** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -138,7 +138,8 @@ Images are embedded in the corresponding feature sections below.
 
 **Cast pipeline**
 
-- `POST .../cast/start` to start; browser connects to `WebSocket .../cast/ws`
+- `POST .../cast/start` to start; browser connects to `WebSocket .../cast/ws`; `cast/start` and `cast/status` return `startupLogs` (adb push, forward, shell, etc.)
+- The right canvas shows startup logs while connecting (including frontend scrcpy ready); logs **hide after the first rendered frame**; fullscreen uses the same canvas overlay
 - Device runs a locally built **scrcpy-server 4.0** (backend auto-builds via Gradle when missing)
 - Startup kills leftover `com.genymobile.scrcpy.Server` processes to avoid port **8886** conflicts
 - Stream extras go over WebSocket type **101** (`codecOptions` / stream extras); left panel locks while casting to avoid accidental edits
@@ -237,10 +238,13 @@ Mirrors the web `SettingsPanel` sections:
   - Mirror: video, audio, device, screen (virtual display presets, `__main__`/`__custom__`, suggested DPI, `start_app` package)
   - Camera: camera, video, audio (`audioCode`, buffer fields, stream extras aligned with web)
 - Changes auto-save when you leave the page
+- **Right cast canvas:** **Start** casts inline in the workspace (settings left, canvas right); connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
+- **Fullscreen** can reuse the active session without calling `cast/start` again
 
 ### Fullscreen cast
 
 - **Start** opens landscape fullscreen: `POST .../cast/start` + `WebSocket .../cast/ws`, **MediaCodec** H.264, letterboxed canvas with preview rotation
+- Startup logs on the canvas until the first frame is rendered
 - **Mirror:** recents / home / back / power / volume / rotate / stop; touch injection (scrcpy wire format)
 - **Camera:** torch, zoom out, zoom in, stop; no canvas touch injection
 - Chrome **auto-hides** (~3.5 s); tap video to toggle; enter/exit fades and live-status dot animation

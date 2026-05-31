@@ -49,64 +49,85 @@
             app:cornerRadius="10dp" />
     </LinearLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/layoutCastMode"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guidelineSplit"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="16dp"
-        android:hint="@string/workspace_cast_mode"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.44" />
+
+    <LinearLayout
+        android:id="@+id/leftPane"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guidelineSplit"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerBar">
 
-        <AutoCompleteTextView
-            android:id="@+id/inputCastMode"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutCastMode"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none"
-            android:textSize="14sp" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="12dp"
+            android:hint="@string/workspace_cast_mode">
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/settingsTabs"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@color/auth_surface"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/layoutCastMode"
-        app:tabIndicatorColor="@color/auth_primary"
-        app:tabGravity="start"
-        app:tabMode="scrollable"
-        app:tabSelectedTextColor="@color/auth_primary"
-        app:tabTextColor="@color/auth_text_secondary" />
+            <AutoCompleteTextView
+                android:id="@+id/inputCastMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textSize="14sp" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/settingsPager"
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/settingsTabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@color/auth_surface"
+            app:tabGravity="start"
+            app:tabIndicatorColor="@color/auth_primary"
+            app:tabMode="scrollable"
+            app:tabSelectedTextColor="@color/auth_primary"
+            app:tabTextColor="@color/auth_text_secondary" />
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/settingsPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/textHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="4dp"
+            android:text="@string/workspace_settings_hint"
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/castViewportHost"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/textHint"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/settingsTabs" />
-
-    <TextView
-        android:id="@+id/textHint"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="12dp"
-        android:text="@string/workspace_settings_hint"
-        android:textColor="@color/auth_text_secondary"
-        android:textSize="12sp"
+        android:layout_margin="8dp"
+        android:background="@color/auth_preview_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@id/guidelineSplit"
+        app:layout_constraintTop_toBottomOf="@id/headerBar">
+
+        <include layout="@layout/include_cast_viewport" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,6 +1,8 @@
 import WS from "ws";
 
 import { logCastError, logCastInfo, logCastWarn } from "./cast-logger.js";
+import { getCastSession } from "./session-store.js";
+import { appendCastStartupLog } from "./startup-log.js";
 import { shouldLogPacketSummary, summarizeWsPacket } from "./ws-packet-summary.js";
 
 function delay(ms) {
@@ -239,6 +241,7 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
   });
 
   logCastInfo(serial, "ws.proxy.ready", { remoteUrl, stats: counters });
+  appendCastStartupLog(getCastSession(serial), "后端：WebSocket 代理已连接设备 scrcpy-server");
 
   return remoteWs;
 }

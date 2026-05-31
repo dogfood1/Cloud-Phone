@@ -6,11 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/auth_preview_bg">
 
-    <TextureView
-        android:id="@+id/castTexture"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:keepScreenOn="true" />
+    <include layout="@layout/include_cast_viewport" />
 
     <LinearLayout
         android:id="@+id/castToolbarDock"
@@ -24,7 +20,8 @@
         android:orientation="horizontal"
         android:paddingVertical="6dp"
         android:paddingStart="8dp"
-        android:paddingEnd="4dp">
+        android:paddingEnd="4dp"
+        android:visibility="gone">
 
         <HorizontalScrollView
             android:id="@+id/castToolbarScroll"
@@ -53,67 +50,12 @@
             android:scaleType="centerInside" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/castOverlayLoading"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#CC0B1220"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminate="true"
-            app:indicatorColor="@color/auth_primary"
-            app:indicatorSize="48dp"
-            app:trackColor="#33FFFFFF"
-            app:trackThickness="4dp" />
-
-        <TextView
-            android:id="@+id/castLoadingText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/cast_starting"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/castOverlayError"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#CC0B1220"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/castErrorText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textColor="@color/white"
-            android:textSize="15sp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/castErrorClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/cast_stop" />
-    </LinearLayout>
-
-    <View
-        android:id="@+id/castScreenshotFlash"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#D9FFFFFF"
-        android:clickable="false"
-        android:focusable="false"
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/castErrorClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/cast_stop"
         android:visibility="gone" />
 
 </FrameLayout>

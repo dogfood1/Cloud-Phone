@@ -34,6 +34,9 @@ export class WsScrcpyAudioCanvas {
     this.frameId = 0;
     this.receiving = false;
     this.statusText = "仅音频模式 · 等待设备音频…";
+    /** @type {(() => void) | null} */
+    this.onFirstFrameRendered = null;
+    this.hasRenderedFrame = false;
     this.playback = new WsScrcpyAudioPlayback();
     this.pcmRecordingChunks = null;
     this.analyser = null;
@@ -119,6 +122,10 @@ export class WsScrcpyAudioCanvas {
 
     this.receiving = true;
     this.statusText = "仅音频模式 · 播放中";
+    if (!this.hasRenderedFrame) {
+      this.hasRenderedFrame = true;
+      this.onFirstFrameRendered?.();
+    }
 
     const rms = pcmRms(int16);
 

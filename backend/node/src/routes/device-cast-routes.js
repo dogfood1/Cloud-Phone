@@ -13,6 +13,7 @@ import {
   waitForCastSession,
 } from "../services/scrcpy-cast/index.js";
 import { summarizeStreamStats } from "../services/scrcpy-cast/stream-stats.js";
+import { getCastStartupLogs, appendCastStartupLog } from "../services/scrcpy-cast/startup-log.js";
 import { proxyWebSocket } from "../services/scrcpy-cast/ws-scrcpy-ws-proxy.js";
 import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
@@ -111,6 +112,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
       controlConnected: Boolean(session?.controlSocket),
       features: session ? listCastFeatures(resolveCastServerOptions(session.castOptions ?? {})) : [],
       stream: summarizeStreamStats(session?.streamStats),
+      startupLogs: getCastStartupLogs(session),
     });
     return true;
   }
@@ -157,6 +159,7 @@ export async function handleCastWebSocket(ws, serial) {
       serverExited: session.serverExited ?? false,
       shellPid: session.shellProcess?.pid ?? null,
     });
+    appendCastStartupLog(session, "后端：WebSocket 客户端已接入");
 
     await ensureCastVideoPipe(serial);
 

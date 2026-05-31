@@ -13,3 +13,9 @@ export function stopDeviceCast(serial, options = {}) {
     signal: options.signal,
   });
 }
+
+export function getDeviceCastStatus(serial) {
+  return requestJson(`/api/devices/${encodeURIComponent(serial)}/cast/status`, {
+    method: "GET",
+  });
+}

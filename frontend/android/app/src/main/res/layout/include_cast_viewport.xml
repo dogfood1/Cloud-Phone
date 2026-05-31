@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/castViewportRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/auth_preview_bg">
+
+    <TextView
+        android:id="@+id/castViewportPlaceholder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="24dp"
+        android:text="@string/cast_viewport_idle"
+        android:textColor="@color/auth_text_secondary"
+        android:textSize="14sp" />
+
+    <TextureView
+        android:id="@+id/castTexture"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:keepScreenOn="true"
+        android:visibility="invisible" />
+
+    <include
+        android:id="@+id/castCanvasLogOverlay"
+        layout="@layout/include_cast_canvas_logs"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/castOverlayError"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC0B1220"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/castErrorText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/castFullscreenButton"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:text="@string/cast_enter_fullscreen"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        app:backgroundTint="#AA0B1220" />
+
+</FrameLayout>

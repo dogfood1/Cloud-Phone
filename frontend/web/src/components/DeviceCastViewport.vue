@@ -28,6 +28,8 @@ const serialRef = toRef(() => props.device.serial);
 const {
   status,
   errorMessage,
+  startupLogText,
+  showStartupLogs,
   getEffectiveScreenSize,
   beginCast,
   stopCast,
@@ -207,8 +209,11 @@ defineExpose({
     >
       <p>正在准备投屏连接…</p>
     </div>
-    <div v-else-if="isStarting" class="device-cast-viewport__overlay">
-      <p>正在启动 scrcpy 投屏…</p>
+    <div v-else-if="showStartupLogs" class="device-cast-viewport__overlay device-cast-viewport__overlay--logs">
+      <div class="device-cast-viewport__log-panel">
+        <p class="device-cast-viewport__log-title">正在启动 scrcpy 投屏…</p>
+        <pre class="device-cast-viewport__log-text">{{ startupLogText }}</pre>
+      </div>
     </div>
     <div v-else-if="hasError" class="device-cast-viewport__overlay device-cast-viewport__overlay--error">
       <p>{{ errorMessage }}</p>

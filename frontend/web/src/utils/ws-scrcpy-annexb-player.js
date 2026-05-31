@@ -45,6 +45,9 @@ export class WsScrcpyAnnexBPlayer {
     this.videoFrameSize = { width: 0, height: 0 };
     /** @type {((size: { width: number, height: number }) => void) | null} */
     this.onVideoFrameSize = null;
+    /** @type {(() => void) | null} */
+    this.onFirstFrameRendered = null;
+    this.hasRenderedFrame = false;
 
     this.resizeObserver = null;
     if (this.container) {
@@ -109,6 +112,10 @@ export class WsScrcpyAnnexBPlayer {
     this.ctx.fillRect(0, 0, viewWidth, viewHeight);
     this.ctx.drawImage(frame, offsetX, offsetY, drawWidth, drawHeight);
     frame.close();
+    if (!this.hasRenderedFrame) {
+      this.hasRenderedFrame = true;
+      this.onFirstFrameRendered?.();
+    }
     this.lastError = "";
   }
 

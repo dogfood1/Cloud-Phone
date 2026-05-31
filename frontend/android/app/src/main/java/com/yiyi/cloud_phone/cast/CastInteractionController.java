@@ -7,6 +7,8 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.yiyi.cloud_phone.R;
 import com.yiyi.cloud_phone.workspace.CastMode;
 
@@ -18,11 +20,17 @@ final class CastInteractionController {
             "torch", "zoom-out", "zoom-in", "stop"
     };
 
-    private final CastFullscreenActivity activity;
+    interface ToolbarHandler {
+        void onStopRequested();
+
+        void onRotateRequested();
+    }
+
+    private final AppCompatActivity activity;
     private final CastMode castMode;
     private final TextureHolder textureHolder;
     private final CastWebSocketSession webSocketSession;
-    private final CastFullscreenActivity.ToolbarHandler toolbarHandler;
+    private final CastInteractionController.ToolbarHandler toolbarHandler;
     private boolean interactionEnabled = true;
     private int videoWidth;
     private int videoHeight;
@@ -38,11 +46,11 @@ final class CastInteractionController {
     }
 
     CastInteractionController(
-            CastFullscreenActivity activity,
+            AppCompatActivity activity,
             CastMode castMode,
             TextureHolder textureHolder,
             CastWebSocketSession webSocketSession,
-            CastFullscreenActivity.ToolbarHandler toolbarHandler
+            ToolbarHandler toolbarHandler
     ) {
         this.activity = activity;
         this.castMode = castMode;

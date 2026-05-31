@@ -17,7 +17,8 @@ import {
   serializeSetClipboard,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
-import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
+import { startDeviceCast, stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
+import { createCastStartupLog } from "../utils/cast-startup-log.js";
 import { readSystemClipboard, writeSystemClipboard } from "../utils/cast-clipboard.js";
 import { attachCastKeyboard } from "../utils/scrcpy-cast-keyboard.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
@@ -34,6 +35,8 @@ import { useScrcpyCastRecording } from "./useScrcpyCastRecording.js";
 export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef) {
   const status = ref("idle");
   const errorMessage = ref("");
+  const startupLogText = ref("等待连接日志…");
+  const showStartupLogs = ref(false);
   const player = shallowRef(null);
   const screenSize = ref({ width: 0, height: 0 });
   const sessionMeta = ref(null);
@@ -48,6 +51,9 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   let backendSessionActive = false;
   let startAppTimer = null;
   let startAppSent = false;
+  let logPollTimer = null;
+  let logPollConsumed = 0;
+  const startupLog = createCastStartupLog();
   const displayScreenOn = ref(true);
 
   const recording = useScrcpyCastRecording({
@@ -58,6 +64,53 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     status,
     serialRef,
   });
+
+  function syncStartupLogText() {
+    startupLogText.value = startupLog.textValue();
+  }
+
+  function appendStartupLog(message) {
+    startupLog.append(message);
+    syncStartupLogText();
+  }
+
+  function ingestStartupLogs(entries) {
+    const before = startupLog.lines.length;
+    startupLog.ingest(entries);
+    if (startupLog.lines.length !== before) {
+      syncStartupLogText();
+    }
+  }
+
+  function stopLogPolling() {
+    if (logPollTimer) {
+      clearInterval(logPollTimer);
+      logPollTimer = null;
+    }
+    logPollConsumed = 0;
+  }
+
+  function startLogPolling(serial) {
+    stopLogPolling();
+    logPollTimer = window.setInterval(async () => {
+      try {
+        const payload = await getDeviceCastStatus(serial);
+        const entries = payload?.startupLogs;
+        if (!Array.isArray(entries) || entries.length <= logPollConsumed) {
+          return;
+        }
+        ingestStartupLogs(entries.slice(logPollConsumed));
+        logPollConsumed = entries.length;
+      } catch {
+        // ignore polling errors
+      }
+    }, 600);
+  }
+
+  function hideStartupLogs() {
+    showStartupLogs.value = false;
+    stopLogPolling();
+  }
 
   async function beginCast(payload) {
     const serial = serialRef.value;
@@ -72,6 +125,14 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
     errorMessage.value = "";
     status.value = "starting";
+    screenSize.value = { width: 0, height: 0 };
+    showStartupLogs.value = true;
+    startupLog.reset();
+    syncStartupLogText();
+    appendStartupLog("用户点击开始投屏");
+    appendStartupLog("正在请求后端启动投屏…");
+    ingestStartupLogs(payload?.startupLogs);
+    appendStartupLog("前端：scrcpy 启动成功");
 
     const audioOnly = isAudioOnlyCast(unref(castOptionsRef));
 
@@ -89,8 +150,11 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
     sessionMeta.value = payload;
     backendSessionActive = true;
+    logPollConsumed = Array.isArray(payload?.startupLogs) ? payload.startupLogs.length : 0;
+    startLogPolling(serial);
 
     await nextTick();
+    appendStartupLog("正在连接 WebSocket 视频流…");
     await openWebSocket(serial);
     const castOptions = unref(castOptionsRef) ?? {};
     unbindCanvas?.();
@@ -154,6 +218,18 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     await audioPlayback?.resumeForUserPlayback?.();
   }
 
+  function markFirstFrameRendered() {
+    if (!showStartupLogs.value) {
+      return;
+    }
+    const size = screenSize.value;
+    if (size.width > 0 && size.height > 0) {
+      appendStartupLog(`视频尺寸 ${size.width} × ${size.height}`);
+    }
+    appendStartupLog("首帧已渲染");
+    hideStartupLogs();
+  }
+
   function applyControlVideoSize(size) {
     if (!size?.width || !size?.height) {
       return;
@@ -192,6 +268,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       const audioOnly = isAudioOnlyCast(castOptions);
       const nextPlayer = audioOnly ? new WsScrcpyAudioCanvas(canvas) : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
+      nextPlayer.onFirstFrameRendered = markFirstFrameRendered;
 
       if (!audioOnly && typeof nextPlayer.onVideoFrameSize !== "undefined") {
         nextPlayer.onVideoFrameSize = applyControlVideoSize;
@@ -222,6 +299,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
       }, 12_000);
 
       socket.addEventListener("open", () => {
+        appendStartupLog("WebSocket 已连接，已发送流参数");
         const options = unref(castOptionsRef) ?? {};
         sendControl(
           serializeChangeStreamParameters(
@@ -438,6 +516,10 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
 
     await recording.stopCastRecording(true);
     closeWebSocket();
+    hideStartupLogs();
+    startupLog.reset();
+    syncStartupLogText();
+    screenSize.value = { width: 0, height: 0 };
     status.value = "idle";
     errorMessage.value = "";
     sessionMeta.value = null;
@@ -481,6 +563,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   return {
     status,
     errorMessage,
+    startupLogText,
+    showStartupLogs,
     screenSize,
     sessionMeta,
     beginCast,
