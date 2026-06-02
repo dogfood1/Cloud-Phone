@@ -14,6 +14,7 @@ final class DeviceItem {
     final String sdkVersion;
     final String ipAddress;
     final String displayName;
+    final boolean wireless;
 
     DeviceItem(JSONObject json) {
         serial = json.optString("serial", "");
@@ -27,5 +28,8 @@ final class DeviceItem {
         sdkVersion = json.optString("sdkVersion", "");
         ipAddress = json.optString("ipAddress", "");
         displayName = json.optString("displayName", serial);
+        wireless = json.has("wireless")
+                ? json.optBoolean("wireless", false)
+                : DeviceTransport.isWirelessSerial(serial);
     }
 }

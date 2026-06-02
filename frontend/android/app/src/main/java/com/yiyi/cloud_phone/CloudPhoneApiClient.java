@@ -108,6 +108,11 @@ final class CloudPhoneApiClient {
         return requestProtectedJson(context, host, port, path, "GET");
     }
 
+    static JSONObject disconnectDevice(Context context, String host, int port, String serial) throws Exception {
+        String path = "/api/devices/" + Uri.encode(serial, StandardCharsets.UTF_8.name());
+        return requestProtectedJson(context, host, port, path, "DELETE", null);
+    }
+
     static JSONObject changePassword(
             Context context,
             String host,

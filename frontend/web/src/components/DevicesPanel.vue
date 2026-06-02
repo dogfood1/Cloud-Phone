@@ -5,6 +5,9 @@ import { useI18n } from "vue-i18n";
 import AddDeviceModal from "./AddDeviceModal.vue";
 import AppIcon from "./AppIcon.vue";
 import DeviceCard from "./DeviceCard.vue";
+import DeviceGalleryContextMenu from "./DeviceGalleryContextMenu.vue";
+import { getErrorMessage } from "../utils/api.js";
+import { disconnectWirelessDevice } from "../utils/devices-api.js";
 import { formatRefreshTime, summarizeDevices } from "../utils/device-format.js";
 
 const props = defineProps({
@@ -38,6 +41,8 @@ const emit = defineEmits(["refresh", "open-device"]);
 
 const { t } = useI18n();
 const showAddDeviceModal = ref(false);
+const contextMenu = ref(null);
+const actionFeedback = ref("");
 
 const summary = computed(() => summarizeDevices(props.devices));
 const refreshLabel = computed(() => formatRefreshTime(props.lastRefreshedAt));
@@ -58,6 +63,53 @@ const statusText = computed(() => {
     total: summary.value.total,
   });
 });
+
+function openContextMenu(payload) {
+  actionFeedback.value = "";
+  contextMenu.value = payload;
+}
+
+function closeContextMenu() {
+  contextMenu.value = null;
+}
+
+function handleViewDeviceDetails() {
+  const device = contextMenu.value?.device;
+  closeContextMenu();
+
+  if (device) {
+    emit("open-device", device);
+  }
+}
+
+async function handleDisconnectDevice() {
+  const device = contextMenu.value?.device;
+  closeContextMenu();
+
+  if (!device?.serial) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    t("devices.contextMenu.disconnectConfirm", { name: device.displayName }),
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  actionFeedback.value = "";
+
+  try {
+    await disconnectWirelessDevice(device.serial);
+    actionFeedback.value = t("devices.contextMenu.disconnectSuccess", {
+      name: device.displayName,
+    });
+    emit("refresh");
+  } catch (error) {
+    actionFeedback.value = getErrorMessage(error, t("devices.contextMenu.disconnectFailed"));
+  }
+}
 </script>
 
 <template>
@@ -98,6 +150,10 @@ const statusText = computed(() => {
       </button>
     </p>
 
+    <p v-if="actionFeedback" class="feedback panel-feedback panel-feedback--info">
+      {{ actionFeedback }}
+    </p>
+
     <div v-if="showEmptyState" class="empty-state">
       <p>{{ t("devices.notFound") }}</p>
       <span>{{ t("devices.connectHint") }}</span>
@@ -110,8 +166,19 @@ const statusText = computed(() => {
         :device="device"
         :screenshot-url="screenshotUrl(device.serial)"
         @open="emit('open-device', $event)"
+        @contextmenu="openContextMenu"
       />
     </div>
+
+    <DeviceGalleryContextMenu
+      :open="Boolean(contextMenu)"
+      :x="contextMenu?.x ?? 0"
+      :y="contextMenu?.y ?? 0"
+      :device="contextMenu?.device ?? null"
+      @close="closeContextMenu"
+      @view-details="handleViewDeviceDetails"
+      @disconnect="handleDisconnectDevice"
+    />
 
     <AddDeviceModal
       v-if="showAddDeviceModal"

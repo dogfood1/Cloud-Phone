@@ -61,6 +61,12 @@
     <string name="devices_state_no_permissions">无权限</string>
     <string name="devices_state_unknown">未知</string>
     <string name="devices_add_device">添加设备</string>
+    <string name="device_action_view_details">查看设备详细信息</string>
+    <string name="device_action_disconnect">断开设备</string>
+    <string name="device_disconnect_confirm_title">断开设备</string>
+    <string name="device_disconnect_confirm_message">确定断开无线设备「%1$s」？</string>
+    <string name="device_disconnect_success">已断开「%1$s」</string>
+    <string name="device_disconnect_failed">断开设备失败</string>
     <string name="common_back">返回</string>
     <string name="add_device_title">添加设备</string>
     <string name="add_device_desc">选择要接入的设备类型</string>

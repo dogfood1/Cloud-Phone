@@ -19,6 +19,10 @@ final class DeviceCardAdapter extends RecyclerView.Adapter<DeviceCardAdapter.Hol
         void onDeviceClick(DeviceItem device);
     }
 
+    interface DeviceLongClickListener {
+        void onDeviceLongClick(DeviceItem device, View anchor);
+    }
+
     interface ScreenshotRequester {
         void requestScreenshot(String serial, long tick, ScreenshotCallback callback);
     }
@@ -32,17 +36,20 @@ final class DeviceCardAdapter extends RecyclerView.Adapter<DeviceCardAdapter.Hol
     private final Context context;
     private final ScreenshotRequester screenshotRequester;
     private final DeviceClickListener deviceClickListener;
+    private final DeviceLongClickListener deviceLongClickListener;
     private final List<DeviceItem> devices = new ArrayList<>();
     private long screenshotTick;
 
     DeviceCardAdapter(
             Context context,
             ScreenshotRequester screenshotRequester,
-            DeviceClickListener deviceClickListener
+            DeviceClickListener deviceClickListener,
+            DeviceLongClickListener deviceLongClickListener
     ) {
         this.context = context.getApplicationContext();
         this.screenshotRequester = screenshotRequester;
         this.deviceClickListener = deviceClickListener;
+        this.deviceLongClickListener = deviceLongClickListener;
     }
 
     void submitList(List<DeviceItem> nextDevices) {
@@ -112,6 +119,14 @@ final class DeviceCardAdapter extends RecyclerView.Adapter<DeviceCardAdapter.Hol
                     return;
                 }
                 deviceClickListener.onDeviceClick(devices.get(position));
+            });
+            itemView.setOnLongClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                if (position == RecyclerView.NO_POSITION || deviceLongClickListener == null) {
+                    return false;
+                }
+                deviceLongClickListener.onDeviceLongClick(devices.get(position), v);
+                return true;
             });
         }
 

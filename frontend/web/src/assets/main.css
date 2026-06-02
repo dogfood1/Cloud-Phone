@@ -653,6 +653,43 @@ h2 {
   font-size: 0.8rem;
 }
 
+.device-gallery-menu {
+  position: fixed;
+  z-index: 220;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+
+.device-gallery-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.device-gallery-menu button:hover,
+.device-gallery-menu button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
+.device-gallery-menu__danger {
+  color: #dc2626;
+}
+
+.panel-feedback--info {
+  color: var(--accent-soft);
+}
+
 .device-workspace {
   display: flex;
   flex: 1;

@@ -96,5 +96,12 @@ export default {
       "no permissions": "無權限",
       unknown: "未知",
     },
+    contextMenu: {
+      viewDetails: "查看裝置詳細資訊",
+      disconnect: "中斷裝置",
+      disconnectConfirm: "確定中斷無線裝置「{name}」？",
+      disconnectSuccess: "已中斷「{name}」",
+      disconnectFailed: "中斷裝置失敗",
+    },
   },
 };

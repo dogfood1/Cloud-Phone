@@ -1,6 +1,7 @@
 import { handleDeviceAppsRoute } from "./device-apps-routes.js";
 import { handleDeviceFilesRoute } from "./device-files-routes.js";
 import { APP_VERSION } from "../config/version.js";
+import { disconnectWirelessDevice } from "../services/adb-service.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
 import { listDeviceCameras } from "../services/device-cameras.js";
 import { listDeviceEncoders } from "../services/device-video-encoders.js";
@@ -101,6 +102,36 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
         success: false,
         version: APP_VERSION,
         error: "Failed to load mirror options.",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    return true;
+  }
+
+  const deviceRootMatch = pathname.match(/^\/api\/devices\/([^/]+)$/);
+
+  if (method === "DELETE" && deviceRootMatch) {
+    const serial = decodeURIComponent(deviceRootMatch[1]);
+
+    try {
+      const result = await disconnectWirelessDevice(serial);
+
+      sendProtectedJson(res, 200, {
+        success: true,
+        version: APP_VERSION,
+        serial: result.serial,
+        output: result.output,
+      });
+    } catch (error) {
+      const code = error?.code;
+      const status = code === "usb_device_not_disconnectable" ? 400 : 500;
+
+      sendProtectedJson(res, status, {
+        success: false,
+        version: APP_VERSION,
+        serial,
+        error: code ?? "device_disconnect_failed",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     }

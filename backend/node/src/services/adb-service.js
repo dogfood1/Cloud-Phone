@@ -8,6 +8,8 @@ import { runWithAdbLock } from "./adb-lock.js";
 import { resolveAdbPath } from "./adb-path.js";
 import { getDeviceDisplayName } from "./device-display.js";
 import { getDeviceIpAddress } from "./device-ip.js";
+import { isWirelessAdbSerial, withConnectionType } from "./device-transport.js";
+import { stopScrcpyCast } from "./scrcpy-cast/index.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -113,6 +115,28 @@ export async function connectDeviceByHost(host, preferredPort) {
   return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort));
 }
 
+export async function disconnectWirelessDevice(serial) {
+  return runWithAdbLock(async () => {
+    if (!isWirelessAdbSerial(serial)) {
+      const error = new Error("USB 连接的设备不支持断开。");
+      error.code = "usb_device_not_disconnectable";
+      throw error;
+    }
+
+    await stopScrcpyCast(serial);
+
+    const { stdout = "", stderr = "" } = await runAdb(["disconnect", serial], {
+      timeout: 10_000,
+    });
+    const output = `${stdout}\n${stderr}`.trim();
+
+    return {
+      serial,
+      output: output || "adb disconnect finished",
+    };
+  });
+}
+
 export async function createQrPairingSession() {
   const serviceName = randomToken(10);
   const pairingCode = randomDigits(6);
@@ -141,17 +165,17 @@ async function listDevicesUnsafe() {
   const enrichedDevices = await Promise.all(
     devices.map(async (device) => {
       if (!device.connected) {
-        return {
+        return withConnectionType({
           ...device,
           manufacturer: null,
           androidVersion: null,
           sdkVersion: null,
           ipAddress: null,
           displayName: getDeviceDisplayName(device),
-        };
+        });
       }
 
-      return enrichConnectedDevice(adbPath, device);
+      return withConnectionType(await enrichConnectedDevice(adbPath, device));
     }),
   );
 

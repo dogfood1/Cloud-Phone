@@ -97,7 +97,22 @@ public class DevicesFragment extends Fragment implements DeviceCardAdapter.Scree
         buttonAddDevice = view.findViewById(R.id.buttonAddDevice);
 
         adapter = new DeviceCardAdapter(requireContext(), this, device ->
-                DeviceWorkspaceActivity.open(requireContext(), device));
+                DeviceWorkspaceActivity.open(requireContext(), device),
+                (device, anchor) -> {
+                    ServerEndpoint endpoint = readServerEndpoint();
+                    if (endpoint == null) {
+                        return;
+                    }
+                    DeviceGalleryMenu.show(
+                            this,
+                            device,
+                            anchor,
+                            networkExecutor,
+                            endpoint.host,
+                            endpoint.port,
+                            () -> refreshDevices(false)
+                    );
+                });
         recyclerDevices.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerDevices.setAdapter(adapter);
 

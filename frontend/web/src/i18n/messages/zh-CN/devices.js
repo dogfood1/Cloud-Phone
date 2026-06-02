@@ -98,5 +98,12 @@ export default {
       "no permissions": "无权限",
       unknown: "未知",
     },
+    contextMenu: {
+      viewDetails: "查看设备详细信息",
+      disconnect: "断开设备",
+      disconnectConfirm: "确定断开无线设备「{name}」？",
+      disconnectSuccess: "已断开「{name}」",
+      disconnectFailed: "断开设备失败",
+    },
   },
 };

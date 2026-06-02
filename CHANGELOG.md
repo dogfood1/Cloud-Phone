@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.18 - 2026-05-30
+
+- Web / Android 设备画廊：右键（Web）/ 长按（Android）设备卡片，可查看设备详细信息或断开无线 ADB 设备
+- 后端：`DELETE /api/devices/:serial` 执行 `adb disconnect`；USB 连接设备返回 400 不可断开；断开前自动停止投屏会话
+- 设备列表新增 `wireless` 字段标识无线连接
+
 ## 0.12.17 - 2026-05-31
 
 - Web / Android 设置页 UI 美化：Hero 头部、分区图标、账号 stat chip、卡片式设置行

@@ -97,5 +97,12 @@ export default {
       "no permissions": "No permissions",
       unknown: "Unknown",
     },
+    contextMenu: {
+      viewDetails: "View device details",
+      disconnect: "Disconnect device",
+      disconnectConfirm: 'Disconnect wireless device "{name}"?',
+      disconnectSuccess: 'Disconnected "{name}"',
+      disconnectFailed: "Failed to disconnect device",
+    },
   },
 };

@@ -98,5 +98,12 @@ export default {
       "no permissions": "権限なし",
       unknown: "不明",
     },
+    contextMenu: {
+      viewDetails: "デバイス詳細を表示",
+      disconnect: "デバイスを切断",
+      disconnectConfirm: "無線デバイス「{name}」を切断しますか？",
+      disconnectSuccess: "「{name}」を切断しました",
+      disconnectFailed: "デバイスの切断に失敗しました",
+    },
   },
 };

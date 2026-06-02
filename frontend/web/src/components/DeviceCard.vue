@@ -21,12 +21,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["open"]);
+const emit = defineEmits(["open", "contextmenu"]);
 
 const { t } = useI18n();
 
 function handleOpen() {
   emit("open", props.device);
+}
+
+function handleContextMenu(event) {
+  event.preventDefault();
+  emit("contextmenu", {
+    device: props.device,
+    x: event.clientX,
+    y: event.clientY,
+  });
 }
 
 function handleKeydown(event) {
@@ -109,6 +118,7 @@ watch(
     role="button"
     tabindex="0"
     @click="handleOpen"
+    @contextmenu="handleContextMenu"
     @keydown="handleKeydown"
   >
     <div class="device-card__preview">

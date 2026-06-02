@@ -97,5 +97,12 @@ export default {
       "no permissions": "권한 없음",
       unknown: "알 수 없음",
     },
+    contextMenu: {
+      viewDetails: "기기 상세 정보 보기",
+      disconnect: "기기 연결 해제",
+      disconnectConfirm: '무선 기기 "{name}" 연결을 해제할까요?',
+      disconnectSuccess: '"{name}" 연결 해제됨',
+      disconnectFailed: "기기 연결 해제 실패",
+    },
   },
 };

@@ -110,6 +110,7 @@ Images are embedded in the corresponding feature sections below.
 - Screenshot refresh ~5s by default (configurable), list refresh ~1s
 - Keeps the previous frame while updating to avoid full-page loading flicker
 - Online/offline counts, last refresh time, manual refresh
+- **Right-click a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
 - Click a card to open the **device workspace**
 
 ### Settings & auth (web)
@@ -217,6 +218,7 @@ Source: `frontend/android/`. Uses the same Node backend and session model as the
 
 - Horizontal cards with model, online state, and live screenshots (default ~5 s refresh, configurable in Settings)
 - Device list polls about every **1 s**; pull-to-refresh; keeps the previous screenshot frame to reduce flicker
+- **Long-press a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
 - **+** add device: USB guide, wireless **pairing code**, **QR** pairing (aligned with the web Add Device modal)
 - **Community Material** icons (Android-Iconics), consistent with web MDI
 
