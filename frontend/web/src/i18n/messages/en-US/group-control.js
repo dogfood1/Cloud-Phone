@@ -8,6 +8,13 @@ export default {
     empty: "No devices added yet",
     emptyHint: "Tap + in the top-right corner to pick phones for group control",
     removeDevice: "Remove device",
+    cast: {
+      starting: "Starting cast…",
+      offline: "Device offline",
+      startFailed: "Failed to start cast",
+      unsupportedBrowser: "WebCodecs is not supported. Use Chrome or Edge.",
+      previewAria: "{name} group cast preview",
+    },
     picker: {
       title: "Select devices",
       desc: "Choose devices to add to group control. Select all is supported.",

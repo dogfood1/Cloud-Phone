@@ -8,6 +8,13 @@ export default {
     empty: "尚未添加设备",
     emptyHint: "点击右上角 + 添加要群控的手机",
     removeDevice: "移除设备",
+    cast: {
+      starting: "正在启动投屏…",
+      offline: "设备离线",
+      startFailed: "投屏启动失败",
+      unsupportedBrowser: "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge",
+      previewAria: "{name} 群控投屏",
+    },
     picker: {
       title: "选择设备",
       desc: "勾选要加入群控的设备，支持全选。",

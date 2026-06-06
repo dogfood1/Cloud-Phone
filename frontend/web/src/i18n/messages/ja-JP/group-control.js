@@ -8,6 +8,13 @@ export default {
     empty: "デバイスが追加されていません",
     emptyHint: "右上の + から群制御する端末を選択してください",
     removeDevice: "デバイスを削除",
+    cast: {
+      starting: "キャストを開始しています…",
+      offline: "デバイスがオフラインです",
+      startFailed: "キャストの開始に失敗しました",
+      unsupportedBrowser: "WebCodecs に対応していません。Chrome または Edge を使用してください",
+      previewAria: "{name} 群制御キャスト",
+    },
     picker: {
       title: "デバイスを選択",
       desc: "群制御に追加するデバイスを選択します。全選択に対応。",

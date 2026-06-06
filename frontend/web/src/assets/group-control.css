@@ -1,37 +1,31 @@
 .group-control-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 0.2rem;
+  align-content: start;
 }
 
 .group-control-slot {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  padding: 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .group-control-slot--offline {
   opacity: 0.72;
 }
 
-.group-control-slot__preview {
-  position: relative;
-}
-
 .group-control-slot__remove {
   position: absolute;
   top: 0.35rem;
   right: 0.35rem;
+  z-index: 4;
   width: 1.65rem;
   height: 1.65rem;
   padding: 0;
@@ -53,6 +47,75 @@
   line-height: 1.35;
   text-align: center;
   word-break: break-word;
+}
+
+.group-control-cast {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-preview);
+  box-shadow: var(--shadow);
+}
+
+.group-control-cast__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.group-control-cast__rotator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.group-control-cast__canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  image-rendering: auto;
+}
+
+.group-control-cast__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  background: rgb(8 12 20 / 72%);
+  color: #f8fafc;
+  text-align: center;
+}
+
+.group-control-cast__overlay p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.group-control-cast__overlay--error p {
+  color: #fecaca;
+}
+
+.group-control-cast__overlay .ghost-button {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
 }
 
 .group-control-preview {
@@ -242,9 +305,15 @@
   border-top: 1px solid var(--line);
 }
 
+@media (min-width: 1400px) {
+  .group-control-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
   .group-control-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 
   .group-control-picker {

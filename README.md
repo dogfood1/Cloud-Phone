@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.21** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.22** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -118,8 +118,8 @@ images/readme/
 ### 群控（Web）
 
 - 右上角 **+** 添加设备：弹窗勾选在线设备，支持全选，显示设备名称与截图预览
-- 已选设备以网格展示，可单独移除；选择列表写入浏览器 `localStorage`
-- 批量同步操作（投屏、触控等）后续接入
+- 已选设备以网格实时投屏（720p / 20fps / 2Mbps，多路错开启动），画布可触控
+- 选择列表写入浏览器 `localStorage`；可单独移除设备
 
 ### 设置与登录（Web）
 

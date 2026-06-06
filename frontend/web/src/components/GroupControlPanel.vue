@@ -4,8 +4,9 @@ import { useI18n } from "vue-i18n";
 
 import "../assets/group-control.css";
 import AppIcon from "./AppIcon.vue";
+import GroupControlCastSlot from "./GroupControlCastSlot.vue";
 import GroupControlDevicePickerModal from "./GroupControlDevicePickerModal.vue";
-import GroupControlDevicePreview from "./GroupControlDevicePreview.vue";
+import { GROUP_CONTROL_START_STAGGER_MS } from "../utils/group-control-cast-options.js";
 
 const STORAGE_KEY = "cloud-phone.group-control.serials";
 
@@ -123,29 +124,13 @@ watch(
     </div>
 
     <div v-else-if="selectedDevices.length" class="group-control-grid">
-      <article
-        v-for="device in selectedDevices"
+      <GroupControlCastSlot
+        v-for="(device, index) in selectedDevices"
         :key="device.serial"
-        class="group-control-slot"
-        :class="{ 'group-control-slot--offline': !device.connected }"
-      >
-        <div class="group-control-slot__preview">
-          <GroupControlDevicePreview
-            :device="device"
-            :screenshot-url="screenshotUrl(device.serial)"
-          />
-          <button
-            type="button"
-            class="group-control-slot__remove"
-            :aria-label="t('groupControl.removeDevice')"
-            :title="t('groupControl.removeDevice')"
-            @click="removeDevice(device.serial)"
-          >
-            ×
-          </button>
-        </div>
-        <strong class="group-control-slot__name">{{ device.displayName }}</strong>
-      </article>
+        :device="device"
+        :start-delay-ms="index * GROUP_CONTROL_START_STAGGER_MS"
+        @remove="removeDevice"
+      />
     </div>
 
     <GroupControlDevicePickerModal

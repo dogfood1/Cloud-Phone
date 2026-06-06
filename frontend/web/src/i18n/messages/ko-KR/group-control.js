@@ -8,6 +8,13 @@ export default {
     empty: "추가된 기기가 없습니다",
     emptyHint: "오른쪽 상단 + 버튼으로 군 제어할 휴대폰을 추가하세요",
     removeDevice: "기기 제거",
+    cast: {
+      starting: "캐스트 시작 중…",
+      offline: "기기 오프라인",
+      startFailed: "캐스트 시작 실패",
+      unsupportedBrowser: "WebCodecs를 지원하지 않습니다. Chrome 또는 Edge를 사용하세요",
+      previewAria: "{name} 군 제어 캐스트",
+    },
     picker: {
       title: "기기 선택",
       desc: "군 제어에 추가할 기기를 선택하세요. 전체 선택을 지원합니다.",
