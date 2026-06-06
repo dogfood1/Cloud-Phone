@@ -11,6 +11,7 @@ export default {
     brandTitle: "デバイスコンソール",
     navLabel: "メインナビゲーション",
     devices: "デバイス",
+    groupControl: "群制御",
     settings: "設定",
     logout: "ログアウト",
   },

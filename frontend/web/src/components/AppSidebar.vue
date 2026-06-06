@@ -21,6 +21,7 @@ const { t } = useI18n();
 
 const tabs = computed(() => [
   { id: "devices", label: t("sidebar.devices"), icon: "devices" },
+  { id: "group-control", label: t("sidebar.groupControl"), icon: "group-control" },
   { id: "settings", label: t("sidebar.settings"), icon: "settings" },
 ]);
 </script>

@@ -22,6 +22,7 @@ import {
   Terminal,
   Wifi,
   Shield,
+  Users,
 } from "lucide-vue-next";
 
 import { DEVICE_TOOLBAR_ICONS } from "../icons/device-toolbar-icons.js";
@@ -118,6 +119,7 @@ const LUCIDE_ICONS = {
   user: User,
   palette: Palette,
   wifi: Wifi,
+  "group-control": Users,
 };
 
 const lucideIcon = computed(() => LUCIDE_ICONS[props.name] ?? null);

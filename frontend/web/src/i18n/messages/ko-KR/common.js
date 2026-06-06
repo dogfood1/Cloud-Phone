@@ -11,6 +11,7 @@ export default {
     brandTitle: "기기 콘솔",
     navLabel: "주 메뉴",
     devices: "기기",
+    groupControl: "군 제어",
     settings: "설정",
     logout: "로그아웃",
   },

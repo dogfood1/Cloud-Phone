@@ -11,6 +11,7 @@ export default {
     brandTitle: "裝置控制台",
     navLabel: "主導覽",
     devices: "裝置",
+    groupControl: "群控",
     settings: "設定",
     logout: "登出",
   },

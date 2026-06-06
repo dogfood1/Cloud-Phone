@@ -4,6 +4,7 @@ import { computed, ref } from "vue";
 import AppSidebar from "./AppSidebar.vue";
 import DeviceWorkspace from "./DeviceWorkspace.vue";
 import DevicesPanel from "./DevicesPanel.vue";
+import GroupControlPanel from "./GroupControlPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 
 const props = defineProps({
@@ -124,6 +125,7 @@ function closeMobileSidebar() {
       :class="{
         'main-panel--workspace': selectedDevice,
         'main-panel--settings': !selectedDevice && activeTab === 'settings',
+        'main-panel--group-control': !selectedDevice && activeTab === 'group-control',
       }"
     >
       <DeviceWorkspace
@@ -142,8 +144,9 @@ function closeMobileSidebar() {
         @refresh="emit('refresh-devices')"
         @open-device="handleOpenDevice"
       />
+      <GroupControlPanel v-else-if="activeTab === 'group-control'" />
       <SettingsPanel
-        v-else
+        v-else-if="activeTab === 'settings'"
         :settings-form="settingsForm"
         :settings-feedback="settingsFeedback"
         :password-status-text="passwordStatusText"

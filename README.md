@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.19** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.20** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -108,12 +108,17 @@ images/readme/
 
 ![设备画廊](images/readme/gallery.png)
 
-- 左侧 Tab：**设备**、**设置**
+- 左侧 Tab：**设备**、**群控**、**设置**
 - 自动发现 ADB 设备（内置 `platform-tools`），展示型号、厂商、IP、Android 版本、序列号、产品名
 - 每台设备约 **5 秒**刷新截图（可调），列表约 **1 秒**刷新；刷新时保留上一帧，不闪全屏 loading
 - 汇总在线/离线数量、最近刷新时间，支持手动刷新
 - **右键设备卡片**：查看设备详细信息、断开无线设备（USB 连接不支持断开）
 - 点击卡片进入**设备工作区**
+
+### 群控（Web）
+
+- 左侧 Tab 入口，占位页面（功能开发中）
+- 计划支持多台设备批量管理与同步操作
 
 ### 设置与登录（Web）
 

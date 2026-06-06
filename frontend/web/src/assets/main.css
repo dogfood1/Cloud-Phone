@@ -317,11 +317,25 @@ input:focus-visible {
   overflow: hidden;
 }
 
-.main-panel--settings {
+.main-panel--settings,
+.main-panel--group-control {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
+}
+
+.group-control-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.group-control-view > .panel-header,
+.group-control-view > .empty-state {
+  flex-shrink: 0;
 }
 
 .mobile-sidebar-toggle,

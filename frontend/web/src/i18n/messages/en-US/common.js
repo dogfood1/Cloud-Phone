@@ -11,6 +11,7 @@ export default {
     brandTitle: "Device console",
     navLabel: "Main navigation",
     devices: "Devices",
+    groupControl: "Group control",
     settings: "Settings",
     logout: "Log out",
   },

@@ -11,6 +11,7 @@ export default {
     brandTitle: "设备控制台",
     navLabel: "主导航",
     devices: "设备",
+    groupControl: "群控",
     settings: "设置",
     logout: "退出登录",
   },
