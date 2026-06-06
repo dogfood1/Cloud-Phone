@@ -9,7 +9,8 @@ export default {
     emptyHint: "點擊右上角 + 新增要群控的手機",
     removeDevice: "移除裝置",
     cast: {
-      starting: "正在啟動投屏…",
+      starting: "正在啟動 scrcpy 投屏…",
+      preparing: "正在請求後端啟動投屏…",
       offline: "裝置離線",
       startFailed: "投屏啟動失敗",
       unsupportedBrowser: "目前瀏覽器不支援 WebCodecs，請使用 Chrome 或 Edge",

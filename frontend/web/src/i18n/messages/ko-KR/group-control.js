@@ -9,7 +9,8 @@ export default {
     emptyHint: "오른쪽 상단 + 버튼으로 군 제어할 휴대폰을 추가하세요",
     removeDevice: "기기 제거",
     cast: {
-      starting: "캐스트 시작 중…",
+      starting: "scrcpy 캐스트 시작 중…",
+      preparing: "백엔드에 캐스트 시작을 요청하는 중…",
       offline: "기기 오프라인",
       startFailed: "캐스트 시작 실패",
       unsupportedBrowser: "WebCodecs를 지원하지 않습니다. Chrome 또는 Edge를 사용하세요",

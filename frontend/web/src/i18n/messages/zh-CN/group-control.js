@@ -9,7 +9,8 @@ export default {
     emptyHint: "点击右上角 + 添加要群控的手机",
     removeDevice: "移除设备",
     cast: {
-      starting: "正在启动投屏…",
+      starting: "正在启动 scrcpy 投屏…",
+      preparing: "正在请求后端启动投屏…",
       offline: "设备离线",
       startFailed: "投屏启动失败",
       unsupportedBrowser: "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge",

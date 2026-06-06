@@ -9,7 +9,8 @@ export default {
     emptyHint: "右上の + から群制御する端末を選択してください",
     removeDevice: "デバイスを削除",
     cast: {
-      starting: "キャストを開始しています…",
+      starting: "scrcpy キャストを開始しています…",
+      preparing: "バックエンドにキャスト開始を要求しています…",
       offline: "デバイスがオフラインです",
       startFailed: "キャストの開始に失敗しました",
       unsupportedBrowser: "WebCodecs に対応していません。Chrome または Edge を使用してください",

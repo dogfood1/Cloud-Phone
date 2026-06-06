@@ -6,7 +6,6 @@ import "../assets/group-control.css";
 import AppIcon from "./AppIcon.vue";
 import GroupControlCastSlot from "./GroupControlCastSlot.vue";
 import GroupControlDevicePickerModal from "./GroupControlDevicePickerModal.vue";
-import { GROUP_CONTROL_START_STAGGER_MS } from "../utils/group-control-cast-options.js";
 
 const STORAGE_KEY = "cloud-phone.group-control.serials";
 
@@ -125,10 +124,9 @@ watch(
 
     <div v-else-if="selectedDevices.length" class="group-control-grid">
       <GroupControlCastSlot
-        v-for="(device, index) in selectedDevices"
+        v-for="device in selectedDevices"
         :key="device.serial"
         :device="device"
-        :start-delay-ms="index * GROUP_CONTROL_START_STAGGER_MS"
         @remove="removeDevice"
       />
     </div>

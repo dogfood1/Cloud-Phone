@@ -1,6 +1,6 @@
 .group-control-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
   flex: 1;
   min-height: 0;
@@ -110,6 +110,48 @@
 
 .group-control-cast__overlay--error p {
   color: #fecaca;
+}
+
+.group-control-cast__overlay--logs {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0.45rem;
+}
+
+.group-control-cast__log-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+  width: 100%;
+  padding: 0.55rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: calc(var(--radius-lg) - 0.2rem);
+  background: rgb(8 12 20 / 88%);
+}
+
+.group-control-cast__log-title {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.group-control-cast__log-text {
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  margin: 0;
+  overflow: auto;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .group-control-cast__overlay .ghost-button {
@@ -307,7 +349,7 @@
 
 @media (min-width: 1400px) {
   .group-control-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 

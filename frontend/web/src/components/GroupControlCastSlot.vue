@@ -16,10 +16,6 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  startDelayMs: {
-    type: Number,
-    default: 0,
-  },
 });
 
 const emit = defineEmits(["remove"]);
@@ -31,22 +27,25 @@ const viewportRef = ref(null);
 const castOptionsRef = ref(buildGroupControlCastOptions(props.device));
 const castBusy = ref(false);
 const localError = ref("");
-let startTimer = null;
 
 const serialRef = toRef(() => props.device.serial);
-const { beginCast, stopCast, status, errorMessage } = useDeviceScrcpyCast(
-  serialRef,
-  canvasRef,
-  castOptionsRef,
-  rotatorRef,
-  viewportRef,
-);
+const {
+  beginCast,
+  stopCast,
+  status,
+  errorMessage,
+  startupLogText,
+  showStartupLogs,
+} = useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef);
 
 const isStreaming = computed(() => status.value === "streaming");
 const isStarting = computed(() => status.value === "starting" || castBusy.value);
 const hasError = computed(() => status.value === "error" || Boolean(localError.value));
 const displayError = computed(() => localError.value || errorMessage.value);
 const browserUnsupported = computed(() => !WsScrcpyAnnexBPlayer.isSupported());
+const showLogOverlay = computed(
+  () => showStartupLogs.value || (castBusy.value && !isStreaming.value && !hasError.value),
+);
 
 async function cleanupCastSession() {
   await stopCast();
@@ -96,46 +95,26 @@ function handleRemove() {
   emit("remove", props.device.serial);
 }
 
-function scheduleStartCast(delayMs = props.startDelayMs) {
-  if (startTimer) {
-    clearTimeout(startTimer);
-    startTimer = null;
-  }
-
-  startTimer = window.setTimeout(() => {
-    startTimer = null;
-    void startGroupCast();
-  }, Math.max(0, delayMs));
-}
-
 watch(
   () => props.device.connected,
   (connected, wasConnected) => {
     if (connected && !wasConnected) {
-      scheduleStartCast();
+      void startGroupCast();
       return;
     }
 
     if (!connected && wasConnected) {
-      if (startTimer) {
-        clearTimeout(startTimer);
-        startTimer = null;
-      }
       void cleanupCastSession();
     }
   },
 );
 
 onBeforeUnmount(() => {
-  if (startTimer) {
-    clearTimeout(startTimer);
-    startTimer = null;
-  }
   void cleanupCastSession();
 });
 
 void nextTick(() => {
-  scheduleStartCast();
+  void startGroupCast();
 });
 </script>
 
@@ -146,7 +125,7 @@ void nextTick(() => {
   >
     <div ref="viewportRef" class="group-control-cast">
       <div
-        v-show="isStreaming || isStarting"
+        v-show="isStreaming || (isStarting && !showLogOverlay)"
         class="group-control-cast__stage"
       >
         <div ref="rotatorRef" class="group-control-cast__rotator">
@@ -171,10 +150,15 @@ void nextTick(() => {
         <p>{{ t("groupControl.cast.unsupportedBrowser") }}</p>
       </div>
       <div
-        v-else-if="isStarting && !isStreaming"
-        class="group-control-cast__overlay"
+        v-else-if="showLogOverlay && !hasError"
+        class="group-control-cast__overlay group-control-cast__overlay--logs"
       >
-        <p>{{ t("groupControl.cast.starting") }}</p>
+        <div class="group-control-cast__log-panel">
+          <p class="group-control-cast__log-title">{{ t("groupControl.cast.starting") }}</p>
+          <pre class="group-control-cast__log-text">{{
+            startupLogText || t("groupControl.cast.preparing")
+          }}</pre>
+        </div>
       </div>
       <div
         v-else-if="hasError"

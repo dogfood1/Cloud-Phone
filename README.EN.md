@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.22** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.23** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -117,7 +117,7 @@ Images are embedded in the corresponding feature sections below.
 ### Group control (web)
 
 - **+** in the top-right opens a picker for online devices with select-all, names, and screenshot previews
-- Selected devices show live casts in a grid (720p / 20 fps / 2 Mbps, staggered starts); canvas touch input works
+- Selected devices show live casts in a grid (1080p / 30 fps / 4 Mbps, parallel starts) with startup logs on each tile
 - Selection persists in browser `localStorage`; remove devices individually
 
 ### Settings & auth (web)

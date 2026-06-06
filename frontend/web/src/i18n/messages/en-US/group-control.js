@@ -9,7 +9,8 @@ export default {
     emptyHint: "Tap + in the top-right corner to pick phones for group control",
     removeDevice: "Remove device",
     cast: {
-      starting: "Starting cast…",
+      starting: "Starting scrcpy cast…",
+      preparing: "Requesting backend cast session…",
       offline: "Device offline",
       startFailed: "Failed to start cast",
       unsupportedBrowser: "WebCodecs is not supported. Use Chrome or Edge.",
