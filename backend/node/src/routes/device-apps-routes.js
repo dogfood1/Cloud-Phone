@@ -110,7 +110,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
         const remote = await resolvePrimaryApkPath(serial, packageName);
         localPath = await pullApkToTemp(serial, remote);
         return fs.promises.readFile(localPath);
-      });
+      }, { lockKey: serial });
 
       const filename = `${packageName.replace(/[^\w.-]+/g, "_")}.apk`;
 

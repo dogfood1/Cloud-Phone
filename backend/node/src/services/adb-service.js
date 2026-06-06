@@ -108,11 +108,15 @@ export async function listDevices() {
 }
 
 export async function pairDeviceWithCode(host, port, pairingCode) {
-  return runWithAdbLock(async () => pairDeviceWithCodeUnsafe(host, port, pairingCode));
+  return runWithAdbLock(async () => pairDeviceWithCodeUnsafe(host, port, pairingCode), {
+    lockKey: host,
+  });
 }
 
 export async function connectDeviceByHost(host, preferredPort) {
-  return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort));
+  return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort), {
+    lockKey: host,
+  });
 }
 
 export async function disconnectWirelessDevice(serial) {
@@ -134,7 +138,7 @@ export async function disconnectWirelessDevice(serial) {
       serial,
       output: output || "adb disconnect finished",
     };
-  });
+  }, { lockKey: serial });
 }
 
 export async function createQrPairingSession() {
@@ -150,7 +154,9 @@ export async function createQrPairingSession() {
 }
 
 export async function pairDeviceByQrService(serviceName, pairingCode) {
-  return runWithAdbLock(async () => pairDeviceByQrServiceUnsafe(serviceName, pairingCode));
+  return runWithAdbLock(async () => pairDeviceByQrServiceUnsafe(serviceName, pairingCode), {
+    lockKey: serviceName,
+  });
 }
 
 async function listDevicesUnsafe() {

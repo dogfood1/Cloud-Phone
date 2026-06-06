@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.17** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.19** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -60,6 +60,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - Official scrcpy **4.0** server fork with WebSocket on port **8886**
 - Mirror + **camera** cast modes (OTG/UHID removed in v0.9.1)
 - Files, app manager, and terminal **without** an active cast session
+- **Multi-device concurrency**: per-device ADB locks so many phones can be controlled in parallel; same device allows concurrent WebSocket clients with serialized ADB ops
 - Toolbar: navigation keys (press/hold), clipboard, record (MP4/MP3), screenshot flash
 - Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
 - `npm run dev` waits for backend health before Vite; light/dark theme
@@ -196,6 +197,7 @@ Images are embedded in the corresponding feature sections below.
 ### Backend & misc
 
 - `GET /health`, `GET /api/devices`, `GET .../screenshot`
+- ADB tasks use per-device serial locks: parallel across devices, serialized per device; multiple users on one phone share concurrent WebSockets
 - scrcpy session API: `/api/scrcpy/*` for capabilities and programmatic sessions
 - Tools: `tools/build-scrcpy-server.mjs`, `build-scrcpy.mjs`, `download-scrcpy.mjs`, `sync-scrcpy-source.mjs`, `test-scrcpy-cast.mjs`
 - OTG / UHID cast modes have been removed; only **mirror** and **camera** remain

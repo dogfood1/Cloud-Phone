@@ -98,7 +98,7 @@ export async function stopScrcpyCast(serial) {
   deleteCastSession(serial);
 
   try {
-    await runWithAdbLock(() => cleanupDeviceAdb(session));
+    await runWithAdbLock(() => cleanupDeviceAdb(session), { lockKey: serial });
   } catch (error) {
     logCastWarn(serial, "cast.stop.cleanup_failed", {
       message: error instanceof Error ? error.message : "unknown",

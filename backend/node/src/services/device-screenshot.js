@@ -7,7 +7,7 @@ import { resolveAdbPath } from "./adb-path.js";
 const execFileAsync = promisify(execFile);
 
 export async function captureDeviceScreenshot(serial) {
-  return runWithAdbLock(() => captureDeviceScreenshotUnsafe(serial));
+  return runWithAdbLock(() => captureDeviceScreenshotUnsafe(serial), { lockKey: serial });
 }
 
 async function captureDeviceScreenshotUnsafe(serial) {

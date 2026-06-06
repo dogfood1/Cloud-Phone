@@ -21,5 +21,5 @@ export async function listDeviceFiles(serial, requestedPath) {
       atRoot: devicePath === DEVICE_FS_ROOT,
       entries,
     };
-  });
+  }, { lockKey: serial });
 }

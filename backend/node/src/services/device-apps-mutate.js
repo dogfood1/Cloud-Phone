@@ -57,7 +57,7 @@ export async function uninstallPackage(serial, packageName) {
     }
 
     return { ok: true, message: out };
-  });
+  }, { lockKey: serial });
 }
 
 /**
@@ -75,7 +75,7 @@ export async function setPackageFrozen(serial, packageName, freeze) {
     const out = `${stdout}\n${stderr}`.trim();
 
     return { ok: true, message: out || "ok" };
-  });
+  }, { lockKey: serial });
 }
 
 /**
@@ -113,7 +113,7 @@ export async function installLocalApk(serial, localApkPath) {
     }
 
     return { ok: true, message: out };
-  });
+  }, { lockKey: serial });
 }
 
 /**

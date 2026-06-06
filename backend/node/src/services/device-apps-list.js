@@ -89,7 +89,7 @@ export async function listInstalledApps(serial) {
 
     rows.sort((a, b) => a.label.localeCompare(b.label, "zh-CN") || a.packageName.localeCompare(b.packageName));
     return rows;
-  });
+  }, { lockKey: serial });
 }
 
 /**

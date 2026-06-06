@@ -116,7 +116,7 @@ export async function startScrcpyCast(serial, options = {}) {
         forwardList,
       });
       appendCastStartupLog(session, `adb：forward 隧道完成 (local:${localPort})`);
-    });
+    }, { lockKey: serial });
   } catch (error) {
     logCastError(serial, "cast.start.adb_failed", {
       message: error instanceof Error ? error.message : "unknown",

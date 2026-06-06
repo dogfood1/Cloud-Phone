@@ -33,7 +33,7 @@ export async function getPackageDetail(serial, packageName) {
     }
 
     return detail;
-  });
+  }, { lockKey: serial });
 }
 
 /**

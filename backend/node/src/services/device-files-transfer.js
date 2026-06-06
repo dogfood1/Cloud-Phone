@@ -56,7 +56,7 @@ export async function pullDeviceFile(serial, devicePath) {
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
-  });
+  }, { lockKey: serial });
 }
 
 /**
@@ -88,7 +88,7 @@ export async function pushDeviceFile(serial, devicePath, localPath) {
     await runAdb(["-s", serial, "push", localPath, remotePath], { timeout: 600_000 });
 
     return { devicePath: remotePath };
-  });
+  }, { lockKey: serial });
 }
 
 export function buildDownloadHeaders(filename) {

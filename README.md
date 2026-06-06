@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.17** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.19** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -64,6 +64,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **官方 4.0 底座** | 在 `backend/source/scrcpy` 上移植 WebSocket，server 版本与桌面客户端一致，避免 jar 版本打架 |
 | **参数够全** | 镜像：裁剪、采集方向、虚拟屏预设、音频源/编码器、关屏保活等；摄像头模式：手电、变焦（Android 12+） |
 | **不投屏也能干活** | 文件管理、应用管理、ADB 终端、画廊截屏——设备在线即可，不必先开 cast |
+| **多设备并发** | 后端 ADB 按设备分组锁，多台手机可同时控制；同设备多用户 WebSocket 并发，ADB 操作按设备排队 |
 | **投屏顶栏顺手** | 多任务/主屏/返回/电源/音量/旋转/剪贴板/录屏/截屏；导航键支持按住与手机同步 |
 | **交互更统一** | 常用图标迁移 Lucide 图标库，统一线稿风格；补充焦点可见态与 hover 反馈 |
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
@@ -193,6 +194,7 @@ images/readme/
 ### 后端与其他
 
 - `GET /health`、`GET /api/devices`、`GET .../screenshot`
+- ADB 操作按设备 serial 分组锁：多设备并行、同设备串行；多用户连同一台手机时 WebSocket 并发
 - scrcpy 会话 API：`/api/scrcpy/*`（能力查询、会话启停，供脚本集成）
 - 工具：`tools/build-scrcpy-server.mjs`、`build-scrcpy.mjs`、`download-scrcpy.mjs`、`sync-scrcpy-source.mjs`、`test-scrcpy-cast.mjs`
 - 已移除 OTG / UHID 投屏模式；当前仅**镜像**与**摄像头**
