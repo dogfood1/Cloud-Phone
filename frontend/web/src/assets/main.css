@@ -334,8 +334,14 @@ input:focus-visible {
 }
 
 .group-control-view > .panel-header,
-.group-control-view > .empty-state {
+.group-control-view > .empty-state,
+.group-control-view > .panel-feedback {
   flex-shrink: 0;
+}
+
+.group-control-view > .group-control-grid {
+  flex: 1;
+  min-height: 0;
 }
 
 .mobile-sidebar-toggle,

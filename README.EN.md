@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.20** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.21** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -116,8 +116,9 @@ Images are embedded in the corresponding feature sections below.
 
 ### Group control (web)
 
-- Sidebar tab with a placeholder page (under development)
-- Planned: batch management and synchronized actions across multiple devices
+- **+** in the top-right opens a picker for online devices with select-all, names, and screenshot previews
+- Selected devices appear in a grid; remove individually; selection persists in browser `localStorage`
+- Batch sync actions (cast, input, etc.) planned next
 
 ### Settings & auth (web)
 

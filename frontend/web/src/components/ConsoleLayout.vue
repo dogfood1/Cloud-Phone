@@ -144,7 +144,14 @@ function closeMobileSidebar() {
         @refresh="emit('refresh-devices')"
         @open-device="handleOpenDevice"
       />
-      <GroupControlPanel v-else-if="activeTab === 'group-control'" />
+      <GroupControlPanel
+        v-else-if="activeTab === 'group-control'"
+        :devices="devices"
+        :loading="deviceLoading"
+        :error="deviceError"
+        :screenshot-url="screenshotUrl"
+        @refresh="emit('refresh-devices')"
+      />
       <SettingsPanel
         v-else-if="activeTab === 'settings'"
         :settings-form="settingsForm"
