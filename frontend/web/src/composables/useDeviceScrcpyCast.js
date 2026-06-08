@@ -53,6 +53,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   let startAppSent = false;
   let logPollTimer = null;
   let logPollConsumed = 0;
+  let openWebSocketReady = null;
   const startupLog = createCastStartupLog();
   const displayScreenOn = ref(true);
 
@@ -219,6 +220,8 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   }
 
   function markFirstFrameRendered() {
+    openWebSocketReady?.();
+
     if (!showStartupLogs.value) {
       return;
     }
@@ -291,12 +294,32 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
         }
 
         settled = true;
+        clearTimeout(readyTimeout);
+        openWebSocketReady = null;
         resolve();
       };
 
+      const failReady = (error) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearTimeout(readyTimeout);
+        openWebSocketReady = null;
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      openWebSocketReady = settleReady;
+
       const readyTimeout = setTimeout(() => {
-        settleReady();
-      }, 12_000);
+        if (audioOnly) {
+          settleReady();
+          return;
+        }
+
+        failReady(new Error("等待视频首帧超时，请重试"));
+      }, 30_000);
 
       socket.addEventListener("open", () => {
         appendStartupLog("WebSocket 已连接，已发送流参数");
@@ -310,6 +333,15 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
         queueStartAppAfterConnect(1200);
       });
 
+      const resendStreamParameters = () => {
+        const options = unref(castOptionsRef) ?? {};
+        sendControl(
+          serializeChangeStreamParameters(
+            videoSettingsFromCastOptions(options, sessionMeta.value),
+          ),
+        );
+      };
+
       socket.addEventListener("message", (event) => {
         if (typeof event.data === "string") {
           return;
@@ -321,7 +353,11 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
             audioPlayback,
             status,
             errorMessage,
-            onInitialInfo: () => queueStartAppAfterConnect(500),
+            onInitialInfo: () => {
+              appendStartupLog("设备 scrcpy-server 已响应，重新发送流参数");
+              resendStreamParameters();
+              queueStartAppAfterConnect(500);
+            },
             onDeviceMessage: (message) => {
               if (message.type === "clipboard" && message.text != null) {
                 void handleDeviceClipboard(message.text);
@@ -331,26 +367,17 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
           event.data,
         );
 
-        if (!settled) {
+        if (!settled && audioOnly) {
           const bytes = new Uint8Array(event.data);
 
-          if (audioOnly && isScrcpyAudioPacket(bytes)) {
-            clearTimeout(readyTimeout);
-            settleReady();
-          } else if (screenSize.value.width > 0 && screenSize.value.height > 0) {
-            clearTimeout(readyTimeout);
+          if (isScrcpyAudioPacket(bytes)) {
             settleReady();
           }
         }
       });
 
       socket.addEventListener("error", () => {
-        clearTimeout(readyTimeout);
-
-        if (!settled) {
-          settled = true;
-          reject(new Error("投屏 WebSocket 连接失败"));
-        }
+        failReady(new Error("投屏 WebSocket 连接失败"));
       });
 
       socket.addEventListener("close", () => {
@@ -409,6 +436,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
   function closeWebSocket() {
     clearStartAppTimer();
     startAppSent = false;
+    openWebSocketReady = null;
     unbindCanvas?.();
     unbindCanvas = null;
     unbindKeyboard?.();

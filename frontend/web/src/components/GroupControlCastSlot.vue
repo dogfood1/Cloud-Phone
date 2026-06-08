@@ -5,10 +5,8 @@ import { useI18n } from "vue-i18n";
 import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
 import { getErrorMessage } from "../utils/api.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
-import {
-  GROUP_CONTROL_MAX_SIZE_FALLBACKS,
-  buildGroupControlCastOptions,
-} from "../utils/group-control-cast-options.js";
+import { acquireGroupCastStartSlot } from "../utils/group-control-cast-start.js";
+import { buildGroupControlCastOptions } from "../utils/group-control-cast-options.js";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 
 const props = defineProps({
@@ -27,6 +25,7 @@ const viewportRef = ref(null);
 const castOptionsRef = ref(buildGroupControlCastOptions(props.device));
 const castBusy = ref(false);
 const localError = ref("");
+let startToken = 0;
 
 const serialRef = toRef(() => props.device.serial);
 const {
@@ -52,6 +51,7 @@ async function cleanupCastSession() {
 }
 
 async function startGroupCast() {
+  const token = ++startToken;
   localError.value = "";
 
   if (!props.device.connected || !props.device.serial) {
@@ -63,35 +63,49 @@ async function startGroupCast() {
     return;
   }
 
+  if (castBusy.value) {
+    return;
+  }
+
   castBusy.value = true;
+  const releaseStartSlot = await acquireGroupCastStartSlot();
 
   try {
-    await cleanupCastSession();
-
-    let lastError = null;
-
-    for (const maxSize of GROUP_CONTROL_MAX_SIZE_FALLBACKS) {
-      try {
-        castOptionsRef.value = buildGroupControlCastOptions(props.device, { maxSize });
-        const payload = await startDeviceCast(props.device.serial, castOptionsRef.value);
-        await beginCast(payload);
-        return;
-      } catch (error) {
-        lastError = error;
-        await stopDeviceCast(props.device.serial).catch(() => {});
-        await stopCast({ backend: false });
-      }
+    if (token !== startToken) {
+      return;
     }
 
-    throw lastError ?? new Error(t("groupControl.cast.startFailed"));
+    await cleanupCastSession();
+
+    if (token !== startToken) {
+      return;
+    }
+
+    castOptionsRef.value = buildGroupControlCastOptions(props.device);
+    const payload = await startDeviceCast(props.device.serial, castOptionsRef.value);
+
+    if (token !== startToken) {
+      await stopDeviceCast(props.device.serial).catch(() => {});
+      return;
+    }
+
+    await beginCast(payload);
   } catch (error) {
-    localError.value = getErrorMessage(error, t("groupControl.cast.startFailed"));
+    if (token === startToken) {
+      await stopDeviceCast(props.device.serial).catch(() => {});
+      await stopCast({ backend: false }).catch(() => {});
+      localError.value = getErrorMessage(error, t("groupControl.cast.startFailed"));
+    }
   } finally {
-    castBusy.value = false;
+    releaseStartSlot();
+    if (token === startToken) {
+      castBusy.value = false;
+    }
   }
 }
 
 function handleRemove() {
+  startToken += 1;
   emit("remove", props.device.serial);
 }
 
@@ -104,12 +118,14 @@ watch(
     }
 
     if (!connected && wasConnected) {
+      startToken += 1;
       void cleanupCastSession();
     }
   },
 );
 
 onBeforeUnmount(() => {
+  startToken += 1;
   void cleanupCastSession();
 });
 

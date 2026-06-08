@@ -31,8 +31,8 @@ function toBuffer(data) {
  * @param {{ attempts?: number, intervalMs?: number, serial?: string }} [options]
  */
 async function connectRemoteWebSocket(remoteUrl, options = {}) {
-  const attempts = options.attempts ?? 12;
-  const intervalMs = options.intervalMs ?? 250;
+  const attempts = options.attempts ?? 20;
+  const intervalMs = options.intervalMs ?? 300;
   const serial = options.serial ?? "-";
   let lastError = new Error("Unable to connect device WebSocket.");
 

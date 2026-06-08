@@ -13,6 +13,7 @@ export default {
       preparing: "正在请求后端启动投屏…",
       offline: "设备离线",
       startFailed: "投屏启动失败",
+      firstFrameTimeout: "等待视频首帧超时，请重试",
       unsupportedBrowser: "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge",
       previewAria: "{name} 群控投屏",
     },

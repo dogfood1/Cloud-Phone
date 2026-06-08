@@ -53,7 +53,7 @@ export async function ensureServerShell(session, options = {}) {
   });
   appendCastStartupLog(session, `后端：scrcpy-server shell 已启动 (pid ${shellProcess.pid ?? "?"})`);
 
-  await delay(450);
+  await delay(session.webCast ? 900 : 450);
 
   return shellProcess;
 }
