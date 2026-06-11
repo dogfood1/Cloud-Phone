@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.24** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.25** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -116,9 +116,10 @@ Images are embedded in the corresponding feature sections below.
 
 ### Group control (web)
 
-- **+** in the top-right opens a picker for online devices with select-all, names, and screenshot previews
-- Selected devices show live casts in a grid (1080p / 30 fps / 4 Mbps, parallel starts) with startup logs; switches to video after first frame, timeout offers retry
-- Selection persists in browser `localStorage`; remove devices individually
+- **+** opens a device picker: choose online devices to add (select-all, names, screenshot previews)
+- Added devices cast inline in a grid (1080p / 30 fps / 4 Mbps) without opening the device workspace; touch inside the cast to control
+- Click outside the cast area to toggle control selection; toolbar select-all / deselect-all; all added devices selected by default; new online devices auto-join
+- Device list and control selection persist separately in browser `localStorage`
 
 ### Settings & auth (web)
 
