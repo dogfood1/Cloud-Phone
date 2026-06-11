@@ -16,7 +16,7 @@ export async function attachHarmonyCastWebSocket(clientWs, serial) {
   }
 
   let closed = false;
-  const capture = new HarmonyJpegCapture(session.rpc, serial);
+  const capture = new HarmonyJpegCapture(session.rpc, serial, session.castOptions ?? {});
   session.capture = capture;
 
   const closeClient = (code = 1000, reason = "") => {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.30 - 2026-06-11
+
+- 修复鸿蒙 uitest agent 路径：同时识别 `v1.1.0` / `v1.1.10` / `agent.so` 及目录内匹配文件
+- 鸿蒙投屏参数收敛为 `scale` + `quality`（不再传递 scrcpy 码率/帧率/编码器）；`startCaptureScreen` 传入缩放与 JPEG 质量
+- 工作区鸿蒙设备显示专用设置面板；群控自动换算画质；修复 HarmonyCastSettings 导入路径
+
 ## 0.12.29 - 2026-06-06
 
 - 新增鸿蒙（HarmonyOS）设备支持：HDC 发现、`hdc list targets` 合并进设备画廊

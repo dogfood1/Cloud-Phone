@@ -3,12 +3,14 @@ import { computed, ref } from "vue";
 import { NAlert, NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
 import CameraCastSettings from "./mirror/CameraCastSettings.vue";
+import HarmonyCastSettings from "./mirror/HarmonyCastSettings.vue";
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
 import MirrorSearchableSelect from "./mirror/MirrorSearchableSelect.vue";
 import {
   buildCastPayloadFromCameraSettings,
   buildCastPayloadFromMirrorSettings,
 } from "../utils/build-cast-payload.js";
+import { buildHarmonyCastOptions } from "../utils/harmony-cast-options.js";
 import { createDefaultCameraSettings } from "../utils/camera-cast-defaults.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
@@ -36,7 +38,10 @@ const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change", "cam
 
 const mirrorSettingsRef = ref(null);
 const cameraSettingsRef = ref(null);
+const harmonySettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
+
+const isHarmonyDevice = computed(() => props.device?.platform === "harmony");
 
 const canStartCast = computed(() => {
   if (props.casting || props.castBusy) {
@@ -53,6 +58,10 @@ const modeOptions = computed(() =>
 );
 
 function buildCastOptions() {
+  if (isHarmonyDevice.value) {
+    return harmonySettingsRef.value?.getSettings?.() ?? buildHarmonyCastOptions();
+  }
+
   if (castMode.value === "camera") {
     const settings = cameraSettingsRef.value?.getSettings?.() ?? createDefaultCameraSettings();
     return buildCastPayloadFromCameraSettings(settings, props.device.sdkVersion);
@@ -84,7 +93,7 @@ defineExpose({ stepPreviewRotationDeg });
 <template>
   <aside class="workspace-left" aria-label="投屏设置">
     <div class="workspace-left__section workspace-left__top">
-      <NForm size="small" :show-feedback="false">
+      <NForm v-if="!isHarmonyDevice" size="small" :show-feedback="false">
         <NFormItem label="投屏模式" label-placement="top">
           <MirrorSearchableSelect
             v-model:value="castMode"
@@ -93,11 +102,18 @@ defineExpose({ stepPreviewRotationDeg });
           />
         </NFormItem>
       </NForm>
+      <NText v-else depth="2" style="font-weight: 600">鸿蒙 JPEG 投屏</NText>
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
+      <HarmonyCastSettings
+        v-if="isHarmonyDevice"
+        ref="harmonySettingsRef"
+        :casting="casting"
+        @settings-change="handleSettingsChange"
+      />
       <MirrorCastSettings
-        v-if="castMode === 'mirror'"
+        v-else-if="castMode === 'mirror'"
         ref="mirrorSettingsRef"
         :serial="device.serial"
         :device-sdk="device.sdkVersion"
@@ -125,7 +141,11 @@ defineExpose({ stepPreviewRotationDeg });
           设备未在线，无法投屏。
         </NAlert>
         <NText v-else depth="3" style="font-size: 0.8rem">
-          网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。
+          {{
+            isHarmonyDevice
+              ? "鸿蒙投屏通过 HDC + uitest agent 推送 JPEG 画面。"
+              : "网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。"
+          }}
         </NText>
 
         <NButton block :disabled="!casting || castBusy" @click="handleStopClick">

@@ -1,6 +1,7 @@
 import { onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { startDeviceCast, stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
+import { buildHarmonyCastOptions } from "../utils/harmony-cast-options.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
 import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
@@ -153,10 +154,8 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     startLogPolling(serial);
 
     try {
-      const options = {
-        ...(unref(castOptionsRef) ?? {}),
-        platform: "harmony",
-      };
+      const rawOptions = unref(castOptionsRef) ?? {};
+      const options = buildHarmonyCastOptions({ serial }, rawOptions);
       const session = await startDeviceCast(serial, options);
       ingestStartupLogs(session?.startupLogs ?? []);
       appendStartupLog("鸿蒙投屏：cast/start 完成，连接 WebSocket…");

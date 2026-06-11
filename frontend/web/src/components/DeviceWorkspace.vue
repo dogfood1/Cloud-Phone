@@ -120,22 +120,25 @@ async function startCast(options) {
     return;
   }
 
+  const isHarmonyCast = props.device?.platform === "harmony";
   const isCameraCast = options?.castMode === "camera";
-  const audioOnly = !isCameraCast && options?.mirror?.video?.disabled === true;
+  const audioOnly = !isHarmonyCast && !isCameraCast && options?.mirror?.video?.disabled === true;
 
   if (isCameraCast && Number(props.device.sdkVersion) > 0 && Number(props.device.sdkVersion) < 31) {
     castHint.value = "摄像头投屏需要 Android 12（API 31）及以上。";
     return;
   }
 
-  if (audioOnly) {
-    if (!WsScrcpyAudioCanvas.isSupported()) {
-      castHint.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
+  if (!isHarmonyCast) {
+    if (audioOnly) {
+      if (!WsScrcpyAudioCanvas.isSupported()) {
+        castHint.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
+        return;
+      }
+    } else if (!WsScrcpyAnnexBPlayer.isSupported()) {
+      castHint.value = "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge。";
       return;
     }
-  } else if (!WsScrcpyAnnexBPlayer.isSupported()) {
-    castHint.value = "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge。";
-    return;
   }
 
   if (options) {

@@ -1,4 +1,5 @@
 import { buildCastPayloadFromMirrorSettings } from "./build-cast-payload.js";
+import { buildHarmonyCastOptions } from "./harmony-cast-options.js";
 import { createDefaultMirrorSettings } from "./mirror-cast-defaults.js";
 import { MIRROR_RESOLUTIONS } from "./mirror-cast-constants.js";
 
@@ -44,6 +45,13 @@ export function resolveGroupControlMaxSize(device = {}, overrideMaxSize) {
 }
 
 export function buildGroupControlCastOptions(device = {}, options = {}) {
+  if (device?.platform === "harmony") {
+    return buildHarmonyCastOptions(device, {
+      maxSize: resolveGroupControlMaxSize(device, options.maxSize),
+      quality: options.quality ?? 30,
+    });
+  }
+
   const settings = createDefaultMirrorSettings();
   settings.video.maxFps = GROUP_CONTROL_TARGET_MAX_FPS;
   settings.video.bitRateMbps = GROUP_CONTROL_VIDEO_BITRATE_MBPS;

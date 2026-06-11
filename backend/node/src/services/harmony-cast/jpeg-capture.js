@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 
+import { buildCaptureScreenArgs } from "./cast-options.js";
 import { logHarmonyCastError, logHarmonyCastInfo } from "./cast-logger.js";
 
 const JPEG_START = Buffer.from([0xff, 0xd8]);
@@ -9,11 +10,13 @@ export class HarmonyJpegCapture extends EventEmitter {
   /**
    * @param {import("./uitest-rpc.js").UitestRpcClient} rpc
    * @param {string} serial
+   * @param {{ scale?: number, quality?: number }} [captureOptions]
    */
-  constructor(rpc, serial) {
+  constructor(rpc, serial, captureOptions = {}) {
     super();
     this.rpc = rpc;
     this.serial = serial;
+    this.captureOptions = captureOptions;
     this.active = false;
     /** @type {Buffer} */
     this.buffer = Buffer.alloc(0);
@@ -21,12 +24,8 @@ export class HarmonyJpegCapture extends EventEmitter {
   }
 
   async start() {
-    const response = await this.rpc.invokeCaptures("startCaptureScreen", []);
-    const reply = JSON.stringify(response).toLowerCase();
-
-    if (!reply.includes("true")) {
-      throw new Error("Harmony startCaptureScreen rejected.");
-    }
+    const captureArgs = buildCaptureScreenArgs(this.captureOptions);
+    await this.rpc.invokeCaptures("startCaptureScreen", captureArgs);
 
     const socket = this.rpc.getSocket();
 
@@ -36,7 +35,7 @@ export class HarmonyJpegCapture extends EventEmitter {
 
     socket.on("data", this.onSocketData);
     this.active = true;
-    logHarmonyCastInfo(this.serial, "jpeg.capture.started", {});
+    logHarmonyCastInfo(this.serial, "jpeg.capture.started", this.captureOptions);
   }
 
   onSocketData(chunk) {

@@ -1,9 +1,7 @@
-Place Harmony uitest agent here:
+Place Harmony uitest agent here (any of):
 
+  uitest_agent_v1.1.0.so
   uitest_agent_v1.1.10.so
+  agent.so
 
-Sources:
-- https://github.com/codematrixer/hmdriver2/tree/master/hmdriver2/assets
-- DevEco Testing / Hypium device agent bundle
-
-Alternatively set environment variable HARMONY_AGENT_PATH to the .so file path.
+Or set HARMONY_AGENT_PATH to the full .so path.

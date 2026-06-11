@@ -1,6 +1,7 @@
 import { pickHarmonyLocalPort } from "../../config/harmony-paths.js";
 import { runWithHdcLock } from "../hdc/hdc-lock.js";
 import { forwardHarmonyUitestPort, setupHarmonyUitestAgent } from "./agent-setup.js";
+import { normalizeHarmonyCastOptions } from "./cast-options.js";
 import { logHarmonyCastInfo } from "./cast-logger.js";
 import { deleteHarmonyCastSession, getHarmonyCastSession, setHarmonyCastSession } from "./session-store.js";
 import { appendHarmonyStartupLog } from "./startup-log.js";
@@ -14,13 +15,14 @@ export async function startHarmonyCast(serial, options = {}) {
     await stopHarmonyCast(serial);
   }
 
+  const castOptions = normalizeHarmonyCastOptions(options);
   const localPort = pickHarmonyLocalPort();
   const session = {
     serial,
     platform: "harmony",
     mode: "harmony-jpeg",
     localPort,
-    castOptions: options,
+    castOptions,
     clients: new Set(),
     stopping: false,
     streaming: false,
@@ -33,7 +35,7 @@ export async function startHarmonyCast(serial, options = {}) {
 
   setHarmonyCastSession(serial, session);
   appendHarmonyStartupLog(session, "后端：开始鸿蒙 cast/start");
-  logHarmonyCastInfo(serial, "cast.start", { localPort, options });
+  logHarmonyCastInfo(serial, "cast.start", { localPort, castOptions });
 
   try {
     await runWithHdcLock(async () => {
@@ -58,10 +60,11 @@ export async function startHarmonyCast(serial, options = {}) {
       localPort: session.localPort,
       wsPath: `/api/devices/${encoded}/cast/ws`,
       castProtocol: "harmony-jpeg",
+      castOptions,
       video: {
         codec: "jpeg",
-        fps: options?.fps ?? 15,
-        scale: options?.scale ?? 0.5,
+        scale: castOptions.scale,
+        quality: castOptions.quality,
       },
       startupLogs: session.startupLogs,
     };

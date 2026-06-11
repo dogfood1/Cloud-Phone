@@ -1,10 +1,12 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
 const projectRootPath = path.resolve(currentDirPath, "..", "..", "..", "..");
+
+const HARMONY_ASSETS_DIR = path.resolve(projectRootPath, "backend", "assets", "harmony");
 
 const HDC_EXECUTABLES = {
   win32: ["backend", "bin", "hdc", "windows", "hdc.exe"],
@@ -21,8 +23,42 @@ const DEVECO_HDC_CANDIDATES = {
   darwin: ["/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/toolchains/hdc"],
 };
 
+const KNOWN_AGENT_NAMES = [
+  "uitest_agent_v1.1.0.so",
+  "uitest_agent_v1.1.10.so",
+  "agent.so",
+];
+
 export const UITEST_SERVICE_PORT = 8012;
 export const HARMONY_AGENT_REMOTE_PATH = "/data/local/tmp/agent.so";
+
+function findBundledHarmonyAgent() {
+  for (const name of KNOWN_AGENT_NAMES) {
+    const candidate = path.join(HARMONY_ASSETS_DIR, name);
+
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  try {
+    const files = readdirSync(HARMONY_ASSETS_DIR);
+
+    for (const file of files) {
+      if (!file.endsWith(".so")) {
+        continue;
+      }
+
+      if (/agent|uitest/i.test(file)) {
+        return path.join(HARMONY_ASSETS_DIR, file);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
 
 export function resolveHarmonyAgentPath() {
   const envPath = process.env.HARMONY_AGENT_PATH?.trim();
@@ -31,20 +67,14 @@ export function resolveHarmonyAgentPath() {
     return envPath;
   }
 
-  const bundled = path.resolve(
-    projectRootPath,
-    "backend",
-    "assets",
-    "harmony",
-    "uitest_agent_v1.1.10.so",
-  );
+  const bundled = findBundledHarmonyAgent();
 
-  if (existsSync(bundled)) {
+  if (bundled) {
     return bundled;
   }
 
   throw new Error(
-    "Harmony uitest agent is missing. Place uitest_agent_v1.1.0.so under backend/assets/harmony/ or set HARMONY_AGENT_PATH.",
+    `Harmony uitest agent is missing. Place agent.so or uitest_agent_v1.1.0.so under ${HARMONY_ASSETS_DIR} or set HARMONY_AGENT_PATH.`,
   );
 }
 
