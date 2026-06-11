@@ -1,4 +1,4 @@
-const CONTROL_MSG_TYPE = {
+export const CONTROL_MSG_TYPE = {
   INJECT_KEYCODE: 0,
   INJECT_TEXT: 1,
   INJECT_TOUCH_EVENT: 2,
@@ -40,6 +40,7 @@ const ANDROID_KEYCODE = {
   POWER: 26,
   VOLUME_UP: 24,
   VOLUME_DOWN: 25,
+  VOLUME_MUTE: 164,
   APP_SWITCH: 187,
   WAKEUP: 224,
 };
@@ -269,6 +270,8 @@ export function serializeNavigationActions(actionId) {
       return serializeKeyTap(ANDROID_KEYCODE.VOLUME_UP);
     case "volume-down":
       return serializeKeyTap(ANDROID_KEYCODE.VOLUME_DOWN);
+    case "volume-mute":
+      return serializeKeyTap(ANDROID_KEYCODE.VOLUME_MUTE);
     case "rotate":
       return [serializeRotateDevice()];
     case "screen-off":

@@ -32,7 +32,16 @@ import {
 } from "../utils/scrcpy-cast-helpers.js";
 import { useScrcpyCastRecording } from "./useScrcpyCastRecording.js";
 
-export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef) {
+export function useDeviceScrcpyCast(
+  serialRef,
+  canvasRef,
+  castOptionsRef,
+  rotatorRef,
+  viewportRef,
+  castHooks = {},
+) {
+  const getInteractionEnabled = castHooks.getInteractionEnabled ?? (() => true);
+  const onControlSent = castHooks.onControlSent;
   const status = ref("idle");
   const errorMessage = ref("");
   const startupLogText = ref("等待连接日志…");
@@ -160,7 +169,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     const castOptions = unref(castOptionsRef) ?? {};
     unbindCanvas?.();
 
-    const interactionEnabled = castOptions.castMode !== "camera";
+    const interactionEnabled = castOptions.castMode !== "camera" && getInteractionEnabled();
 
     unbindCanvas = attachCastInteraction({
       canvas: canvasRef.value,
@@ -462,6 +471,7 @@ export function useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotato
     }
 
     socket.send(buffer);
+    onControlSent?.(buffer);
   }
 
   function sendInjectText(text) {

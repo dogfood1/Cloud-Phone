@@ -31,6 +31,11 @@ export const DEVICE_TOOLBAR_ICONS = {
   ],
   "volume-up": ["M11 5 6 9H3v6h3l5 4V5z", "M16 11h6", "M19 8v6"],
   "volume-down": ["M11 5 6 9H3v6h3l5 4V5z", "M16 12h6"],
+  "volume-mute": [
+    "M11 5 6 9H3v6h3l5 4V5z",
+    "M17 9l4 6",
+    "M21 9l-4 6",
+  ],
   "clipboard-paste": [
     "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2",
     "M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z",
