@@ -6,7 +6,7 @@ import { useI18n } from "vue-i18n";
 
 
 
-import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
+import { useDeviceCast } from "../composables/useDeviceCast.js";
 
 import { getErrorMessage } from "../utils/api.js";
 
@@ -122,7 +122,7 @@ const {
 
   getEffectiveScreenSize,
 
-} = useDeviceScrcpyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef, {
+} = useDeviceCast(toRef(() => props.device), canvasRef, castOptionsRef, rotatorRef, viewportRef, {
 
   getInteractionEnabled: () => props.batchRole !== "follower",
 

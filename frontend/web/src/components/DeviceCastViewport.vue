@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, toRef, watch } from "vue";
 
-import { useDeviceScrcpyCast } from "../composables/useDeviceScrcpyCast.js";
+import { useDeviceCast } from "../composables/useDeviceCast.js";
 
 const props = defineProps({
   device: {
@@ -24,7 +24,6 @@ const castOptionsRef = defineModel("castOptions", {
   default: () => ({ maxSize: 1024 }),
 });
 
-const serialRef = toRef(() => props.device.serial);
 const {
   status,
   errorMessage,
@@ -49,8 +48,8 @@ const {
   sendCameraControl,
   pasteClipboardToDevice,
   copyClipboardFromDevice,
-} = useDeviceScrcpyCast(
-  serialRef,
+} = useDeviceCast(
+  toRef(() => props.device),
   canvasRef,
   castOptionsRef,
   rotatorRef,

@@ -25,6 +25,13 @@ export default {
         harmony: "HarmonyOS",
         apple: "Apple",
       },
+      harmonyModes: {
+        usb: "USB / HDC connection",
+      },
+      harmonyUsb: {
+        desc: "Connect your HarmonyOS device over USB, enable developer mode and HDC debugging. Devices are discovered via hdc list targets.",
+        empty: "No new HarmonyOS devices yet. Ensure HDC is installed and debugging is authorized.",
+      },
       androidModes: {
         usb: "USB connection",
         qr: "QR code connection",

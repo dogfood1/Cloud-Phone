@@ -4,11 +4,13 @@ import { APP_VERSION } from "./config/version.js";
 import {
   connectDeviceByHost,
   createQrPairingSession,
-  listDevices,
   pairDeviceByQrService,
   pairDeviceWithCode,
 } from "./services/adb-service.js";
 import { captureDeviceScreenshot } from "./services/device-screenshot.js";
+import { resolveDevicePlatform } from "./services/device-platform-registry.js";
+import { captureHarmonyScreenshot } from "./services/harmony-device.js";
+import { listAllDevices } from "./services/device-list-service.js";
 import {
   changePassword,
   getAuthStatus,
@@ -248,13 +250,14 @@ export function createApp() {
 
     if (method === "GET" && pathname === "/api/devices") {
       try {
-        const { adbPath, devices } = await listDevices();
+        const { adbPath, hdcPath, devices, total } = await listAllDevices();
 
         sendProtectedJson(res, 200, {
           success: true,
           version: APP_VERSION,
           adbPath,
-          total: devices.length,
+          hdcPath,
+          total,
           devices,
         });
       } catch (error) {
@@ -378,8 +381,13 @@ export function createApp() {
       const serial = decodeURIComponent(screenshotMatch[1]);
 
       try {
-        const screenshot = await captureDeviceScreenshot(serial);
-        sendProtectedBuffer(res, 200, screenshot, "image/png");
+        const platform = await resolveDevicePlatform(serial);
+        const screenshot =
+          platform === "harmony"
+            ? await captureHarmonyScreenshot(serial)
+            : await captureDeviceScreenshot(serial);
+        const mime = platform === "harmony" ? "image/jpeg" : "image/png";
+        sendProtectedBuffer(res, 200, screenshot, mime);
       } catch (error) {
         const code = error?.code ?? "screenshot_failed";
         const transient = code === "device_offline" || code === "adb_connection_closed";

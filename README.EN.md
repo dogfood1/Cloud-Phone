@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.28** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.29** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -66,7 +66,8 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android now supports USB guide + pairing-code flow (IP/port/code with auto connect-port scan), Huawei/Apple remain placeholders
+- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
+- **HarmonyOS cast**: HDC + uitest agent, JPEG stream over WebSocket (not scrcpy); workspace/group control auto-select player by `platform`; requires `backend/assets/harmony/uitest_agent_v1.1.0.so`
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
 
@@ -106,8 +107,8 @@ Images are embedded in the corresponding feature sections below.
 ![Device gallery](images/readme/gallery.png)
 
 - Tabs: **Devices**, **Group control**, **Settings**
-- Uses bundled `platform-tools` ADB to discover devices
-- Shows model, manufacturer, IP, Android/SDK, serial, product name
+- Uses bundled `platform-tools` ADB and **HDC** (`backend/bin/hdc`) to discover devices
+- Shows model, manufacturer, IP, Android/HarmonyOS version, serial, product name
 - Screenshot refresh ~5s by default (configurable), list refresh ~1s
 - Keeps the previous frame while updating to avoid full-page loading flicker
 - Online/offline counts, last refresh time, manual refresh; scrollable gallery for many devices with lazy screenshot loading

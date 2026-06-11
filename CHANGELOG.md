@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.29 - 2026-06-06
+
+- 新增鸿蒙（HarmonyOS）设备支持：HDC 发现、`hdc list targets` 合并进设备画廊
+- 鸿蒙投屏：uitest agent + `Captures.startCaptureScreen` JPEG 流，WebSocket 推帧；触控经 Hypium RPC
+- 添加设备弹窗开放鸿蒙 USB/HDC 连接引导；工作区与群控按 `platform` 自动切换 scrcpy / 鸿蒙播放器
+- 归类 DevEco Hypium 6.1.0.210 API 文档至 `backend/vendor/deveco-hypium/`
+
 ## 0.12.28 - 2026-06-06
 
 - 修复多设备截图时 ADB 失败触发 `unhandledRejection`；规范化离线/连接关闭等错误，瞬态失败返回 503

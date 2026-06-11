@@ -15,6 +15,13 @@ import {
 import { summarizeStreamStats } from "../services/scrcpy-cast/stream-stats.js";
 import { getCastStartupLogs, appendCastStartupLog } from "../services/scrcpy-cast/startup-log.js";
 import { proxyWebSocket } from "../services/scrcpy-cast/ws-scrcpy-ws-proxy.js";
+import { isHarmonyDevice, resolveDevicePlatform } from "../services/device-platform-registry.js";
+import { logHarmonyCastError, logHarmonyCastInfo } from "../services/harmony-cast/cast-logger.js";
+import { startHarmonyCast } from "../services/harmony-cast/index.js";
+import {
+  handleHarmonyCastRoute,
+  handleHarmonyCastWebSocket,
+} from "./harmony-cast-routes.js";
 import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceCastRoute(req, res, method, pathname) {
@@ -24,6 +31,34 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
 
   if (method === "POST" && startMatch) {
     const serial = decodeURIComponent(startMatch[1]);
+
+    const body = await readProtectedJsonBody(req, res);
+    const platform = body?.platform === "harmony" ? "harmony" : await resolveDevicePlatform(serial);
+
+    if (platform === "harmony") {
+      try {
+        logHarmonyCastInfo(serial, "api.cast.start", { options: body ?? {} });
+        const session = await startHarmonyCast(serial, body ?? {});
+
+        sendProtectedJson(res, 200, {
+          success: true,
+          version: APP_VERSION,
+          ...session,
+        });
+      } catch (error) {
+        logHarmonyCastError(serial, "api.cast.start_failed", {
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "harmony_cast_start_failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+
+      return true;
+    }
 
     logCastInfo(serial, "api.cast.start.request", { method, pathname });
 
@@ -43,7 +78,6 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     }
 
     try {
-      const body = await readProtectedJsonBody(req, res);
       logCastInfo(serial, "api.cast.start", { options: body ?? {} });
       const session = await startScrcpyCast(serial, body ?? {});
 
@@ -70,6 +104,10 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
   if (method === "DELETE" && stopMatch) {
     const serial = decodeURIComponent(stopMatch[1]);
 
+    if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+      return handleHarmonyCastRoute(req, res, method, pathname);
+    }
+
     try {
       logCastInfo(serial, "api.cast.stop", {});
       const stopped = await stopScrcpyCast(serial);
@@ -94,6 +132,11 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
 
   if (method === "GET" && statusMatch) {
     const serial = decodeURIComponent(statusMatch[1]);
+
+    if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+      return handleHarmonyCastRoute(req, res, method, pathname);
+    }
+
     const session = getCastSession(serial);
 
     sendProtectedJson(res, 200, {
@@ -137,6 +180,11 @@ export function parseCastWebSocketPath(pathname) {
 }
 
 export async function handleCastWebSocket(ws, serial) {
+  if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+    await handleHarmonyCastWebSocket(ws, serial);
+    return;
+  }
+
   const session = getCastSession(serial);
 
   if (!session) {

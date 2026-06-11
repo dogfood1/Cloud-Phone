@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.28** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.29** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -71,7 +71,8 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
-| **设备入口** | 画廊右上角提供「添加设备」弹窗；安卓 USB 引导 + 配对码配对（IP/端口/配对码，自动扫描连接），鸿蒙/苹果暂未开发 |
+| **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；苹果暂未开发 |
+| **鸿蒙投屏** | HDC + uitest agent，JPEG 实时流（非 scrcpy）；工作区/群控自动切换播放器；需 `backend/assets/harmony/uitest_agent_v1.1.0.so` |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
 
@@ -109,7 +110,7 @@ images/readme/
 ![设备画廊](images/readme/gallery.png)
 
 - 左侧 Tab：**设备**、**群控**、**设置**
-- 自动发现 ADB 设备（内置 `platform-tools`），展示型号、厂商、IP、Android 版本、序列号、产品名
+- 自动发现 ADB 与 **HDC** 设备（内置 `platform-tools` / `backend/bin/hdc`），展示型号、厂商、IP、系统版本、序列号
 - 每台设备约 **5 秒**刷新截图（可调），列表约 **1 秒**刷新；刷新时保留上一帧，不闪全屏 loading
 - 汇总在线/离线数量、最近刷新时间，支持手动刷新；设备多时可滚动浏览全部卡片，截图懒加载减轻卡顿
 - 后端截图并发限制（最多 4 路），设备离线或 ADB 断开时返回可重试状态，避免日志 `unhandledRejection`

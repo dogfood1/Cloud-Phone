@@ -18,7 +18,7 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr
+const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb
 const baselineSerials = ref(new Set());
 const pairForm = ref({
   host: "",
@@ -37,22 +37,27 @@ const platforms = [
     icon: "mdi:android",
     modes: ["usb", "qr", "pairCode"],
   },
-  { id: "harmony", icon: "simple-icons:huawei" },
+  { id: "harmony", icon: "simple-icons:huawei", modes: ["usb"] },
   { id: "apple", icon: "mdi:apple" },
 ];
 
 const currentDevices = computed(() => props.devices ?? []);
 
 const trackedDevices = computed(() => {
-  if (step.value !== "android-usb") {
+  if (step.value !== "android-usb" && step.value !== "harmony-usb") {
     return [];
   }
 
   const baselines = baselineSerials.value;
+  const platform = step.value === "harmony-usb" ? "harmony" : "android";
   const result = [];
 
   for (const device of currentDevices.value) {
     if (!device?.serial) {
+      continue;
+    }
+
+    if ((device.platform ?? "android") !== platform) {
       continue;
     }
 
@@ -81,6 +86,13 @@ function enterAndroidUsb() {
     (currentDevices.value ?? []).map((device) => device?.serial).filter(Boolean),
   );
   step.value = "android-usb";
+}
+
+function enterHarmonyUsb() {
+  baselineSerials.value = new Set(
+    (currentDevices.value ?? []).map((device) => device?.serial).filter(Boolean),
+  );
+  step.value = "harmony-usb";
 }
 
 async function submitPairCode() {
@@ -262,8 +274,8 @@ function backToPlatforms() {
           v-for="item in platforms"
           :key="item.id"
           class="add-device-modal__card"
-          :class="{ 'add-device-modal__card--disabled': item.id !== 'android' }"
-          :aria-disabled="item.id !== 'android'"
+          :class="{ 'add-device-modal__card--disabled': item.id === 'apple' }"
+          :aria-disabled="item.id === 'apple'"
         >
           <Icon :icon="item.icon" class="add-device-modal__icon" />
           <h3>{{ t(`devices.addDeviceModal.platforms.${item.id}`) }}</h3>
@@ -275,7 +287,18 @@ function backToPlatforms() {
               :class="{ 'add-device-modal__mode--active': item.id === 'android' && mode === 'usb' }"
             >
               <button
-                v-if="item.id === 'android' && mode === 'usb'"
+                v-if="item.id === 'harmony' && mode === 'usb'"
+                type="button"
+                class="add-device-modal__mode-btn"
+                @click="enterHarmonyUsb"
+              >
+                <span>{{ t("devices.addDeviceModal.harmonyModes.usb") }}</span>
+                <span class="add-device-modal__mode-badge">
+                  {{ t("devices.addDeviceModal.usb.action") }}
+                </span>
+              </button>
+              <button
+                v-else-if="item.id === 'android' && mode === 'usb'"
                 type="button"
                 class="add-device-modal__mode-btn"
                 @click="enterAndroidUsb"
@@ -317,10 +340,49 @@ function backToPlatforms() {
               </template>
             </li>
           </ul>
-          <p v-if="item.id !== 'android'" class="add-device-modal__badge">
+          <p v-if="item.id === 'apple'" class="add-device-modal__badge">
             {{ t("devices.addDeviceModal.comingSoon") }}
           </p>
         </article>
+      </div>
+
+      <div v-else-if="step === 'harmony-usb'" class="add-device-modal__usb">
+        <div class="add-device-modal__usb-layout">
+          <div class="add-device-modal__usb-status">
+            <p>{{ t("devices.addDeviceModal.harmonyUsb.desc") }}</p>
+            <p class="add-device-modal__usb-summary">
+              {{
+                t("devices.addDeviceModal.usb.summary", {
+                  total: trackedSummary.total,
+                  connected: trackedSummary.connected,
+                  unauthorized: trackedSummary.unauthorized,
+                })
+              }}
+            </p>
+            <p v-if="trackedDevices.length === 0" class="add-device-modal__usb-empty">
+              {{ t("devices.addDeviceModal.harmonyUsb.empty") }}
+            </p>
+            <ul v-else class="add-device-modal__usb-list">
+              <li v-for="device in trackedDevices" :key="device.serial" class="add-device-modal__usb-item">
+                <div class="add-device-modal__usb-item-main">
+                  <strong>{{ device.displayName || device.serial }}</strong>
+                  <span class="add-device-modal__usb-item-sub">{{ device.serial }}</span>
+                </div>
+                <span class="add-device-modal__usb-state add-device-modal__usb-state--ok">
+                  {{ t("devices.addDeviceModal.usb.stateConnected") }}
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="add-device-modal__usb-actions">
+          <button type="button" class="ghost-button" @click="backToPlatforms">
+            {{ t("common.back") }}
+          </button>
+          <button type="button" class="primary-button" @click="emit('close')">
+            {{ t("devices.addDeviceModal.usb.done") }}
+          </button>
+        </div>
       </div>
 
       <div v-else-if="step === 'android-usb'" class="add-device-modal__usb">

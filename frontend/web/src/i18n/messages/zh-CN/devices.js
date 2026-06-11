@@ -25,6 +25,13 @@ export default {
         harmony: "鸿蒙",
         apple: "苹果",
       },
+      harmonyModes: {
+        usb: "USB / HDC 连接",
+      },
+      harmonyUsb: {
+        desc: "请用数据线连接鸿蒙设备，在手机上开启开发者模式与 HDC 调试。设备将通过 hdc list targets 自动出现在画廊。",
+        empty: "暂未检测到新的鸿蒙设备，请确认已安装 HDC 并授权调试。",
+      },
       androidModes: {
         usb: "USB 连接",
         qr: "二维码连接",
