@@ -124,6 +124,7 @@ function closeMobileSidebar() {
       class="main-panel"
       :class="{
         'main-panel--workspace': selectedDevice,
+        'main-panel--devices': !selectedDevice && activeTab === 'devices',
         'main-panel--settings': !selectedDevice && activeTab === 'settings',
         'main-panel--group-control': !selectedDevice && activeTab === 'group-control',
       }"

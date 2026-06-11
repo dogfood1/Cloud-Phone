@@ -318,11 +318,13 @@ input:focus-visible {
 }
 
 .main-panel--settings,
-.main-panel--group-control {
+.main-panel--group-control,
+.main-panel--devices {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .group-control-view {
@@ -465,6 +467,11 @@ h2 {
   flex-shrink: 0;
 }
 
+.devices-view > .device-gallery {
+  flex: 1;
+  min-height: 0;
+}
+
 .devices-toolbar {
   display: grid;
   gap: 0.35rem;
@@ -533,6 +540,7 @@ h2 {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  align-content: start;
   padding-right: 0.2rem;
 }
 

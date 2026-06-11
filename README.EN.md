@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.26** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
+Current version: **v0.12.27** · Node backend + Vue 3 web + Android app · scrcpy 4.0 WebSocket build
 
 [中文](README.md) · **English**
 
@@ -110,7 +110,7 @@ Images are embedded in the corresponding feature sections below.
 - Shows model, manufacturer, IP, Android/SDK, serial, product name
 - Screenshot refresh ~5s by default (configurable), list refresh ~1s
 - Keeps the previous frame while updating to avoid full-page loading flicker
-- Online/offline counts, last refresh time, manual refresh
+- Online/offline counts, last refresh time, manual refresh; scrollable gallery for many devices with lazy screenshot loading
 - **Right-click a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
 - Click a card to open the **device workspace**
 
