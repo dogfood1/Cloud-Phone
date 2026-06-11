@@ -381,12 +381,18 @@ export function createApp() {
         const screenshot = await captureDeviceScreenshot(serial);
         sendProtectedBuffer(res, 200, screenshot, "image/png");
       } catch (error) {
-        sendProtectedJson(res, 500, {
-          success: false,
-          version: APP_VERSION,
-          error: "screenshot_failed",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
+        const code = error?.code ?? "screenshot_failed";
+        const transient = code === "device_offline" || code === "adb_connection_closed";
+        const statusCode = transient ? 503 : 500;
+
+        if (!res.writableEnded) {
+          sendProtectedJson(res, statusCode, {
+            success: false,
+            version: APP_VERSION,
+            error: code,
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
       }
       return;
     }

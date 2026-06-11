@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.27** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
+当前版本：**v0.12.28** · Node 后端 + Vue 3 Web + Android 客户端 · 基于 [scrcpy](https://github.com/Genymobile/scrcpy) 4.0 自编译 WebSocket 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -112,6 +112,7 @@ images/readme/
 - 自动发现 ADB 设备（内置 `platform-tools`），展示型号、厂商、IP、Android 版本、序列号、产品名
 - 每台设备约 **5 秒**刷新截图（可调），列表约 **1 秒**刷新；刷新时保留上一帧，不闪全屏 loading
 - 汇总在线/离线数量、最近刷新时间，支持手动刷新；设备多时可滚动浏览全部卡片，截图懒加载减轻卡顿
+- 后端截图并发限制（最多 4 路），设备离线或 ADB 断开时返回可重试状态，避免日志 `unhandledRejection`
 - **右键设备卡片**：查看设备详细信息、断开无线设备（USB 连接不支持断开）
 - 点击卡片进入**设备工作区**
 
@@ -122,6 +123,7 @@ images/readme/
 - 点击投屏区域外切换「控制选中」；工具栏支持全选/取消全选；默认选中全部已添加设备，新上线设备自动加入
 - 选中至少一台后，左上角批量操作：**电源**（亮屏/息屏）、**音量**（静音/加减）、**应用**（批量安装 APK / 按包名卸载）、**批量控制**（选主控黄色、其余绿色同步操作）
 - 设备列表与控制选中分别写入浏览器 `localStorage`
+- 后端投屏管道启动前探测本地转发端口；停止投屏或 server 退出时立即中止 WebSocket 代理，避免 `ECONNREFUSED` 重试风暴
 
 ### 设置与登录（Web）
 

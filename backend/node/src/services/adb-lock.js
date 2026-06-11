@@ -9,6 +9,12 @@ function normalizeLockKey(lockKey) {
   return lockKey.trim();
 }
 
+function releaseQueueSlot(lockKey, nextQueue) {
+  if (adbQueues.get(lockKey) === nextQueue) {
+    adbQueues.delete(lockKey);
+  }
+}
+
 /**
  * Serialize adb tasks by lock key.
  * Tasks with different keys can run in parallel.
@@ -29,11 +35,11 @@ export function runWithAdbLock(task, options = {}) {
 
   adbQueues.set(lockKey, nextQueue);
 
-  run.finally(() => {
-    if (adbQueues.get(lockKey) === nextQueue) {
-      adbQueues.delete(lockKey);
-    }
-  });
+  // Must swallow cleanup promise rejections; otherwise failed adb tasks
+  // surface as unhandledRejection even when callers catch `run`.
+  void run.finally(() => {
+    releaseQueueSlot(lockKey, nextQueue);
+  }).catch(() => {});
 
   return run;
 }

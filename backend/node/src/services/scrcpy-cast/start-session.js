@@ -23,6 +23,7 @@ import { deleteCastSession, getCastSession, setCastSession } from "./session-sto
 import { stopScrcpyCast } from "./stop-session.js";
 import { createStreamStats } from "./stream-stats.js";
 import { connectVideoSocket } from "./video-bridge.js";
+import { waitForLocalPortOpen } from "./wait-for-local-port.js";
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,6 +75,7 @@ export async function startScrcpyCast(serial, options = {}) {
     videoListenPromise: null,
     clients: new Set(),
     starting: true,
+    stopping: false,
     streaming: false,
     streamStats: createStreamStats(),
     serverExited: false,
@@ -174,6 +176,23 @@ export async function ensureCastVideoPipe(serial) {
     });
     appendCastStartupLog(session, "后端：准备 WebSocket 视频管道");
     await ensureServerShell(session, session.castOptions ?? {});
+
+    if (session.serverExited) {
+      throw new Error("scrcpy-server shell exited before the cast port became ready.");
+    }
+
+    const shouldAbort = () =>
+      getCastSession(serial) !== session || session.stopping || session.serverExited;
+
+    await waitForLocalPortOpen(session.localPort, {
+      timeoutMs: 15_000,
+      shouldAbort,
+    });
+
+    if (shouldAbort()) {
+      throw new Error("Cast session stopped while waiting for local port.");
+    }
+
     logCastInfo(serial, "video.pipe.web_cast_ready", {
       localPort: session.localPort,
       shellPid: session.shellProcess?.pid ?? null,

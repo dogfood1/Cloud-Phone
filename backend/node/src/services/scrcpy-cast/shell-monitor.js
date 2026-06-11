@@ -54,6 +54,18 @@ export function attachShellMonitor(session) {
       logStreamStopped(serial, session, "server_shell_exited");
     }
 
+    session.stopping = true;
+
+    for (const client of session.clients) {
+      try {
+        client.close(1011, "scrcpy server exited");
+      } catch {
+        // ignore
+      }
+    }
+
+    session.clients.clear();
+
     if (getCastSession(serial) === session) {
       deleteCastSession(serial);
     }

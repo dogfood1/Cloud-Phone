@@ -179,10 +179,22 @@ export async function handleCastWebSocket(ws, serial) {
         prefetchedMessages: prefetchedClientMessages.length,
       });
 
-      await proxyWebSocket(ws, remoteUrl, {
+      const shouldAbort = () =>
+        ws.readyState !== 1 ||
+        session.stopping ||
+        session.serverExited ||
+        getCastSession(serial) !== session;
+
+      const proxied = await proxyWebSocket(ws, remoteUrl, {
         prefetchedClientMessages,
         serial,
+        shouldAbort,
       });
+
+      if (!proxied) {
+        logCastInfo(serial, "ws.proxy.aborted", { remoteUrl });
+      }
+
       return;
     }
 
@@ -195,6 +207,24 @@ export async function handleCastWebSocket(ws, serial) {
     // legacy path sends ready/session/codec JSON etc (kept for compatibility)
   } catch (error) {
     ws.off("message", prefetchClientMessage);
+
+    const aborted =
+      error?.code === "proxy_connect_aborted" ||
+      error?.code === "cast_port_wait_aborted" ||
+      session.stopping;
+
+    if (aborted) {
+      logCastInfo(serial, "ws.aborted", {
+        message: error instanceof Error ? error.message : "cast aborted",
+      });
+
+      if (ws.readyState === 1) {
+        ws.close(1000, "cast stopped");
+      }
+
+      return;
+    }
+
     logCastError(serial, "ws.failed", {
       message: error instanceof Error ? error.message : "unknown",
     });

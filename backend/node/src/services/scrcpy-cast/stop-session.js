@@ -90,6 +90,8 @@ export async function stopScrcpyCast(serial) {
     ...summarizeStreamStats(session.streamStats),
   });
 
+  session.stopping = true;
+
   if (session.streaming || session.streamStats?.bytesReceived > 0) {
     logStreamStopped(serial, session, "user_stop");
   }

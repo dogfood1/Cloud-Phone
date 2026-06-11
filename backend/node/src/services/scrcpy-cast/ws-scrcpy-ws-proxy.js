@@ -9,6 +9,23 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function delayWithAbort(ms, shouldAbort) {
+  const step = 50;
+  let elapsed = 0;
+
+  while (elapsed < ms) {
+    if (shouldAbort()) {
+      const error = new Error("WebSocket proxy connect aborted.");
+      error.code = "proxy_connect_aborted";
+      throw error;
+    }
+
+    const chunk = Math.min(step, ms - elapsed);
+    await delay(chunk);
+    elapsed += chunk;
+  }
+}
+
 function toBuffer(data) {
   if (Buffer.isBuffer(data)) {
     return data;
@@ -28,40 +45,68 @@ function toBuffer(data) {
 /**
  * Connect to device WebSocket with retries (server may still be starting).
  * @param {string} remoteUrl
- * @param {{ attempts?: number, intervalMs?: number, serial?: string }} [options]
+ * @param {{ attempts?: number, intervalMs?: number, serial?: string, shouldAbort?: () => boolean }} [options]
  */
 async function connectRemoteWebSocket(remoteUrl, options = {}) {
   const attempts = options.attempts ?? 20;
   const intervalMs = options.intervalMs ?? 300;
   const serial = options.serial ?? "-";
+  const shouldAbort = options.shouldAbort ?? (() => false);
   let lastError = new Error("Unable to connect device WebSocket.");
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (shouldAbort()) {
+      const error = new Error("WebSocket proxy connect aborted.");
+      error.code = "proxy_connect_aborted";
+      throw error;
+    }
+
     logCastInfo(serial, "ws.proxy.connect_attempt", { remoteUrl, attempt, attempts });
 
     try {
       const remoteWs = await new Promise((resolve, reject) => {
+        if (shouldAbort()) {
+          reject(new Error("WebSocket proxy connect aborted."));
+          return;
+        }
+
         const ws = new WS(remoteUrl);
         const timer = setTimeout(() => {
           ws.terminate();
           reject(new Error("device WebSocket open timeout"));
         }, 5_000);
 
-        ws.once("open", () => {
+        const cleanup = () => {
           clearTimeout(timer);
-          resolve(ws);
-        });
+          ws.off("open", onOpen);
+          ws.off("error", onError);
+        };
 
-        ws.once("error", (error) => {
-          clearTimeout(timer);
+        const onOpen = () => {
+          cleanup();
+          resolve(ws);
+        };
+
+        const onError = (error) => {
+          cleanup();
           reject(error instanceof Error ? error : new Error(String(error)));
-        });
+        };
+
+        ws.once("open", onOpen);
+        ws.once("error", onError);
       });
 
       logCastInfo(serial, "ws.proxy.connect_ok", { remoteUrl, attempt });
       return remoteWs;
     } catch (error) {
       lastError = error instanceof Error ? error : lastError;
+
+      if (shouldAbort() || lastError.message.includes("aborted")) {
+        const abortError = new Error("WebSocket proxy connect aborted.");
+        abortError.code = "proxy_connect_aborted";
+        throw abortError;
+      }
+
       logCastWarn(serial, "ws.proxy.connect_retry", {
         remoteUrl,
         attempt,
@@ -69,7 +114,7 @@ async function connectRemoteWebSocket(remoteUrl, options = {}) {
       });
 
       if (attempt < attempts) {
-        await delay(intervalMs);
+        await delayWithAbort(intervalMs, shouldAbort);
       }
     }
   }
@@ -98,10 +143,11 @@ function logProxyPacket(serial, direction, data, counters) {
  * Proxy a browser WebSocket to a device WebSocket endpoint.
  * @param {import("ws").WebSocket} clientWs
  * @param {string} remoteUrl
- * @param {{ prefetchedClientMessages?: unknown[], serial?: string }} [options]
+ * @param {{ prefetchedClientMessages?: unknown[], serial?: string, shouldAbort?: () => boolean }} [options]
  */
 export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
   const serial = options.serial ?? "-";
+  const shouldAbort = options.shouldAbort ?? (() => false);
   const clientQueue = [...(options.prefetchedClientMessages ?? [])];
   const counters = {
     clientToRemote: 0,
@@ -146,9 +192,18 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
   clientWs.on("message", onClientMessage);
 
   try {
-    remoteWs = await connectRemoteWebSocket(remoteUrl, { serial });
+    remoteWs = await connectRemoteWebSocket(remoteUrl, { serial, shouldAbort });
   } catch (error) {
     clientWs.off("message", onClientMessage);
+
+    if (error?.code === "proxy_connect_aborted") {
+      logCastInfo(serial, "ws.proxy.connect_aborted", { remoteUrl });
+      if (clientWs.readyState === WS.OPEN) {
+        clientWs.close(1000, "cast stopped");
+      }
+      return null;
+    }
+
     clientWs.close(1011, error instanceof Error ? error.message : "device ws connect failed");
     throw error;
   }
