@@ -2,6 +2,8 @@ import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
+import { firstExistingPath, isTermux } from "./runtime-env.js";
+
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
 const projectRootPath = path.resolve(currentDirPath, "..", "..", "..", "..");
@@ -172,19 +174,24 @@ export function resolveHdcPath() {
     return envPath;
   }
 
-  const segments = HDC_EXECUTABLES[process.platform];
+  const platformKeys =
+    process.platform === "linux" || isTermux() ? ["linux", process.platform] : [process.platform];
 
-  if (segments) {
-    const bundled = path.resolve(projectRootPath, ...segments);
+  for (const platformKey of platformKeys) {
+    const segments = HDC_EXECUTABLES[platformKey];
 
-    if (existsSync(bundled)) {
-      return bundled;
+    if (segments) {
+      const bundled = path.resolve(projectRootPath, ...segments);
+
+      if (existsSync(bundled)) {
+        return bundled;
+      }
     }
-  }
 
-  for (const candidate of DEVECO_HDC_CANDIDATES[process.platform] ?? []) {
-    if (existsSync(candidate)) {
-      return candidate;
+    for (const candidate of DEVECO_HDC_CANDIDATES[platformKey] ?? []) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
     }
   }
 

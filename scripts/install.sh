@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Cloud Phone — 安装入口（自动选择 Linux / macOS）
+# Cloud Phone — 安装入口（Linux / macOS / Termux）
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -n "${TERMUX_VERSION:-}" ]; then
+  exec bash "$SCRIPT_DIR/install-termux.sh" "$@"
+fi
 
 case "$(uname -s)" in
   Linux)

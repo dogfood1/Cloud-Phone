@@ -7,6 +7,14 @@ LINUX_ID=""
 LINUX_VERSION_ID=""
 
 linux_detect_distro() {
+  if [ -n "${TERMUX_VERSION:-}" ]; then
+    LINUX_ID=termux
+    LINUX_VERSION_ID="${TERMUX_VERSION:-}"
+    LINUX_PKG_FAMILY=termux
+    LINUX_PKG_MGR=pkg
+    return
+  fi
+
   if [ ! -f /etc/os-release ]; then
     LINUX_PKG_FAMILY=unknown
     return
@@ -57,6 +65,7 @@ linux_sudo() {
 
 linux_pkg_update() {
   case "$LINUX_PKG_FAMILY" in
+    termux) pkg update -y;;
     debian) linux_sudo apt-get update -qq;;
     alpine) linux_sudo apk update;;
     fedora|rhel) linux_sudo "$LINUX_PKG_MGR" makecache -y || linux_sudo "$LINUX_PKG_MGR" check-update;;
@@ -71,6 +80,8 @@ linux_pkg_install() {
   local pkgs=("$@")
   [ ${#pkgs[@]} -gt 0 ] || return 0
   case "$LINUX_PKG_FAMILY" in
+    termux)
+      pkg install -y "${pkgs[@]}";;
     debian)
       linux_sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${pkgs[@]}";;
     alpine)

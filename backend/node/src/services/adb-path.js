@@ -1,5 +1,8 @@
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+
+import { firstExistingPath, isTermux } from "../config/runtime-env.js";
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
@@ -11,12 +14,80 @@ const ADB_EXECUTABLES = {
   darwin: ["backend", "bin", "adb", "platform-tools-latest-darwin", "platform-tools", "adb"],
 };
 
-export function resolveAdbPath() {
-  const adbSegments = ADB_EXECUTABLES[process.platform];
+function bundledAdbPath(platform = process.platform) {
+  const adbSegments = ADB_EXECUTABLES[platform];
 
   if (!adbSegments) {
-    throw new Error(`Unsupported platform: ${process.platform}`);
+    return null;
   }
 
   return path.resolve(projectRootPath, ...adbSegments);
+}
+
+function termuxAdbCandidates() {
+  const prefix = process.env.TERMUX_PREFIX?.trim() || "/data/data/com.termux/files/usr";
+
+  return [
+    path.join(prefix, "bin", "adb"),
+    "/data/data/com.termux/files/usr/bin/adb",
+  ];
+}
+
+function resolveAdbFromPath() {
+  try {
+    const command = process.platform === "win32" ? "where" : "which";
+    const output = execFileSync(command, ["adb"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const candidate = output.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+
+    return candidate && firstExistingPath([candidate]);
+  } catch {
+    return null;
+  }
+}
+
+export function listAdbPathCandidates() {
+  const configured =
+    process.env.CLOUD_PHONE_ADB_PATH?.trim() || process.env.ADB_PATH?.trim() || null;
+  const candidates = [];
+
+  if (configured) {
+    candidates.push(configured);
+  }
+
+  if (isTermux()) {
+    candidates.push(...termuxAdbCandidates());
+  }
+
+  const bundled = bundledAdbPath(process.platform) ?? bundledAdbPath("linux");
+
+  if (bundled) {
+    candidates.push(bundled);
+  }
+
+  const fromPath = resolveAdbFromPath();
+
+  if (fromPath) {
+    candidates.push(fromPath);
+  }
+
+  return [...new Set(candidates)];
+}
+
+export function resolveAdbPath() {
+  const resolved = firstExistingPath(listAdbPathCandidates());
+
+  if (resolved) {
+    return resolved;
+  }
+
+  if (isTermux()) {
+    throw new Error(
+      "Termux 未找到 adb。请执行: pkg install android-tools，或设置 CLOUD_PHONE_ADB_PATH。",
+    );
+  }
+
+  throw new Error(`Unsupported platform or missing bundled adb: ${process.platform}`);
 }

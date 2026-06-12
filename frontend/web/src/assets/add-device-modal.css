@@ -241,6 +241,18 @@
   background: var(--bg);
 }
 
+.add-device-modal__termux-steps {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.add-device-modal__termux-steps li + li {
+  margin-top: 0.45rem;
+}
+
 .add-device-modal__usb-list {
   display: grid;
   gap: 0.5rem;

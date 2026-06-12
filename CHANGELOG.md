@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.32 - 2026-06-06
+
+- 新增 **Android (Termux)** 宿主支持：后端识别 `TERMUX_VERSION`，按 Linux 运行；adb/hdc 路径自动探测
+- 安装脚本 `scripts/install-termux.sh`（`pkg` 安装 nodejs-lts、android-tools）；`install.sh` 在 Termux 自动分流
+- `/health` 与 `/api/devices` 返回 `host` 运行时信息；添加设备弹窗增加 Termux 安装引导（中/英）
+
 ## 0.12.31 - 2026-06-11
 
 - 鸿蒙投屏对齐 ECHO/hdckit：`cast/start` 即建立 RPC + JPEG 管道，WebSocket 仅订阅帧流；会话级单例 capture 广播

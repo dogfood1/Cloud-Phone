@@ -1,6 +1,7 @@
 import http from "node:http";
 
 import { APP_VERSION } from "./config/version.js";
+import { getHostRuntimeInfo } from "./config/runtime-env.js";
 import {
   connectDeviceByHost,
   createQrPairingSession,
@@ -85,6 +86,7 @@ export function createApp() {
         status: "ok",
         service: "cloud-phone-node",
         version: APP_VERSION,
+        host: getHostRuntimeInfo(),
       });
       return;
     }
@@ -250,13 +252,14 @@ export function createApp() {
 
     if (method === "GET" && pathname === "/api/devices") {
       try {
-        const { adbPath, hdcPath, devices, total } = await listAllDevices();
+        const { adbPath, hdcPath, devices, total, host } = await listAllDevices();
 
         sendProtectedJson(res, 200, {
           success: true,
           version: APP_VERSION,
           adbPath,
           hdcPath,
+          host,
           total,
           devices,
         });

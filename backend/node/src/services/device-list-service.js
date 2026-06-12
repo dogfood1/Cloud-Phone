@@ -1,6 +1,7 @@
 import { rememberDevicePlatforms } from "./device-platform-registry.js";
 import { listDevices as listAndroidDevices } from "./adb-service.js";
 import { listHarmonyDevices } from "./harmony-device.js";
+import { getHostRuntimeInfo } from "../config/runtime-env.js";
 
 export async function listAllDevices() {
   const [androidResult, harmonyResult] = await Promise.all([
@@ -20,6 +21,7 @@ export async function listAllDevices() {
   return {
     adbPath: androidResult.adbPath ?? null,
     hdcPath: harmonyResult.hdcPath ?? null,
+    host: getHostRuntimeInfo(),
     total: devices.length,
     devices,
   };
