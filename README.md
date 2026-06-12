@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.35** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.12.36** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -430,6 +430,8 @@ node tools/sync-scrcpy-source.mjs   # 从上游同步源码（需自行合并魔
 | `BACKEND_PORT` | 后端 API | `3000` |
 | `FRONTEND_PORT` | Vite 开发端口 | `5173` |
 | `CLOUD_PHONE_ADB_PATH` | 自定义 adb 可执行文件路径（Termux 等） | 自动探测 |
+| `CLOUD_PHONE_ROOT` | 仓库根目录（Termux 路径解析异常时） | 自动推断 |
+| `CLOUD_PHONE_SCRCPY_SERVER_JAR` | 魔改 scrcpy-server 路径 | `backend/bin/scrcpy/<平台>/scrcpy-server` |
 
 
 

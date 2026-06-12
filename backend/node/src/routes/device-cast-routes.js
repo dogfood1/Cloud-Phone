@@ -1,5 +1,5 @@
 import { APP_VERSION } from "../config/version.js";
-import { isScrcpyServerReady } from "../config/scrcpy-paths.js";
+import { isScrcpyServerReady, getScrcpyServerDiagnostics } from "../config/scrcpy-paths.js";
 import { ensureScrcpyServerBuilt } from "../services/scrcpy-build.js";
 import { logCastError, logCastInfo, logCastWarn } from "../services/scrcpy-cast/cast-logger.js";
 import {
@@ -73,6 +73,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
           buildError instanceof Error
             ? buildError.message
             : "scrcpy-server 编译失败。请安装 Android SDK / JDK 17+ 后执行: node tools/build-scrcpy-server.mjs",
+        scrcpyServer: getScrcpyServerDiagnostics(),
       });
       return true;
     }

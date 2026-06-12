@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.36 - 2026-06-06
+
+- 修复 Termux 等环境 scrcpy-server 文件存在仍报未找到：多路径探测（linux 优先、`.jar` 后缀、`CLOUD_PHONE_ROOT` / `cwd` 向上查找）
+- `/health` 与投屏失败响应返回 `scrcpyServer` 诊断信息
+
 ## 0.12.35 - 2026-06-06
 
 - Termux 跳过 scrcpy-server 自动 Gradle 编译；缺失时提示 git pull 同步仓库内预编译 jar

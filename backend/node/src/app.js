@@ -2,6 +2,7 @@ import http from "node:http";
 
 import { APP_VERSION } from "./config/version.js";
 import { getHostRuntimeInfo } from "./config/runtime-env.js";
+import { getScrcpyServerDiagnostics } from "./config/scrcpy-paths.js";
 import {
   connectDeviceByHost,
   createQrPairingSession,
@@ -87,6 +88,7 @@ export function createApp() {
         service: "cloud-phone-node",
         version: APP_VERSION,
         host: getHostRuntimeInfo(),
+        scrcpyServer: getScrcpyServerDiagnostics(),
       });
       return;
     }

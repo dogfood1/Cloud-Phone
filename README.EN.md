@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.35** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.12.36** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -426,6 +426,8 @@ Root `.env` (see `.env.example`):
 | `BACKEND_PORT` | Backend API port | `3000` |
 | `FRONTEND_PORT` | Vite dev server port | `5173` |
 | `CLOUD_PHONE_ADB_PATH` | Custom adb binary path (Termux, etc.) | auto-detect |
+| `CLOUD_PHONE_ROOT` | Repo root when path resolution fails (Termux) | auto-detect |
+| `CLOUD_PHONE_SCRCPY_SERVER_JAR` | Modded scrcpy-server jar path | `backend/bin/scrcpy/<platform>/scrcpy-server` |
 
 ---
 

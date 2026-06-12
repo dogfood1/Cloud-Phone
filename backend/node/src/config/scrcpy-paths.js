@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { PROJECT_ROOT_PATH } from "./paths.js";
+import { BACKEND_NODE_ROOT_PATH, PROJECT_ROOT_PATH } from "./paths.js";
+import { firstExistingPath, isAndroidLinuxHost, isTermux } from "./runtime-env.js";
 
 const SCRCPY_SOURCE_ROOT = path.join(PROJECT_ROOT_PATH, "backend", "source", "scrcpy");
 const SCRCPY_BIN_ROOT = path.join(PROJECT_ROOT_PATH, "backend", "bin", "scrcpy");
@@ -12,8 +13,104 @@ const PLATFORM_DIR = {
   linux: "linux",
 };
 
+const SERVER_FILE_NAMES = ["scrcpy-server", "scrcpy-server.jar"];
+
+function resolveConfiguredPath(value) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  return path.resolve(trimmed);
+}
+
+function resolveProjectRootCandidates() {
+  const candidates = [];
+
+  const configuredRoot = resolveConfiguredPath(process.env.CLOUD_PHONE_ROOT);
+
+  if (configuredRoot) {
+    candidates.push(configuredRoot);
+  }
+
+  candidates.push(PROJECT_ROOT_PATH);
+  candidates.push(path.resolve(BACKEND_NODE_ROOT_PATH, "..", ".."));
+
+  let dir = process.cwd();
+
+  for (let depth = 0; depth < 8; depth += 1) {
+    candidates.push(dir);
+    const parent = path.dirname(dir);
+
+    if (parent === dir) {
+      break;
+    }
+
+    dir = parent;
+  }
+
+  return [...new Set(candidates)];
+}
+
+function resolvePlatformKeys() {
+  const keys = new Set([getScrcpyPlatformKey()]);
+
+  if (isTermux() || isAndroidLinuxHost() || process.platform === "linux") {
+    keys.add("linux");
+  }
+
+  return [...keys];
+}
+
+function appendServerCandidates(target, rootDir, platformKey) {
+  for (const fileName of SERVER_FILE_NAMES) {
+    target.push(path.join(rootDir, "backend", "bin", "scrcpy", platformKey, fileName));
+    target.push(path.join(rootDir, "bin", "scrcpy", platformKey, fileName));
+  }
+}
+
 export function getScrcpyPlatformKey() {
   return PLATFORM_DIR[process.platform] ?? process.platform;
+}
+
+export function listScrcpyServerJarCandidates() {
+  const configured = resolveConfiguredPath(process.env.CLOUD_PHONE_SCRCPY_SERVER_JAR);
+  const candidates = [];
+
+  if (configured) {
+    candidates.push(configured);
+  }
+
+  candidates.push(
+    path.join(BACKEND_NODE_ROOT_PATH, "..", "bin", "scrcpy", "linux", "scrcpy-server"),
+    path.join(BACKEND_NODE_ROOT_PATH, "..", "bin", "scrcpy", "linux", "scrcpy-server.jar"),
+  );
+
+  for (const rootDir of resolveProjectRootCandidates()) {
+    for (const platformKey of resolvePlatformKeys()) {
+      appendServerCandidates(candidates, rootDir, platformKey);
+    }
+  }
+
+  for (const platformKey of resolvePlatformKeys()) {
+    for (const fileName of SERVER_FILE_NAMES) {
+      candidates.push(path.join(SCRCPY_BIN_ROOT, platformKey, fileName));
+    }
+  }
+
+  return [...new Set(candidates)];
+}
+
+export function resolveScrcpyServerJarPath() {
+  return firstExistingPath(listScrcpyServerJarCandidates());
+}
+
+export function getScrcpyServerJarPath() {
+  return (
+    resolveScrcpyServerJarPath() ??
+    path.join(SCRCPY_BIN_ROOT, getScrcpyPlatformKey(), "scrcpy-server")
+  );
 }
 
 export function getScrcpySourceRoot() {
@@ -32,23 +129,27 @@ export function getScrcpyBinaryPath() {
   return path.join(SCRCPY_BIN_ROOT, platformKey, binaryName);
 }
 
-export function getScrcpyServerJarPath() {
-  const platformKey = getScrcpyPlatformKey();
-  const configured = process.env.CLOUD_PHONE_SCRCPY_SERVER_JAR;
-
-  if (configured) {
-    return path.resolve(configured);
-  }
-
-  return path.join(SCRCPY_BIN_ROOT, platformKey, "scrcpy-server");
-}
-
 export function isScrcpyBinaryReady() {
   return fs.existsSync(getScrcpyBinaryPath());
 }
 
 export function isScrcpyServerReady() {
-  return fs.existsSync(getScrcpyServerJarPath());
+  return Boolean(resolveScrcpyServerJarPath());
+}
+
+export function getScrcpyServerDiagnostics() {
+  const resolved = resolveScrcpyServerJarPath();
+  const candidates = listScrcpyServerJarCandidates();
+
+  return {
+    ready: Boolean(resolved),
+    resolvedPath: resolved,
+    expectedPath: path.join(SCRCPY_BIN_ROOT, getScrcpyPlatformKey(), "scrcpy-server"),
+    projectRoot: PROJECT_ROOT_PATH,
+    backendNodeRoot: BACKEND_NODE_ROOT_PATH,
+    cwd: process.cwd(),
+    candidatesChecked: candidates.slice(0, 12),
+  };
 }
 
 // Must match backend/source/scrcpy/server/build.gradle versionName exactly.
