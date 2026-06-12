@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.34 - 2026-06-06
+
+- 入库预编译魔改 `scrcpy-server`（windows / linux / macos），Termux 等环境无需本机 Gradle 编译
+- 入库 Windows 版 `scrcpy.exe`；Android App 投屏启动遮罩与连接日志 overlay
+
 ## 0.12.33 - 2026-06-06
 
 - 移除添加设备弹窗中多余的 Android (Termux) 连接向导；Termux 仍作为 Linux 宿主通过安装脚本支持

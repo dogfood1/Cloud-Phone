@@ -18,6 +18,9 @@ backend/source/scrcpy/.gradle/
 backend/bin/scrcpy/**/*
 !backend/bin/scrcpy/**/
 !backend/bin/scrcpy/**/.gitkeep
+!backend/bin/scrcpy/**/scrcpy-server
+!backend/bin/scrcpy/**/scrcpy
+!backend/bin/scrcpy/**/scrcpy.exe
 
 .DS_Store
 Thumbs.db
