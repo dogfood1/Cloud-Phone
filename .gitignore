@@ -24,3 +24,12 @@ backend/bin/scrcpy/**/*
 
 .DS_Store
 Thumbs.db
+
+assistant/
+
+frontend/android/.idea/
+tools/test-scrcpy-cast/
+tools/test-scrcpy-cast.mjs
+tools/_split_controller_camera.py
+
+package-lock.json
