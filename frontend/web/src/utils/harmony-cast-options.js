@@ -39,7 +39,6 @@ export function buildHarmonyCastOptions(device = {}, options = {}) {
   const quality = clamp(Number(options.quality ?? 30), 5, 95);
 
   return {
-    platform: "harmony",
     scale,
     quality,
   };

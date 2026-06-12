@@ -28,12 +28,6 @@ export function isHarmonyDevice(serial) {
 }
 
 export async function resolveDevicePlatform(serial) {
-  const cached = platformBySerial.get(serial);
-
-  if (cached) {
-    return cached;
-  }
-
   try {
     const targets = await listHdcTargets();
 
@@ -42,7 +36,7 @@ export async function resolveDevicePlatform(serial) {
       return "harmony";
     }
   } catch {
-    // hdc unavailable — treat as android
+    // hdc unavailable
   }
 
   platformBySerial.set(serial, "android");

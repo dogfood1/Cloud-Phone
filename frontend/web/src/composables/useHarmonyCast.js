@@ -1,13 +1,101 @@
-import { onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
+import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
-import { startDeviceCast, stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
-import { buildHarmonyCastOptions } from "../utils/harmony-cast-options.js";
+import { stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
-import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
+import { buildCastWebSocketCandidates, buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
 import { attachHarmonyCastInteraction } from "../utils/harmony-cast-interaction.js";
 
+function delay(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function openHarmonyCastWebSocketOnce(serial) {
+  const candidates = buildCastWebSocketCandidates(serial);
+  const url = candidates[0] ?? buildCastWebSocketUrl(serial);
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.binaryType = "arraybuffer";
+    let settled = false;
+
+    const finish = (handler) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timer);
+      handler();
+    };
+
+    const timer = window.setTimeout(() => {
+      ws.close();
+      finish(() => reject(new Error("鸿蒙投屏 WebSocket 连接超时。")));
+    }, 15_000);
+
+    ws.onopen = () => {
+      ws.onerror = null;
+      ws.onclose = null;
+      finish(() => resolve(ws));
+    };
+
+    ws.onerror = () => {
+      finish(() => reject(new Error("鸿蒙投屏 WebSocket 连接失败。")));
+    };
+
+    ws.onclose = (event) => {
+      if (settled) {
+        return;
+      }
+
+      if (event.code === 1008 || event.code === 1002) {
+        finish(() => reject(new Error("鸿蒙投屏 WebSocket 被拒绝，请先登录后再试。")));
+        return;
+      }
+
+      finish(() => reject(new Error("鸿蒙投屏 WebSocket 连接已关闭。")));
+    };
+  });
+}
+
+async function openHarmonyCastWebSocket(serial) {
+  let lastError = new Error("鸿蒙投屏 WebSocket 连接失败。");
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await openHarmonyCastWebSocketOnce(serial);
+    } catch (error) {
+      lastError = error instanceof Error ? error : lastError;
+
+      if (attempt < 3) {
+        await delay(400 * attempt);
+      }
+    }
+  }
+
+  throw new Error(
+    `${lastError.message} 请使用 npm run dev 启动前后端，从 Vite 页面 (https://127.0.0.1:5173) 访问并保持登录。`,
+  );
+}
+
+async function resolveCastCanvas(canvasRef, viewportRef) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await nextTick();
+    const canvas = unref(canvasRef) ?? unref(viewportRef)?.querySelector?.("canvas");
+
+    if (canvas) {
+      return canvas;
+    }
+
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+
+  return null;
+}
+
 export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef, castHooks = {}) {
+  const isCastActive = castHooks.isCastActive ?? (() => true);
   const getInteractionEnabled = castHooks.getInteractionEnabled ?? (() => true);
   const status = ref("idle");
   const errorMessage = ref("");
@@ -20,6 +108,7 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
   let unbindInteraction = null;
   let logPollTimer = null;
   let logPollConsumed = 0;
+  let backendSessionActive = false;
   const startupLog = createCastStartupLog();
 
   function syncStartupLogText() {
@@ -111,16 +200,24 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     }
   }
 
-  async function stopCast() {
+  async function stopCast(options = {}) {
     const serial = unref(serialRef);
+    const shouldStopBackend = options.backend ?? backendSessionActive;
+
+    if (stopRequest) {
+      stopRequest.abort();
+      stopRequest = null;
+    }
+
     stopLogPolling();
     teardownInteraction();
     teardownSocket();
     status.value = "idle";
     errorMessage.value = "";
     showStartupLogs.value = false;
+    backendSessionActive = false;
 
-    if (!serial) {
+    if (!serial || !shouldStopBackend || !isCastActive()) {
       return;
     }
 
@@ -136,54 +233,48 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     }
   }
 
-  async function beginCast() {
+  async function beginCast(payload) {
     const serial = unref(serialRef);
-    const canvas = unref(canvasRef);
 
-    if (!serial || !canvas) {
-      return;
+    if (!serial) {
+      throw new Error("设备序列号无效，无法开始投屏。");
     }
 
-    await stopCast();
-    status.value = "starting";
+    if (!payload?.success) {
+      throw new Error("投屏会话无效。");
+    }
+
     errorMessage.value = "";
+    status.value = "starting";
+    screenSize.value = { width: 0, height: 0 };
     startupLog.reset();
     syncStartupLogText();
     showStartupLogs.value = true;
+    backendSessionActive = true;
     appendStartupLog("鸿蒙投屏：准备连接…");
+    ingestStartupLogs(payload?.startupLogs ?? []);
+    logPollConsumed = Array.isArray(payload?.startupLogs) ? payload.startupLogs.length : 0;
     startLogPolling(serial);
+    appendStartupLog("鸿蒙投屏：cast/start 完成，连接 WebSocket…");
+
+    const canvas = await resolveCastCanvas(canvasRef, viewportRef);
+
+    if (!canvas) {
+      throw new Error("投屏画布未就绪。");
+    }
 
     try {
-      const rawOptions = unref(castOptionsRef) ?? {};
-      const options = buildHarmonyCastOptions({ serial }, rawOptions);
-      const session = await startDeviceCast(serial, options);
-      ingestStartupLogs(session?.startupLogs ?? []);
-      appendStartupLog("鸿蒙投屏：cast/start 完成，连接 WebSocket…");
-
       const nextPlayer = new HarmonyJpegPlayer(canvas);
       player.value = nextPlayer;
+      socket = await openHarmonyCastWebSocket(serial);
+      appendStartupLog("鸿蒙投屏：WebSocket 已连接，等待首帧…");
 
-      await new Promise((resolve, reject) => {
-        const ws = new WebSocket(buildCastWebSocketUrl(serial));
-        ws.binaryType = "arraybuffer";
-        socket = ws;
-
-        ws.onopen = () => {
-          appendStartupLog("鸿蒙投屏：WebSocket 已连接，等待首帧…");
-          resolve();
-        };
-
-        ws.onerror = () => {
-          reject(new Error("Harmony cast WebSocket failed."));
-        };
-
-        ws.onclose = () => {
-          if (status.value === "streaming" || status.value === "starting") {
-            status.value = "error";
-            errorMessage.value = "鸿蒙投屏连接已断开。";
-          }
-        };
-      });
+      socket.onclose = () => {
+        if (status.value === "streaming" || status.value === "starting") {
+          status.value = "error";
+          errorMessage.value = "鸿蒙投屏连接已断开。";
+        }
+      };
 
       socket.onmessage = async (event) => {
         if (!(event.data instanceof ArrayBuffer)) {
@@ -218,17 +309,26 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
       status.value = "error";
       errorMessage.value = error instanceof Error ? error.message : "Harmony cast failed.";
       appendStartupLog(`鸿蒙投屏失败：${errorMessage.value}`);
-      await stopCast();
+      throw error;
     }
   }
 
   onBeforeUnmount(() => {
-    void stopCast();
+    if (isCastActive()) {
+      void stopCast();
+    }
   });
 
-  watch(serialRef, () => {
-    void stopCast();
-  });
+  watch(
+    () => unref(serialRef),
+    (next, previous) => {
+      if (!isCastActive() || !previous || next === previous) {
+        return;
+      }
+
+      void stopCast({ backend: backendSessionActive });
+    },
+  );
 
   return {
     status,

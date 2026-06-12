@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.31 - 2026-06-11
+
+- 鸿蒙投屏对齐 ECHO/hdckit：`cast/start` 即建立 RPC + JPEG 管道，WebSocket 仅订阅帧流；会话级单例 capture 广播
+- uitest 帧协议（`_uitestkit_rpc_message_head_`）与 x86_64 agent ABI 检测；`startCaptureScreen` 仅传 scale
+- Web 端修复：API/WS 同源代理、鸿蒙 WS 失败不杀后端会话、`useDeviceCast` 路由与画布就绪；WS 鉴权拒绝日志
+
 ## 0.12.30 - 2026-06-11
 
 - 修复鸿蒙 uitest agent 路径：同时识别 `v1.1.0` / `v1.1.10` / `agent.so` 及目录内匹配文件

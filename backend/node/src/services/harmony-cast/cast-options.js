@@ -17,11 +17,14 @@ export function normalizeHarmonyCastOptions(raw = {}) {
   };
 }
 
+/** ECHO/hdckit only pass scale to uitest Captures.startCaptureScreen. */
 export function buildCaptureScreenArgs(options) {
-  return [
-    {
-      scale: options.scale,
-      quality: options.quality,
-    },
-  ];
+  const scale = Number(options.scale);
+  const captureOptions = {};
+
+  if (scale > 0 && scale < 1) {
+    captureOptions.scale = scale;
+  }
+
+  return { options: captureOptions };
 }

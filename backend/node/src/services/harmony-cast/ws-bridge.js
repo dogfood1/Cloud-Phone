@@ -1,48 +1,34 @@
-import { HarmonyJpegCapture } from "./jpeg-capture.js";
 import { logHarmonyCastError, logHarmonyCastInfo } from "./cast-logger.js";
 import { getHarmonyCastSession } from "./session-store.js";
-import { appendHarmonyStartupLog } from "./startup-log.js";
 import { handleHarmonyTouchMessage } from "./touch-control.js";
 
 /**
+ * Attach a browser WebSocket client to an already-running session JPEG pipe.
  * @param {import("ws").WebSocket} clientWs
  * @param {string} serial
  */
 export async function attachHarmonyCastWebSocket(clientWs, serial) {
   const session = getHarmonyCastSession(serial);
 
-  if (!session?.rpc) {
-    throw new Error("Harmony RPC is not ready.");
+  if (!session) {
+    throw new Error("Harmony cast session is not active.");
+  }
+
+  if (!session.pipeReady || !session.capture?.active) {
+    throw new Error("Harmony cast pipe is not ready. Call cast/start first.");
   }
 
   let closed = false;
-  const capture = new HarmonyJpegCapture(session.rpc, serial, session.castOptions ?? {});
-  session.capture = capture;
+  session.clients.add(clientWs);
 
-  const closeClient = (code = 1000, reason = "") => {
-    if (closed) {
-      return;
-    }
-
-    closed = true;
-
-    if (clientWs.readyState === 1) {
-      clientWs.close(code, reason);
-    }
-  };
-
-  capture.on("frame", (frame) => {
-    if (closed || clientWs.readyState !== 1) {
-      return;
-    }
-
-    session.streaming = true;
-    session.frameCount += 1;
-    clientWs.send(frame);
+  logHarmonyCastInfo(serial, "ws.bridge.attached", {
+    clients: session.clients.size,
+    frameCount: session.frameCount,
+    streaming: session.streaming,
   });
 
   const onClientMessage = async (data) => {
-    if (closed || session.stopping) {
+    if (closed || session.stopping || !session.rpc) {
       return;
     }
 
@@ -61,14 +47,9 @@ export async function attachHarmonyCastWebSocket(clientWs, serial) {
   clientWs.on("close", () => {
     closed = true;
     session.clients.delete(clientWs);
-    void capture.stop();
-    session.capture = null;
+    clientWs.off("message", onClientMessage);
+    logHarmonyCastInfo(serial, "ws.bridge.detached", { clients: session.clients.size });
   });
-
-  session.clients.add(clientWs);
-  await capture.start();
-  appendHarmonyStartupLog(session, "后端：鸿蒙 JPEG 流已启动");
-  logHarmonyCastInfo(serial, "ws.bridge.ready", { clients: session.clients.size });
 
   await new Promise((resolve) => {
     if (clientWs.readyState !== 1) {
@@ -78,7 +59,4 @@ export async function attachHarmonyCastWebSocket(clientWs, serial) {
 
     clientWs.once("close", resolve);
   });
-
-  clientWs.off("message", onClientMessage);
-  closeClient();
 }

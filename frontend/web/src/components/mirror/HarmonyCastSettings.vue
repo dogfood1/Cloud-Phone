@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from "vue";
-import { NForm, NFormItem, NSlider, NText } from "naive-ui";
+import { NForm, NFormItem, NSlider } from "naive-ui";
 
 import { buildHarmonyCastOptions } from "../../utils/harmony-cast-options.js";
 
@@ -29,9 +29,6 @@ defineExpose({ getSettings });
 
 <template>
   <div class="harmony-cast-settings">
-    <NText depth="3" style="display: block; margin-bottom: 12px; font-size: 0.82rem">
-      鸿蒙投屏使用 uitest JPEG 流，不支持 scrcpy 的编码器/码率/帧率参数。可调画质缩放与 JPEG 质量。
-    </NText>
     <NForm size="small" :show-feedback="false">
       <NFormItem label="画面缩放 (scale)" label-placement="top">
         <NSlider

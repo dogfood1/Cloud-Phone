@@ -24,37 +24,24 @@ const castOptionsRef = defineModel("castOptions", {
   default: () => ({ maxSize: 1024 }),
 });
 
-const {
-  status,
-  errorMessage,
-  startupLogText,
-  showStartupLogs,
-  getEffectiveScreenSize,
-  beginCast,
-  stopCast,
-  sendNavigation,
-  sendNavigationPress,
-  displayScreenOn,
-  applyPreviewRotation,
-  isRecording,
-  recordingElapsedMs,
-  castVideoRecordingSupported,
-  castAudioRecordingSupported,
-  isCastRecordingSupported,
-  startCastRecording,
-  stopCastRecording,
-  toggleCastRecording,
-  resumeCastAudio,
-  sendCameraControl,
-  pasteClipboardToDevice,
-  copyClipboardFromDevice,
-} = useDeviceCast(
+const cast = useDeviceCast(
   toRef(() => props.device),
   canvasRef,
   castOptionsRef,
   rotatorRef,
   viewportRef,
 );
+
+const status = computed(() => cast.status.value);
+const errorMessage = computed(() => cast.errorMessage.value);
+const startupLogText = computed(() => cast.startupLogText.value);
+const showStartupLogs = computed(() => cast.showStartupLogs.value);
+const isRecording = computed(() => cast.isRecording.value);
+const recordingElapsedMs = computed(() => cast.recordingElapsedMs.value);
+const castVideoRecordingSupported = computed(() => cast.castVideoRecordingSupported.value);
+const castAudioRecordingSupported = computed(() => cast.castAudioRecordingSupported.value);
+const isCastRecordingSupported = computed(() => cast.isCastRecordingSupported.value);
+const displayScreenOn = computed(() => cast.displayScreenOn.value);
 
 const isStreaming = computed(() => status.value === "streaming");
 const isStarting = computed(() => status.value === "starting");
@@ -115,22 +102,22 @@ function onScreenshotFlashEnd(event) {
 }
 
 function onViewportPointerDown() {
-  void resumeCastAudio();
+  void cast.resumeCastAudio();
 }
 
-watch(hasError, (failed) => {
-  if (failed) {
+watch(hasError, (failed, wasFailed) => {
+  if (failed && !wasFailed && (props.casting || status.value === "starting")) {
     emit("cast-failed");
   }
 });
 
 watch(
   () => {
-    const size = getEffectiveScreenSize();
+    const size = cast.getEffectiveScreenSize();
     return `${size.width}x${size.height}`;
   },
   () => {
-    const size = getEffectiveScreenSize();
+    const size = cast.getEffectiveScreenSize();
     emit("screen-size-change", { width: size.width, height: size.height });
   },
 );
@@ -146,28 +133,29 @@ onBeforeUnmount(() => {
 });
 
 defineExpose({
-  beginCast,
-  stopCast,
-  sendNavigation,
-  sendNavigationPress,
-  displayScreenOn,
-  applyPreviewRotation,
+  activeCastMode: cast.activeCastMode,
+  beginCast: (payload) => cast.beginCast(payload),
+  stopCast: (options) => cast.stopCast(options),
+  sendNavigation: (...args) => cast.sendNavigation(...args),
+  sendNavigationPress: (...args) => cast.sendNavigationPress(...args),
+  displayScreenOn: cast.displayScreenOn,
+  applyPreviewRotation: (...args) => cast.applyPreviewRotation(...args),
   playScreenshotFlash,
-  status,
-  errorMessage,
-  isRecording,
-  recordingElapsedMs,
-  castVideoRecordingSupported,
-  castAudioRecordingSupported,
-  isCastRecordingSupported,
-  startCastRecording,
-  stopCastRecording,
-  toggleCastRecording,
-  resumeCastAudio,
-  sendCameraControl,
-  pasteClipboardToDevice,
-  copyClipboardFromDevice,
-  getEffectiveScreenSize,
+  status: cast.status,
+  errorMessage: cast.errorMessage,
+  isRecording: cast.isRecording,
+  recordingElapsedMs: cast.recordingElapsedMs,
+  castVideoRecordingSupported: cast.castVideoRecordingSupported,
+  castAudioRecordingSupported: cast.castAudioRecordingSupported,
+  isCastRecordingSupported: cast.isCastRecordingSupported,
+  startCastRecording: (...args) => cast.startCastRecording(...args),
+  stopCastRecording: (...args) => cast.stopCastRecording(...args),
+  toggleCastRecording: (...args) => cast.toggleCastRecording(...args),
+  resumeCastAudio: (...args) => cast.resumeCastAudio(...args),
+  sendCameraControl: (...args) => cast.sendCameraControl(...args),
+  pasteClipboardToDevice: (...args) => cast.pasteClipboardToDevice(...args),
+  copyClipboardFromDevice: (...args) => cast.copyClipboardFromDevice(...args),
+  getEffectiveScreenSize: () => cast.getEffectiveScreenSize(),
 });
 </script>
 
@@ -182,8 +170,8 @@ defineExpose({
       {{ isFullscreen ? "退出全屏" : "全屏" }}
     </button>
     <div
-      v-show="isStreaming || isStarting"
       class="device-cast-viewport__stage"
+      :class="{ 'device-cast-viewport__stage--idle': !casting && !isStreaming && !isStarting }"
       @pointerdown="onViewportPointerDown"
     >
       <div ref="rotatorRef" class="device-cast-viewport__rotator">
@@ -210,13 +198,15 @@ defineExpose({
     </div>
     <div v-else-if="showStartupLogs" class="device-cast-viewport__overlay device-cast-viewport__overlay--logs">
       <div class="device-cast-viewport__log-panel">
-        <p class="device-cast-viewport__log-title">正在启动 scrcpy 投屏…</p>
+        <p class="device-cast-viewport__log-title">
+          {{ device.platform === "harmony" ? "正在启动鸿蒙投屏…" : "正在启动 scrcpy 投屏…" }}
+        </p>
         <pre class="device-cast-viewport__log-text">{{ startupLogText }}</pre>
       </div>
     </div>
     <div v-else-if="hasError" class="device-cast-viewport__overlay device-cast-viewport__overlay--error">
       <p>{{ errorMessage }}</p>
-      <span class="device-cast-viewport__hint">
+      <span v-if="device.platform !== 'harmony'" class="device-cast-viewport__hint">
         请确认设备已 adb 连接、已执行 node tools/build-scrcpy-server.mjs，并使用 Chrome/Edge 浏览器。
       </span>
     </div>

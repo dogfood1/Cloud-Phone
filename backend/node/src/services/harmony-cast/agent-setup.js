@@ -5,9 +5,15 @@ import {
   HARMONY_AGENT_REMOTE_PATH,
   UITEST_SERVICE_PORT,
   pickHarmonyLocalPort,
-  resolveHarmonyAgentPath,
+  resolveHarmonyAgentPathForAbi,
 } from "../../config/harmony-paths.js";
 import { runHdc } from "../hdc/hdc-exec.js";
+import {
+  buildAgentAbiMismatchMessage,
+  isAgentCompatibleWithDevice,
+  readAgentMachine,
+  readHarmonyDeviceAbi,
+} from "./harmony-agent-abi.js";
 import { logHarmonyCastInfo } from "./cast-logger.js";
 
 async function localFileMd5(filePath) {
@@ -54,8 +60,26 @@ async function killUitestDaemon(serial) {
   }
 }
 
+async function isUitestDaemonRunning(serial) {
+  try {
+    const { stdout } = await runHdc(["shell", "ps -ef"], { serial, timeout: 8000 });
+    return stdout
+      .split(/\r?\n/)
+      .some((line) => line.includes("uitest") && line.includes("start-daemon singleness"));
+  } catch {
+    return false;
+  }
+}
+
 export async function setupHarmonyUitestAgent(serial) {
-  const localAgentPath = resolveHarmonyAgentPath();
+  const deviceAbi = await readHarmonyDeviceAbi(serial, runHdc);
+  const localAgentPath = await resolveHarmonyAgentPathForAbi(deviceAbi, readAgentMachine);
+  const agentMachine = await readAgentMachine(localAgentPath);
+
+  if (!isAgentCompatibleWithDevice(deviceAbi, agentMachine)) {
+    throw new Error(buildAgentAbiMismatchMessage(deviceAbi, agentMachine));
+  }
+
   const localMd5 = await localFileMd5(localAgentPath);
   const exists = await remoteFileExists(serial, HARMONY_AGENT_REMOTE_PATH);
   const remoteMd5 = exists ? await remoteFileMd5(serial, HARMONY_AGENT_REMOTE_PATH) : "";
@@ -74,10 +98,24 @@ export async function setupHarmonyUitestAgent(serial) {
   }
 
   await runHdc(["shell", `chmod +x ${HARMONY_AGENT_REMOTE_PATH}`], { serial });
+  await runHdc(["shell", "param set persist.ace.testmode.enabled 1"], { serial, timeout: 8000 }).catch(
+    () => {},
+  );
   await runHdc(["shell", "uitest start-daemon singleness"], { serial, timeout: 10_000 });
-  await delay(500);
+  await delay(2000);
 
-  logHarmonyCastInfo(serial, "uitest.agent.ready", { remote: HARMONY_AGENT_REMOTE_PATH });
+  if (!(await isUitestDaemonRunning(serial))) {
+    throw new Error(
+      deviceAbi
+        ? `uitest 服务未启动（设备 ${deviceAbi}）。请确认 agent 架构正确且已开启测试模式。`
+        : "uitest 服务未启动。请确认 agent 已推送且设备已开启开发者/测试模式。",
+    );
+  }
+
+  logHarmonyCastInfo(serial, "uitest.agent.ready", {
+    remote: HARMONY_AGENT_REMOTE_PATH,
+    deviceAbi: deviceAbi || "unknown",
+  });
 }
 
 export async function forwardHarmonyUitestPort(serial, localPort = pickHarmonyLocalPort()) {

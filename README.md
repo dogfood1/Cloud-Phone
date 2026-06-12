@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.30** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.12.31** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -72,7 +72,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；苹果暂未开发 |
-| **鸿蒙投屏** | HDC + uitest agent，JPEG 实时流；仅 **scale / quality** 可调（非 scrcpy 参数）；agent 放 `backend/assets/harmony/`（支持 v1.1.0 / v1.1.10 / agent.so） |
+| **鸿蒙投屏** | HDC + uitest agent，JPEG 实时流；`cast/start` 建立管道，浏览器 WebSocket 订阅帧；仅 **scale** 可调；支持 arm64 / x86_64 agent（`backend/assets/harmony/`） |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
 

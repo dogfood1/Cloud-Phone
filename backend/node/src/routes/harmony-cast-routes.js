@@ -1,6 +1,5 @@
 import { APP_VERSION } from "../config/version.js";
 import {
-  ensureHarmonyCastPipe,
   getHarmonyCastSession,
   getHarmonyStartupLogs,
   startHarmonyCast,
@@ -98,8 +97,9 @@ export async function handleHarmonyCastWebSocket(ws, serial) {
     return;
   }
 
+  logHarmonyCastInfo(serial, "ws.client.connected", { localPort: session.localPort });
+
   try {
-    await ensureHarmonyCastPipe(serial);
     await attachHarmonyCastWebSocket(ws, serial);
   } catch (error) {
     logHarmonyCastError(serial, "ws.failed", {

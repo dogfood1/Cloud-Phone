@@ -143,7 +143,7 @@ defineExpose({ stepPreviewRotationDeg });
         <NText v-else depth="3" style="font-size: 0.8rem">
           {{
             isHarmonyDevice
-              ? "鸿蒙投屏通过 HDC + uitest agent 推送 JPEG 画面。"
+              ? "请确认设备已通过 HDC 在线。"
               : "网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。"
           }}
         </NText>

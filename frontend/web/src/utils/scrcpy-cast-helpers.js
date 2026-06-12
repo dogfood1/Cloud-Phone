@@ -18,6 +18,12 @@ export function buildCastWebSocketUrl(serial) {
   return `${protocol}//${window.location.host}/api/devices/${encodeURIComponent(serial)}/cast/ws`;
 }
 
+export function buildCastWebSocketCandidates(serial) {
+  // Always use the current page origin so session cookies are included.
+  // Cross-port ws://host:3000 breaks cookie auth and wss://:3000 is not supported.
+  return [buildCastWebSocketUrl(serial)];
+}
+
 const MAGIC_INITIAL = new TextEncoder().encode("scrcpy_initial");
 const MAGIC_MESSAGE = new TextEncoder().encode("scrcpy_message");
 

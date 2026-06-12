@@ -1227,6 +1227,11 @@ h2 {
   overflow: visible;
 }
 
+.device-cast-viewport__stage--idle {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .device-cast-viewport__rotator {
   position: relative;
   z-index: 0;

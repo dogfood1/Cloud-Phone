@@ -15,9 +15,9 @@ import {
 import { summarizeStreamStats } from "../services/scrcpy-cast/stream-stats.js";
 import { getCastStartupLogs, appendCastStartupLog } from "../services/scrcpy-cast/startup-log.js";
 import { proxyWebSocket } from "../services/scrcpy-cast/ws-scrcpy-ws-proxy.js";
-import { isHarmonyDevice, resolveDevicePlatform } from "../services/device-platform-registry.js";
+import { resolveDevicePlatform } from "../services/device-platform-registry.js";
 import { logHarmonyCastError, logHarmonyCastInfo } from "../services/harmony-cast/cast-logger.js";
-import { startHarmonyCast } from "../services/harmony-cast/index.js";
+import { getHarmonyCastSession, startHarmonyCast } from "../services/harmony-cast/index.js";
 import {
   handleHarmonyCastRoute,
   handleHarmonyCastWebSocket,
@@ -33,7 +33,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     const serial = decodeURIComponent(startMatch[1]);
 
     const body = await readProtectedJsonBody(req, res);
-    const platform = body?.platform === "harmony" ? "harmony" : await resolveDevicePlatform(serial);
+    const platform = await resolveDevicePlatform(serial);
 
     if (platform === "harmony") {
       try {
@@ -104,7 +104,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
   if (method === "DELETE" && stopMatch) {
     const serial = decodeURIComponent(stopMatch[1]);
 
-    if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+    if (getHarmonyCastSession(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
       return handleHarmonyCastRoute(req, res, method, pathname);
     }
 
@@ -133,7 +133,7 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
   if (method === "GET" && statusMatch) {
     const serial = decodeURIComponent(statusMatch[1]);
 
-    if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+    if (getHarmonyCastSession(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
       return handleHarmonyCastRoute(req, res, method, pathname);
     }
 
@@ -180,7 +180,12 @@ export function parseCastWebSocketPath(pathname) {
 }
 
 export async function handleCastWebSocket(ws, serial) {
-  if (isHarmonyDevice(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
+  if (getHarmonyCastSession(serial)) {
+    await handleHarmonyCastWebSocket(ws, serial);
+    return;
+  }
+
+  if ((await resolveDevicePlatform(serial)) === "harmony") {
     await handleHarmonyCastWebSocket(ws, serial);
     return;
   }

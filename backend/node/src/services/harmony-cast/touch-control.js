@@ -6,27 +6,25 @@ export async function handleHarmonyTouchMessage(rpc, message) {
   const type = String(message?.type ?? "").toLowerCase();
 
   if (type === "click" || type === "tap") {
-    await rpc.invoke("Driver.click", [message.x, message.y]);
+    await rpc.invoke("Driver.click", [{ x: message.x, y: message.y }]);
     return;
   }
 
   if (type === "doubleclick" || type === "double_click") {
-    await rpc.invoke("Driver.doubleClick", [message.x, message.y]);
+    await rpc.invoke("Driver.doubleClick", [{ x: message.x, y: message.y }]);
     return;
   }
 
   if (type === "longclick" || type === "long_click") {
-    await rpc.invoke("Driver.longClick", [message.x, message.y]);
+    await rpc.invoke("Driver.longClick", [{ x: message.x, y: message.y }]);
     return;
   }
 
   if (type === "swipe") {
-    const speed = Number(message.speed ?? 2000);
+    const speed = Number(message.speed ?? 300);
     await rpc.invoke("Driver.swipe", [
-      message.x1,
-      message.y1,
-      message.x2,
-      message.y2,
+      { x: message.x1, y: message.y1 },
+      { x: message.x2, y: message.y2 },
       speed,
     ]);
   }

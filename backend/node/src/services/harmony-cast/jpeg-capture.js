@@ -6,6 +6,24 @@ import { logHarmonyCastError, logHarmonyCastInfo } from "./cast-logger.js";
 const JPEG_START = Buffer.from([0xff, 0xd8]);
 const JPEG_END = Buffer.from([0xff, 0xd9]);
 
+function extractJpegFrames(buffer) {
+  /** @type {Buffer[]} */
+  const frames = [];
+  let pending = buffer;
+
+  while (true) {
+    const start = pending.indexOf(JPEG_START);
+    const end = pending.indexOf(JPEG_END);
+
+    if (start < 0 || end < 0 || end <= start) {
+      return { frames, rest: pending };
+    }
+
+    frames.push(pending.subarray(start, end + 2));
+    pending = pending.subarray(end + 2);
+  }
+}
+
 export class HarmonyJpegCapture extends EventEmitter {
   /**
    * @param {import("./uitest-rpc.js").UitestRpcClient} rpc
@@ -18,61 +36,69 @@ export class HarmonyJpegCapture extends EventEmitter {
     this.serial = serial;
     this.captureOptions = captureOptions;
     this.active = false;
+    this.captureSessionId = 0;
     /** @type {Buffer} */
     this.buffer = Buffer.alloc(0);
-    this.onSocketData = this.onSocketData.bind(this);
+    this.onCaptureFrame = this.onCaptureFrame.bind(this);
   }
 
   async start() {
-    const captureArgs = buildCaptureScreenArgs(this.captureOptions);
-    await this.rpc.invokeCaptures("startCaptureScreen", captureArgs);
-
-    const socket = this.rpc.getSocket();
-
-    if (!socket) {
-      throw new Error("uitest socket missing after startCaptureScreen.");
+    if (this.active) {
+      await this.stop();
     }
 
-    socket.on("data", this.onSocketData);
+    try {
+      await this.rpc.invokeCaptures("stopCaptureScreen", {});
+    } catch {
+      // ECHO/hdckit always stops an existing capture before starting again.
+    }
+
+    const captureArgs = buildCaptureScreenArgs(this.captureOptions);
+    const response = await this.rpc.invokeCaptures("startCaptureScreen", captureArgs);
+    this.captureSessionId = Number(response.sessionId);
+
+    if (!this.captureSessionId) {
+      throw new Error("uitest capture session id is missing.");
+    }
+
+    this.rpc.watchCaptureSession(this.captureSessionId, this.onCaptureFrame);
     this.active = true;
-    logHarmonyCastInfo(this.serial, "jpeg.capture.started", this.captureOptions);
+    logHarmonyCastInfo(this.serial, "jpeg.capture.started", {
+      ...this.captureOptions,
+      sessionId: this.captureSessionId,
+    });
   }
 
-  onSocketData(chunk) {
+  onCaptureFrame(body) {
     if (!this.active) {
       return;
     }
 
-    this.buffer = Buffer.concat([this.buffer, chunk]);
+    this.buffer = Buffer.concat([this.buffer, body]);
+    const { frames, rest } = extractJpegFrames(this.buffer);
+    this.buffer = rest;
 
-    while (true) {
-      const start = this.buffer.indexOf(JPEG_START);
-      const end = this.buffer.indexOf(JPEG_END);
-
-      if (start < 0 || end < 0 || end <= start) {
-        return;
-      }
-
-      const frame = this.buffer.subarray(start, end + 2);
-      this.buffer = this.buffer.subarray(end + 2);
+    for (const frame of frames) {
       this.emit("frame", frame);
     }
   }
 
   async stop() {
     this.active = false;
-    const socket = this.rpc.getSocket();
-    socket?.off("data", this.onSocketData);
+
+    if (this.captureSessionId) {
+      this.rpc.unwatchCaptureSession(this.captureSessionId, this.onCaptureFrame);
+    }
 
     try {
-      await this.rpc.invokeCaptures("stopCaptureScreen", []);
-      await this.rpc.readLine(3000).catch(() => {});
+      await this.rpc.invokeCaptures("stopCaptureScreen", {});
     } catch (error) {
       logHarmonyCastError(this.serial, "jpeg.capture.stop_failed", {
         message: error instanceof Error ? error.message : "unknown",
       });
     }
 
+    this.captureSessionId = 0;
     this.buffer = Buffer.alloc(0);
     logHarmonyCastInfo(this.serial, "jpeg.capture.stopped", {});
   }

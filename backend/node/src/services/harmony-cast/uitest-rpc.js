@@ -1,17 +1,37 @@
 import net from "node:net";
 
-import { logHarmonyCastInfo } from "./cast-logger.js";
+import { logHarmonyCastInfo, logHarmonyCastWarn } from "./cast-logger.js";
+import {
+  buildUitestSessionId,
+  decodeUitestFrames,
+  encodeUitestFrame,
+} from "./uitest-framing.js";
 
 const SOCKET_TIMEOUT_MS = 20_000;
+const MODULE = "com.ohos.devicetest.hypiumApiHelper";
 
-function buildRequestId() {
-  const now = new Date();
-  const pad = (value, size) => String(value).padStart(size, "0");
-  return (
-    `${now.getFullYear()}${pad(now.getMonth() + 1, 2)}${pad(now.getDate(), 2)}` +
-    `${pad(now.getHours(), 2)}${pad(now.getMinutes(), 2)}${pad(now.getSeconds(), 2)}` +
-    `${pad(now.getMilliseconds(), 3)}000`
-  );
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseJsonBody(body) {
+  try {
+    return JSON.parse(body.toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function formatRpcError(exception) {
+  if (typeof exception === "string") {
+    return exception;
+  }
+
+  if (exception && typeof exception === "object" && "message" in exception) {
+    return String(exception.message);
+  }
+
+  return JSON.stringify(exception);
 }
 
 export class UitestRpcClient {
@@ -24,7 +44,14 @@ export class UitestRpcClient {
     this.serial = serial;
     /** @type {import("node:net").Socket | null} */
     this.socket = null;
-    this.driverRef = "Driver#0";
+    this.driverRef = "";
+    /** @type {Buffer} */
+    this.buffer = Buffer.alloc(0);
+    /** @type {Map<number, { resolve: (value: unknown) => void, reject: (error: Error) => void, timer: NodeJS.Timeout }>} */
+    this.pending = new Map();
+    /** @type {Map<number, Set<(body: Buffer) => void>>} */
+    this.captureListeners = new Map();
+    this.onSocketData = this.onSocketData.bind(this);
   }
 
   async connect() {
@@ -37,8 +64,11 @@ export class UitestRpcClient {
 
       socket.once("connect", () => {
         clearTimeout(timer);
-        socket.setTimeout(SOCKET_TIMEOUT_MS);
+        socket.setNoDelay(true);
+        socket.setTimeout(0);
         this.socket = socket;
+        this.buffer = Buffer.alloc(0);
+        socket.on("data", this.onSocketData);
         resolve();
       });
 
@@ -52,127 +82,156 @@ export class UitestRpcClient {
   }
 
   close() {
-    if (this.socket) {
-      this.socket.destroy();
-      this.socket = null;
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("uitest RPC socket closed"));
+    }
+
+    this.pending.clear();
+    this.captureListeners.clear();
+    this.socket?.off("data", this.onSocketData);
+    this.socket?.destroy();
+    this.socket = null;
+    this.buffer = Buffer.alloc(0);
+  }
+
+  onSocketData(chunk) {
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+    const { frames, rest } = decodeUitestFrames(this.buffer);
+    this.buffer = rest;
+
+    for (const frame of frames) {
+      this.handleFrame(frame.sessionId, frame.body);
     }
   }
 
-  sendRawObject(payload) {
+  handleFrame(sessionId, body) {
+    const pending = this.pending.get(sessionId);
+
+    if (pending) {
+      clearTimeout(pending.timer);
+      this.pending.delete(sessionId);
+
+      const data = parseJsonBody(body);
+
+      if (data?.exception) {
+        const error = new Error(formatRpcError(data.exception));
+        error.code = "uitest_rpc_failed";
+        pending.reject(error);
+        return;
+      }
+
+      pending.resolve({
+        sessionId,
+        result: data?.result ?? body,
+        raw: data,
+      });
+      return;
+    }
+
+    const listeners = this.captureListeners.get(sessionId);
+
+    if (listeners) {
+      for (const listener of listeners) {
+        listener(body);
+      }
+    }
+  }
+
+  sendMessage(payload, timeoutMs = SOCKET_TIMEOUT_MS) {
     if (!this.socket) {
       throw new Error("uitest RPC socket is not connected.");
     }
 
-    const line = `${JSON.stringify(payload)}\n`;
-    this.socket.write(line, "utf8");
-  }
-
-  async readLine(timeoutMs = SOCKET_TIMEOUT_MS) {
-    if (!this.socket) {
-      throw new Error("uitest RPC socket is not connected.");
-    }
+    const raw = JSON.stringify(payload);
+    const sessionId = buildUitestSessionId(raw);
 
     return new Promise((resolve, reject) => {
-      let buffer = "";
-
-      const onData = (chunk) => {
-        buffer += chunk.toString("utf8");
-        const newlineIndex = buffer.indexOf("\n");
-
-        if (newlineIndex >= 0) {
-          cleanup();
-          resolve(buffer.slice(0, newlineIndex));
-        }
-      };
-
-      const onError = (error) => {
-        cleanup();
-        reject(error);
-      };
-
       const timer = setTimeout(() => {
-        cleanup();
+        this.pending.delete(sessionId);
         reject(new Error("uitest RPC read timeout"));
       }, timeoutMs);
 
-      const cleanup = () => {
-        clearTimeout(timer);
-        this.socket?.off("data", onData);
-        this.socket?.off("error", onError);
-      };
-
-      this.socket.on("data", onData);
-      this.socket.on("error", onError);
-
-      if (this.socket.readable) {
-        const pending = this.socket.read();
-        if (pending) {
-          onData(pending);
-        }
-      }
+      this.pending.set(sessionId, { resolve, reject, timer });
+      this.socket.write(encodeUitestFrame(sessionId, raw));
     });
   }
 
-  async invoke(api, args = [], thisRef = null) {
-    const payload = {
-      module: "com.ohos.devicetest.hypiumApiHelper",
+  async invoke(api, args = [], options = {}) {
+    const thisValue = Object.prototype.hasOwnProperty.call(options, "this")
+      ? options.this
+      : this.driverRef;
+
+    return this.sendMessage({
+      module: MODULE,
       method: "callHypiumApi",
       params: {
         api,
-        this: thisRef ?? this.driverRef,
+        this: thisValue,
         args,
         message_type: "hypium",
       },
-      request_id: buildRequestId(),
-      client: "127.0.0.1",
-    };
-
-    this.sendRawObject(payload);
-    const raw = await this.readLine();
-    const data = JSON.parse(raw);
-
-    if (data?.exception) {
-      const error = new Error(
-        typeof data.exception === "string" ? data.exception : JSON.stringify(data.exception),
-      );
-      error.code = "uitest_rpc_failed";
-      throw error;
-    }
-
-    return data;
+    });
   }
 
-  async invokeCaptures(api, args = []) {
-    const payload = {
-      module: "com.ohos.devicetest.hypiumApiHelper",
+  async invokeCaptures(api, args = {}) {
+    return this.sendMessage({
+      module: MODULE,
       method: "Captures",
       params: { api, args },
-      request_id: buildRequestId(),
-    };
-
-    this.sendRawObject(payload);
-    const raw = await this.readLine();
-    const data = JSON.parse(raw);
-
-    if (data?.exception) {
-      const error = new Error(
-        typeof data.exception === "string" ? data.exception : JSON.stringify(data.exception),
-      );
-      error.code = "uitest_capture_failed";
-      throw error;
-    }
-
-    return data;
+    });
   }
 
   async createDriver() {
-    const response = await this.invoke("Driver.create", [], null);
+    const response = await this.invoke("Driver.create", [], { this: null });
     const driverRef = Array.isArray(response.result) ? response.result[0] : response.result;
-    this.driverRef = driverRef || "Driver#0";
+    this.driverRef = String(driverRef || "Driver#0");
     return this.driverRef;
   }
 
-  getSocket() {
-    return this.socket;
+  async connectAndCreateDriver() {
+    let lastError = new Error("Unable to create uitest driver.");
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        this.close();
+        await delay(300 * attempt);
+        await this.connect();
+        return await this.createDriver();
+      } catch (error) {
+        lastError = error instanceof Error ? error : lastError;
+        logHarmonyCastWarn(this.serial, "uitest.driver.retry", {
+          attempt,
+          message: lastError.message,
+        });
+      }
+    }
+
+    throw lastError;
+  }
+
+  watchCaptureSession(sessionId, listener) {
+    const normalized = Number(sessionId);
+
+    if (!this.captureListeners.has(normalized)) {
+      this.captureListeners.set(normalized, new Set());
+    }
+
+    this.captureListeners.get(normalized).add(listener);
+  }
+
+  unwatchCaptureSession(sessionId, listener) {
+    const normalized = Number(sessionId);
+    const listeners = this.captureListeners.get(normalized);
+
+    if (!listeners) {
+      return;
+    }
+
+    listeners.delete(listener);
+
+    if (listeners.size === 0) {
+      this.captureListeners.delete(normalized);
+    }
   }
 }

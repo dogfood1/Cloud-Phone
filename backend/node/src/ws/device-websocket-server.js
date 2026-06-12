@@ -10,7 +10,7 @@ import {
   parseTerminalWebSocketPath,
 } from "../routes/device-terminal-routes.js";
 import { verifyWebSocketSession } from "../middleware/ws-auth.js";
-import { logCastInfo } from "../services/scrcpy-cast/cast-logger.js";
+import { logCastInfo, logCastWarn } from "../services/scrcpy-cast/cast-logger.js";
 
 export function setupDeviceWebSocket(server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -28,6 +28,11 @@ export function setupDeviceWebSocket(server) {
     const authorized = await verifyWebSocketSession(request);
 
     if (!authorized) {
+      const serial = castRoute?.serial ?? terminalRoute?.serial;
+      logCastWarn(serial ?? "unknown", "ws.rejected", {
+        reason: "unauthorized",
+        path: requestUrl.pathname,
+      });
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;

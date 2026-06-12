@@ -20,14 +20,19 @@ function buildLanBackendUrl(url) {
     return null;
   }
 
-  const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+  // Backend listens on plain HTTP. HTTPS pages cannot call http://:3000 (mixed content),
+  // and the backend does not serve TLS on :3000.
+  if (window.location.protocol === "https:") {
+    return null;
+  }
+
   const hostname = window.location.hostname;
 
   if (!hostname) {
     return null;
   }
 
-  return `${protocol}//${hostname}:3000${url}`;
+  return `http://${hostname}:3000${url}`;
 }
 
 function resolveApiUrlByRoute(url, route) {
@@ -38,6 +43,10 @@ function resolveApiUrlByRoute(url, route) {
 }
 
 async function fetchWithLanFallback(url, options) {
+  const onViteDev =
+    typeof window !== "undefined" &&
+    window.location.port !== "" &&
+    String(window.location.port) !== "3000";
   const primaryRoute = preferredApiRoute ?? "proxy";
   const secondaryRoute = primaryRoute === "proxy" ? "direct" : "proxy";
   const primaryUrl = resolveApiUrlByRoute(url, primaryRoute);
@@ -49,7 +58,12 @@ async function fetchWithLanFallback(url, options) {
   } catch (error) {
     const fallbackUrl = resolveApiUrlByRoute(url, secondaryRoute);
 
-    if (!(error instanceof TypeError) || !fallbackUrl || fallbackUrl === primaryUrl) {
+    if (
+      !(error instanceof TypeError) ||
+      !fallbackUrl ||
+      fallbackUrl === primaryUrl ||
+      (onViteDev && secondaryRoute === "direct")
+    ) {
       throw error;
     }
 

@@ -14,6 +14,7 @@ import {
   buildCastPayloadFromCameraSettings,
   buildCastPayloadFromMirrorSettings,
 } from "../utils/build-cast-payload.js";
+import { buildCastOptionsForDevice } from "../utils/harmony-cast-options.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
@@ -147,10 +148,20 @@ async function startCast(options) {
 
   castBusy.value = true;
 
+  let castPayload = null;
+  const isHarmonyDevice = props.device?.platform === "harmony";
+
   try {
-    const payload = await startDeviceCast(props.device.serial, castOptions.value);
+    castPayload = await startDeviceCast(
+      props.device.serial,
+      buildCastOptionsForDevice(props.device, castOptions.value),
+    );
+    const isHarmonySession =
+      isHarmonyDevice || castPayload?.castProtocol === "harmony-jpeg";
     isCasting.value = true;
     await nextTick();
+    await nextTick();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
 
     const viewport = castViewportRef.value;
 
@@ -158,19 +169,32 @@ async function startCast(options) {
       throw new Error("投屏画面组件未就绪，请刷新页面后重试。");
     }
 
-    await viewport.beginCast(payload);
+    await viewport.beginCast(castPayload);
     if (isMobileLayout.value) {
       mobileCastOptionsOpen.value = false;
       await nextTick();
       window.dispatchEvent(new Event("resize"));
     }
   } catch (error) {
-    isCasting.value = false;
+    const isHarmonySession =
+      isHarmonyDevice || castPayload?.castProtocol === "harmony-jpeg";
     castHint.value = getErrorMessage(error, "投屏启动失败");
+    isCasting.value = false;
+
     try {
-      await stopDeviceCast(props.device.serial);
+      if (isHarmonySession && castPayload) {
+        // Backend JPEG pipe keeps running (ECHO-style); only tear down the browser WS layer.
+        await castViewportRef.value?.stopCast?.({ backend: false });
+      } else {
+        await castViewportRef.value?.stopCast?.({ backend: true });
+        if (props.device?.serial) {
+          await stopDeviceCast(props.device.serial);
+        }
+      }
     } catch {
-      // ignore cleanup errors
+      if (props.device?.serial && !(isHarmonySession && castPayload)) {
+        await stopDeviceCast(props.device.serial).catch(() => {});
+      }
     }
   } finally {
     castBusy.value = false;
@@ -200,11 +224,25 @@ async function stopCast() {
 }
 
 function handleCastFailed() {
+  if (!isCasting.value) {
+    return;
+  }
+
   const viewport = castViewportRef.value;
   const message = viewport?.errorMessage?.value ?? viewport?.errorMessage;
 
   if (typeof message === "string" && message) {
     castHint.value = message;
+  }
+
+  const isHarmonySession =
+    props.device?.platform === "harmony" ||
+    viewport?.activeCastMode?.value === "harmony";
+
+  if (isHarmonySession) {
+    isCasting.value = false;
+    void viewport?.stopCast?.({ backend: false });
+    return;
   }
 
   void stopCast();

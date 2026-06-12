@@ -1,12 +1,13 @@
 import { pickHarmonyLocalPort } from "../../config/harmony-paths.js";
+import { listHdcTargets } from "../hdc/hdc-exec.js";
 import { runWithHdcLock } from "../hdc/hdc-lock.js";
 import { forwardHarmonyUitestPort, setupHarmonyUitestAgent } from "./agent-setup.js";
+import { startHarmonyCastPipe } from "./cast-pipe.js";
 import { normalizeHarmonyCastOptions } from "./cast-options.js";
 import { logHarmonyCastInfo } from "./cast-logger.js";
 import { deleteHarmonyCastSession, getHarmonyCastSession, setHarmonyCastSession } from "./session-store.js";
 import { appendHarmonyStartupLog } from "./startup-log.js";
 import { stopHarmonyCast } from "./stop-session.js";
-import { UitestRpcClient } from "./uitest-rpc.js";
 
 export async function startHarmonyCast(serial, options = {}) {
   const existing = getHarmonyCastSession(serial);
@@ -31,6 +32,8 @@ export async function startHarmonyCast(serial, options = {}) {
     startupLogs: [],
     rpc: null,
     capture: null,
+    captureBroadcaster: null,
+    pipeReady: false,
   };
 
   setHarmonyCastSession(serial, session);
@@ -38,6 +41,12 @@ export async function startHarmonyCast(serial, options = {}) {
   logHarmonyCastInfo(serial, "cast.start", { localPort, castOptions });
 
   try {
+    const hdcTargets = await listHdcTargets();
+
+    if (!hdcTargets.includes(serial)) {
+      throw new Error(`设备 ${serial} 不在 HDC 目标列表中，请确认鸿蒙设备已连接。`);
+    }
+
     await runWithHdcLock(async () => {
       appendHarmonyStartupLog(session, "hdc：推送 uitest agent");
       await setupHarmonyUitestAgent(serial);
@@ -45,11 +54,8 @@ export async function startHarmonyCast(serial, options = {}) {
       appendHarmonyStartupLog(session, `hdc：fport 完成 (local:${session.localPort})`);
     }, { lockKey: serial });
 
-    const rpc = new UitestRpcClient(session.localPort, serial);
-    await rpc.connect();
-    await rpc.createDriver();
-    session.rpc = rpc;
-    appendHarmonyStartupLog(session, "uitest：Driver 已创建");
+    appendHarmonyStartupLog(session, "后端：建立 uitest RPC 与 JPEG 管道…");
+    await startHarmonyCastPipe(session);
 
     const encoded = encodeURIComponent(serial);
 
@@ -66,6 +72,8 @@ export async function startHarmonyCast(serial, options = {}) {
         scale: castOptions.scale,
         quality: castOptions.quality,
       },
+      streaming: session.streaming,
+      frameCount: session.frameCount,
       startupLogs: session.startupLogs,
     };
   } catch (error) {
@@ -74,24 +82,4 @@ export async function startHarmonyCast(serial, options = {}) {
   }
 }
 
-export async function ensureHarmonyCastPipe(serial) {
-  const session = getHarmonyCastSession(serial);
-
-  if (!session) {
-    throw new Error("Harmony cast session is not active.");
-  }
-
-  if (session.capture) {
-    return session;
-  }
-
-  if (!session.rpc) {
-    const rpc = new UitestRpcClient(session.localPort, serial);
-    await rpc.connect();
-    await rpc.createDriver();
-    session.rpc = rpc;
-  }
-
-  appendHarmonyStartupLog(session, "后端：鸿蒙 JPEG 管道就绪");
-  return session;
-}
+export { ensureHarmonyCastPipe } from "./cast-pipe.js";

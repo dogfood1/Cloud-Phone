@@ -40,6 +40,7 @@ export function useDeviceScrcpyCast(
   viewportRef,
   castHooks = {},
 ) {
+  const isCastActive = castHooks.isCastActive ?? (() => true);
   const getInteractionEnabled = castHooks.getInteractionEnabled ?? (() => true);
   const onControlSent = castHooks.onControlSent;
   const status = ref("idle");
@@ -563,7 +564,7 @@ export function useDeviceScrcpyCast(
     sessionMeta.value = null;
     backendSessionActive = false;
 
-    if (!serial || !shouldStopBackend) {
+    if (!serial || !shouldStopBackend || !isCastActive()) {
       return;
     }
 
@@ -595,7 +596,9 @@ export function useDeviceScrcpyCast(
   });
 
   onBeforeUnmount(() => {
-    void stopCast();
+    if (isCastActive()) {
+      void stopCast();
+    }
   });
 
   return {
