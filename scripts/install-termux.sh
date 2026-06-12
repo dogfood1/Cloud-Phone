@@ -62,6 +62,8 @@ termux_print_next_steps() {
   tui_box_line "3. cd 仓库 && npm run dev:backend"
   tui_box_line "4. 浏览器打开 http://127.0.0.1:3000 或 Termux 内 proot/chromium"
   tui_box_line ""
+  tui_box_line "Web 投屏: 仓库已含 backend/bin/scrcpy/linux/scrcpy-server"
+  tui_box_line ""
   tui_box_line "可选: export CLOUD_PHONE_ADB_PATH=\$(which adb)"
   tui_box_close
 }

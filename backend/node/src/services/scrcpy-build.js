@@ -2,11 +2,21 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { isTermux } from "../config/runtime-env.js";
 import { getScrcpyServerJarPath, isScrcpyServerReady } from "../config/scrcpy-paths.js";
 import { PROJECT_ROOT_PATH } from "../config/paths.js";
 
 const buildScriptPath = path.join(PROJECT_ROOT_PATH, "tools", "build-scrcpy-server.mjs");
 let buildPromise = null;
+
+function termuxServerMissingMessage() {
+  const jarPath = getScrcpyServerJarPath();
+  return (
+    "未找到魔改 scrcpy-server。" +
+    "仓库应已包含 backend/bin/scrcpy/linux/scrcpy-server，请 git pull 同步；" +
+    `或设置 CLOUD_PHONE_SCRCPY_SERVER_JAR。当前缺失: ${jarPath}`
+  );
+}
 
 function runBuildScript() {
   const result = spawnSync(process.execPath, [buildScriptPath], {
@@ -26,6 +36,10 @@ function runBuildScript() {
 export async function ensureScrcpyServerBuilt() {
   if (isScrcpyServerReady()) {
     return getScrcpyServerJarPath();
+  }
+
+  if (isTermux()) {
+    throw new Error(termuxServerMissingMessage());
   }
 
   if (!fs.existsSync(buildScriptPath)) {

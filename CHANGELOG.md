@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.35 - 2026-06-06
+
+- Termux 跳过 scrcpy-server 自动 Gradle 编译；缺失时提示 git pull 同步仓库内预编译 jar
+
 ## 0.12.34 - 2026-06-06
 
 - 入库预编译魔改 `scrcpy-server`（windows / linux / macos），Termux 等环境无需本机 Gradle 编译
