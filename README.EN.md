@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.12.32** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.12.33** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -66,7 +66,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **Android (Termux)** on-phone Linux host setup guide; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
+- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); detects `TERMUX_VERSION`, installs adb via pkg; `/health` and device list expose `host.runtime`
 - **HarmonyOS cast**: HDC + uitest agent, JPEG stream; `cast/start` builds the pipe, browser WebSocket subscribes to frames; **scale** only; arm64 / x86_64 agents in `backend/assets/harmony/`
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web

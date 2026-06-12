@@ -18,7 +18,7 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb | termux-setup
+const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb
 const baselineSerials = ref(new Set());
 const pairForm = ref({
   host: "",
@@ -36,11 +36,6 @@ const platforms = [
     id: "android",
     icon: "mdi:android",
     modes: ["usb", "qr", "pairCode"],
-  },
-  {
-    id: "termux",
-    icon: "mdi:linux",
-    modes: ["setup"],
   },
   { id: "harmony", icon: "simple-icons:huawei", modes: ["usb"] },
   { id: "apple", icon: "mdi:apple" },
@@ -98,10 +93,6 @@ function enterHarmonyUsb() {
     (currentDevices.value ?? []).map((device) => device?.serial).filter(Boolean),
   );
   step.value = "harmony-usb";
-}
-
-function enterTermuxSetup() {
-  step.value = "termux-setup";
 }
 
 async function submitPairCode() {
@@ -307,17 +298,6 @@ function backToPlatforms() {
                 </span>
               </button>
               <button
-                v-else-if="item.id === 'termux' && mode === 'setup'"
-                type="button"
-                class="add-device-modal__mode-btn"
-                @click="enterTermuxSetup"
-              >
-                <span>{{ t("devices.addDeviceModal.termuxModes.setup") }}</span>
-                <span class="add-device-modal__mode-badge">
-                  {{ t("devices.addDeviceModal.usb.action") }}
-                </span>
-              </button>
-              <button
                 v-else-if="item.id === 'android' && mode === 'usb'"
                 type="button"
                 class="add-device-modal__mode-btn"
@@ -364,29 +344,6 @@ function backToPlatforms() {
             {{ t("devices.addDeviceModal.comingSoon") }}
           </p>
         </article>
-      </div>
-
-      <div v-else-if="step === 'termux-setup'" class="add-device-modal__usb">
-        <div class="add-device-modal__usb-layout">
-          <div class="add-device-modal__usb-status">
-            <p>{{ t("devices.addDeviceModal.termuxSetup.desc") }}</p>
-            <ol class="add-device-modal__termux-steps">
-              <li>{{ t("devices.addDeviceModal.termuxSetup.stepInstall") }}</li>
-              <li>{{ t("devices.addDeviceModal.termuxSetup.stepAdb") }}</li>
-              <li>{{ t("devices.addDeviceModal.termuxSetup.stepWireless") }}</li>
-              <li>{{ t("devices.addDeviceModal.termuxSetup.stepRun") }}</li>
-            </ol>
-            <p class="add-device-modal__usb-empty">{{ t("devices.addDeviceModal.termuxSetup.note") }}</p>
-          </div>
-        </div>
-        <div class="add-device-modal__usb-actions">
-          <button type="button" class="ghost-button" @click="backToPlatforms">
-            {{ t("common.back") }}
-          </button>
-          <button type="button" class="primary-button" @click="emit('close')">
-            {{ t("devices.addDeviceModal.usb.done") }}
-          </button>
-        </div>
       </div>
 
       <div v-else-if="step === 'harmony-usb'" class="add-device-modal__usb">

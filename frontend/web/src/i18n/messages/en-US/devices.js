@@ -22,21 +22,8 @@ export default {
       },
       platforms: {
         android: "Android",
-        termux: "Android (Termux)",
         harmony: "HarmonyOS",
         apple: "Apple",
-      },
-      termuxModes: {
-        setup: "Run console on phone",
-      },
-      termuxSetup: {
-        desc:
-          "Run Cloud Phone inside Termux on Android (Linux host). Use adb to manage this phone or other Android devices.",
-        stepInstall: "In repo: bash scripts/install-termux.sh",
-        stepAdb: "Install adb: pkg install android-tools",
-        stepWireless: "Enable wireless debugging, then adb pair / adb connect",
-        stepRun: "npm run dev:backend and open http://127.0.0.1:3000",
-        note: "Backend runs as Linux on Termux; adb devices still use the Android platform.",
       },
       harmonyModes: {
         usb: "USB / HDC connection",

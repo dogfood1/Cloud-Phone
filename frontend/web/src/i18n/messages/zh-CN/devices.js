@@ -22,20 +22,8 @@ export default {
       },
       platforms: {
         android: "安卓",
-        termux: "Android (Termux)",
         harmony: "鸿蒙",
         apple: "苹果",
-      },
-      termuxModes: {
-        setup: "在手机上运行控制台",
-      },
-      termuxSetup: {
-        desc: "在 Android 手机 Termux 中运行 Cloud Phone（Linux 宿主）。安装后可通过 adb 连接本机或其它安卓设备。",
-        stepInstall: "克隆仓库后执行: bash scripts/install-termux.sh",
-        stepAdb: "安装 adb: pkg install android-tools",
-        stepWireless: "开启无线调试，执行 adb pair / adb connect 连接设备",
-        stepRun: "npm run dev:backend，浏览器访问 http://127.0.0.1:3000",
-        note: "Termux 下后端按 Linux 运行；设备仍通过 adb 识别为 Android 平台。",
       },
       harmonyModes: {
         usb: "USB / HDC 连接",

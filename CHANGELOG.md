@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.12.33 - 2026-06-06
+
+- 移除添加设备弹窗中多余的 Android (Termux) 连接向导；Termux 仍作为 Linux 宿主通过安装脚本支持
+
 ## 0.12.32 - 2026-06-06
 
 - 新增 **Android (Termux)** 宿主支持：后端识别 `TERMUX_VERSION`，按 Linux 运行；adb/hdc 路径自动探测
 - 安装脚本 `scripts/install-termux.sh`（`pkg` 安装 nodejs-lts、android-tools）；`install.sh` 在 Termux 自动分流
-- `/health` 与 `/api/devices` 返回 `host` 运行时信息；添加设备弹窗增加 Termux 安装引导（中/英）
+- `/health` 与 `/api/devices` 返回 `host` 运行时信息
 
 ## 0.12.31 - 2026-06-11
 
