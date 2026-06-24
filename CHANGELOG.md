@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.37 - 2026-06-06
+
+- scrcpy 上游同步工具：`compare-scrcpy-upstream.mjs`、`sync-scrcpy-from-upstream.mjs`（跨平台，保留 ws/ 魔改清单）；`sync-scrcpy-source.mjs` 转发新脚本
+- 确认 `projects/scrcpy` v4.0 与 `backend/source/scrcpy` 官方基线已对齐
+
 ## 0.12.36 - 2026-06-06
 
 - 修复 Termux 等环境 scrcpy-server 文件存在仍报未找到：多路径探测（linux 优先、`.jar` 后缀、`CLOUD_PHONE_ROOT` / `cwd` 向上查找）

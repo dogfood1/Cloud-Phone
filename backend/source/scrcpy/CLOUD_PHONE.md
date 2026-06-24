@@ -91,8 +91,23 @@ node tools/build-scrcpy.mjs --server-only
 
 ## 同步上游源码
 
+上游对照仓库：`projects/scrcpy`（官方 tag **v4.0**，与 `master` 一致）。
+
 ```bash
+# 1. 更新上游（首次 clone）
+git clone --depth 1 --branch v4.0 https://github.com/Genymobile/scrcpy projects/scrcpy
+cd projects/scrcpy && git pull origin master
+
+# 2. 比对（不含 Cloud Phone 魔改层）
+node tools/compare-scrcpy-upstream.mjs
+
+# 3. 同步官方基线到 backend/source/scrcpy（保留 ws/、cloud_phone/、Options/Controller 等魔改）
+node tools/sync-scrcpy-from-upstream.mjs
+# 兼容旧命令：
 node tools/sync-scrcpy-source.mjs
+
+# 4. 重编魔改 server
+node tools/build-scrcpy-server.mjs --all-platforms
 ```
 
-从 `projects/scrcpy` 覆盖 `backend/source/scrcpy`（保留 `app/src/cloud_phone/` 与本文档需在同步后重新合并）。
+保留清单见 `tools/scrcpy-upstream-manifest.js`（WebSocket、`list_all_apps`、Controller 拆分等不会被子覆盖）。

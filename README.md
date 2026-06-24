@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.36** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.12.37** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -208,7 +208,7 @@ images/readme/
 - `GET /health`、`GET /api/devices`、`GET .../screenshot`
 - ADB 操作按设备 serial 分组锁：多设备并行、同设备串行；多用户连同一台手机时 WebSocket 并发
 - scrcpy 会话 API：`/api/scrcpy/*`（能力查询、会话启停，供脚本集成）
-- 工具：`tools/build-scrcpy-server.mjs`、`build-scrcpy.mjs`、`download-scrcpy.mjs`、`sync-scrcpy-source.mjs`、`test-scrcpy-cast.mjs`
+- 工具：`tools/build-scrcpy-server.mjs`、`compare-scrcpy-upstream.mjs`、`sync-scrcpy-from-upstream.mjs`、`build-scrcpy.mjs`、`download-scrcpy.mjs`、`sync-scrcpy-source.mjs`
 - 已移除 OTG / UHID 投屏模式；当前仅**镜像**与**摄像头**
 
 更细的版本记录见 [CHANGELOG.md](CHANGELOG.md)。
@@ -413,7 +413,8 @@ node tools/build-scrcpy.mjs --server-only
 ```
 
 ```powershell
-node tools/sync-scrcpy-source.mjs   # 从上游同步源码（需自行合并魔改）
+node tools/compare-scrcpy-upstream.mjs
+node tools/sync-scrcpy-from-upstream.mjs   # 或 sync-scrcpy-source.mjs（兼容）
 ```
 
 详见 [backend/source/scrcpy/CLOUD_PHONE.md](backend/source/scrcpy/CLOUD_PHONE.md)。
