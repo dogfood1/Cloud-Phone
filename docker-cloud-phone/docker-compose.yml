@@ -1,11 +1,12 @@
+# 从 Docker Hub 拉取镜像（需设置 DOCKERHUB_NAMESPACE）
+# 用法: docker compose --env-file ../.env up -d
 name: cloud-phone
 
 services:
   backend:
-    build:
-      context: .
-      dockerfile: docker/backend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    env_file:
+      - ../.env
     environment:
       HOST: 0.0.0.0
       BACKEND_PORT: ${BACKEND_PORT}
@@ -15,10 +16,9 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    env_file:
+      - ../.env
     environment:
       HOST: 0.0.0.0
       BACKEND_PORT: ${BACKEND_PORT}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.39 - 2026-06-06
+
+- Docker 配置迁至 `docker-cloud-phone/`：`docker-compose.yml`（Docker Hub 拉取）与 `docker-compose.build.yml`（本地构建）
+
 ## 0.12.38 - 2026-06-06
 
 - 新增 Docker 部署：`docker-compose.yml`、前后端 Dockerfile，端口读取 `.env` 中 `BACKEND_PORT` / `FRONTEND_PORT`

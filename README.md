@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.38** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.12.39** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -73,7 +73,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；苹果暂未开发 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
-| **Docker/CI** | 新增 `docker-compose.yml` + GitHub Actions：提交信息含 `docker` 自动构建并推送 Docker Hub 镜像 |
+| **Docker/CI** | `docker-cloud-phone/`：`docker-compose.yml`（Docker Hub 拉取）与 `docker-compose.build.yml`（本地构建）；提交信息含 `docker` 自动推送镜像 |
 | **鸿蒙投屏** | HDC + uitest agent，JPEG 实时流；`cast/start` 建立管道，浏览器 WebSocket 订阅帧；仅 **scale** 可调；支持 arm64 / x86_64 agent（`backend/assets/harmony/`） |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
@@ -422,6 +422,24 @@ node tools/sync-scrcpy-from-upstream.mjs   # 或 sync-scrcpy-source.mjs（兼容
 
 ---
 
+## Docker 部署
+
+配置根目录 `.env`（`BACKEND_PORT`、`FRONTEND_PORT`、`DOCKERHUB_NAMESPACE`）。
+
+```bash
+cd docker-cloud-phone
+
+# 从 Docker Hub 拉取（需设置 DOCKERHUB_NAMESPACE）
+docker compose --env-file ../.env up -d
+
+# 本地构建
+docker compose -f docker-compose.build.yml --env-file ../.env up -d --build
+```
+
+浏览器访问 `http://localhost:${FRONTEND_PORT}`（默认 5173）。
+
+---
+
 ## 环境变量
 
 根目录 `.env`（参考 `.env.example`）：
@@ -434,6 +452,8 @@ node tools/sync-scrcpy-from-upstream.mjs   # 或 sync-scrcpy-source.mjs（兼容
 | `CLOUD_PHONE_ADB_PATH` | 自定义 adb 可执行文件路径（Termux 等） | 自动探测 |
 | `CLOUD_PHONE_ROOT` | 仓库根目录（Termux 路径解析异常时） | 自动推断 |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | 魔改 scrcpy-server 路径 | `backend/bin/scrcpy/<平台>/scrcpy-server` |
+| `DOCKERHUB_NAMESPACE` | Docker Hub 用户名（拉取镜像版 compose 必填） | — |
+| `IMAGE_TAG` | 镜像标签 | `latest` |
 
 
 

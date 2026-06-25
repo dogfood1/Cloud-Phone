@@ -1,0 +1,36 @@
+# 本地构建镜像（context 为仓库根目录）
+# 用法: docker compose -f docker-compose.build.yml --env-file ../.env up -d --build
+name: cloud-phone
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker-cloud-phone/docker/backend.Dockerfile
+    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    env_file:
+      - ../.env
+    environment:
+      HOST: 0.0.0.0
+      BACKEND_PORT: ${BACKEND_PORT}
+      FRONTEND_PORT: ${FRONTEND_PORT}
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker-cloud-phone/docker/frontend.Dockerfile
+    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    env_file:
+      - ../.env
+    environment:
+      HOST: 0.0.0.0
+      BACKEND_PORT: ${BACKEND_PORT}
+      FRONTEND_PORT: ${FRONTEND_PORT}
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    depends_on:
+      - backend
+    restart: unless-stopped
