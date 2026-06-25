@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.38 - 2026-06-06
+
+- 新增 Docker 部署：`docker-compose.yml`、前后端 Dockerfile，端口读取 `.env` 中 `BACKEND_PORT` / `FRONTEND_PORT`
+- 新增 GitHub Actions：提交信息含 `docker` 时自动构建并推送 Docker Hub 镜像
+
 ## 0.12.37 - 2026-06-06
 
 - scrcpy 上游同步工具：`compare-scrcpy-upstream.mjs`、`sync-scrcpy-from-upstream.mjs`（跨平台，保留 ws/ 魔改清单）；`sync-scrcpy-source.mjs` 转发新脚本
