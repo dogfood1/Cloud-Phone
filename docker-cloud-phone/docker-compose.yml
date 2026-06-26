@@ -1,4 +1,4 @@
-# 从 Docker Hub 拉取镜像（需设置 DOCKERHUB_NAMESPACE）
+# 从 Docker Hub 拉取镜像（默认 yiyifred/cloud-phone-*）
 # 用法:
 #   ./compose.sh up -d
 #   docker compose --env-file ../.env up -d
@@ -6,7 +6,7 @@ name: cloud-phone
 
 services:
   backend:
-    image: ${DOCKERHUB_NAMESPACE:-your-dockerhub-username}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-backend:${IMAGE_TAG:-latest}
     env_file:
       - ../.env
     environment:
@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${DOCKERHUB_NAMESPACE:-your-dockerhub-username}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-frontend:${IMAGE_TAG:-latest}
     env_file:
       - ../.env
     environment:

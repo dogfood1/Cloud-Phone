@@ -9,7 +9,7 @@ services:
     build:
       context: ..
       dockerfile: docker-cloud-phone/docker/backend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-backend:${IMAGE_TAG:-latest}
     env_file:
       - ../.env
     environment:
@@ -24,7 +24,7 @@ services:
     build:
       context: ..
       dockerfile: docker-cloud-phone/docker/frontend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-local}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-frontend:${IMAGE_TAG:-latest}
     env_file:
       - ../.env
     environment:

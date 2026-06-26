@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.41 - 2026-06-06
+
+- Default `DOCKERHUB_NAMESPACE` to `yiyifred` in compose files and `.env.example` (fixed project Docker Hub namespace)
+
 ## 0.12.40 - 2026-06-06
 
 - Fix Docker Compose env: default `BACKEND_PORT`/`FRONTEND_PORT` in compose files; add `compose.sh` and `docker-cloud-phone/.env.example` for `--env-file ../.env` / symlink workflow

@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.12.40** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.12.41** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -459,7 +459,7 @@ ln -sf ../.env .env && docker compose up -d
 | `CLOUD_PHONE_ADB_PATH` | 自定义 adb 可执行文件路径（Termux 等） | 自动探测 |
 | `CLOUD_PHONE_ROOT` | 仓库根目录（Termux 路径解析异常时） | 自动推断 |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | 魔改 scrcpy-server 路径 | `backend/bin/scrcpy/<平台>/scrcpy-server` |
-| `DOCKERHUB_NAMESPACE` | Docker Hub 用户名（拉取镜像版 compose 必填） | — |
+| `DOCKERHUB_NAMESPACE` | Docker Hub 镜像命名空间 | `yiyifred` |
 | `IMAGE_TAG` | 镜像标签 | `latest` |
 
 
