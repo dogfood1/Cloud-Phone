@@ -23,6 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read app version
+        id: version
+        run: echo "version=$(node -p "require('./frontend/web/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -43,8 +47,8 @@ jobs:
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
           tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-backend:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-backend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-backend:${{ github.sha }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -54,5 +58,5 @@ jobs:
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
           tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-frontend:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-frontend:${{ github.sha }}

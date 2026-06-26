@@ -1,9 +1,15 @@
 # Changelog
 
+## 0.13.1 - 2026-06-06
+
+- Docker Hub image tags use project semver from `package.json` (e.g. `yiyifred/cloud-phone-backend:0.13.1`); CI and `build-multiarch.sh` no longer tag with git SHA
+- `IMAGE_TAG` in `.env.example` aligned with app version for compose pulls
+
 ## 0.13.0 - 2026-06-06
 
 - Docker multi-arch image builds: `linux/amd64` + `linux/arm64` in GitHub Actions (`docker/build-push-action` platforms + QEMU/buildx)
 - Add `docker-cloud-phone/build-multiarch.sh` for local multi-arch push; `DOCKER_PLATFORMS` in `.env.example`
+- Docker Hub tags: `:<version>` from `package.json` (e.g. `0.13.0`) plus `:latest`
 
 ## 0.12.41 - 2026-06-06
 
