@@ -1,5 +1,7 @@
 # 本地构建镜像（context 为仓库根目录）
-# 用法: docker compose -f docker-compose.build.yml --env-file ../.env up -d --build
+# 用法:
+#   ./compose.sh -f docker-compose.build.yml up -d --build
+#   docker compose -f docker-compose.build.yml --env-file ../.env up -d --build
 name: cloud-phone
 
 services:
@@ -12,10 +14,10 @@ services:
       - ../.env
     environment:
       HOST: 0.0.0.0
-      BACKEND_PORT: ${BACKEND_PORT}
-      FRONTEND_PORT: ${FRONTEND_PORT}
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      FRONTEND_PORT: ${FRONTEND_PORT:-5173}
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}"
     restart: unless-stopped
 
   frontend:
@@ -27,10 +29,10 @@ services:
       - ../.env
     environment:
       HOST: 0.0.0.0
-      BACKEND_PORT: ${BACKEND_PORT}
-      FRONTEND_PORT: ${FRONTEND_PORT}
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      FRONTEND_PORT: ${FRONTEND_PORT:-5173}
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
     depends_on:
       - backend
     restart: unless-stopped

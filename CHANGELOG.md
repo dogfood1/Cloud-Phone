@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.40 - 2026-06-06
+
+- Fix Docker Compose env: default `BACKEND_PORT`/`FRONTEND_PORT` in compose files; add `compose.sh` and `docker-cloud-phone/.env.example` for `--env-file ../.env` / symlink workflow
+- Document root `.env` vs `docker-cloud-phone/` compose variable substitution in README
+
 ## 0.12.39 - 2026-06-06
 
 - Docker 配置迁至 `docker-cloud-phone/`：`docker-compose.yml`（Docker Hub 拉取）与 `docker-compose.build.yml`（本地构建）
