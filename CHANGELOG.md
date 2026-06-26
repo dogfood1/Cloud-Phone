@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 - 2026-06-06
+
+- Docker multi-arch image builds: `linux/amd64` + `linux/arm64` in GitHub Actions (`docker/build-push-action` platforms + QEMU/buildx)
+- Add `docker-cloud-phone/build-multiarch.sh` for local multi-arch push; `DOCKER_PLATFORMS` in `.env.example`
+
 ## 0.12.41 - 2026-06-06
 
 - Default `DOCKERHUB_NAMESPACE` to `yiyifred` in compose files and `.env.example` (fixed project Docker Hub namespace)

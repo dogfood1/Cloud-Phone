@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  DOCKER_PLATFORMS: linux/amd64,linux/arm64
+
 jobs:
   docker:
     if: |
@@ -37,6 +40,7 @@ jobs:
         with:
           context: .
           file: docker-cloud-phone/docker/backend.Dockerfile
+          platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-backend:latest
@@ -47,6 +51,7 @@ jobs:
         with:
           context: .
           file: docker-cloud-phone/docker/frontend.Dockerfile
+          platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cloud-phone-frontend:latest

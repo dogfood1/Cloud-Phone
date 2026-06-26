@@ -1,4 +1,5 @@
-# 本地构建镜像（context 为仓库根目录）
+# 本地构建镜像（context 为仓库根目录，当前机器架构）
+# 多架构请用 build-multiarch.sh
 # 用法:
 #   ./compose.sh -f docker-compose.build.yml up -d --build
 #   docker compose -f docker-compose.build.yml --env-file ../.env up -d --build
