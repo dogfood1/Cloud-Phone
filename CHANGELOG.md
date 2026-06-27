@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.2 - 2026-06-27
+
+- 鸿蒙投屏触控对齐 ECHO/hdckit：`Gestures.touchDown` / `touchMove` / `touchUp` 实时拖动；`pointermove` 边滑边反馈到设备
+
 ## 0.14.1 - 2026-06-27
 
 - 鸿蒙投屏默认按设备原生分辨率采集（scale=1）；`cast/start` 返回设备 displaySize

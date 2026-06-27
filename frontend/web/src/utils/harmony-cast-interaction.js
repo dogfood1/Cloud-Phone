@@ -18,8 +18,7 @@ function mapDevicePoint(clientX, clientY, canvas, nativeSize) {
   if (
     !nativeSize?.width ||
     !nativeSize?.height ||
-    canvas.width === nativeSize.width &&
-    canvas.height === nativeSize.height
+    (canvas.width === nativeSize.width && canvas.height === nativeSize.height)
   ) {
     return canvasPoint;
   }
@@ -31,6 +30,8 @@ function mapDevicePoint(clientX, clientY, canvas, nativeSize) {
 }
 
 /**
+ * ECHO/hdckit-style real-time touch: touchDown on press, touchMove while dragging, touchUp on release.
+ *
  * @param {{
  *   canvas: HTMLCanvasElement,
  *   sendMessage: (payload: object) => void,
@@ -45,41 +46,47 @@ export function attachHarmonyCastInteraction(options) {
     return () => {};
   }
 
-  let pointerDown = false;
-  let startPoint = null;
+  let isTouching = false;
+
+  const mapPoint = (event) => mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
 
   const onPointerDown = (event) => {
-    event.preventDefault();
-    pointerDown = true;
-    startPoint = mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
-    canvas.setPointerCapture(event.pointerId);
-  };
-
-  const onPointerUp = (event) => {
-    if (!pointerDown || !startPoint) {
+    if (event.button !== 0) {
       return;
     }
 
     event.preventDefault();
-    const endPoint = mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
-    const dx = Math.abs(endPoint.x - startPoint.x);
-    const dy = Math.abs(endPoint.y - startPoint.y);
+    const point = mapPoint(event);
+    isTouching = true;
 
-    if (dx < 8 && dy < 8) {
-      sendMessage({ type: "click", x: endPoint.x, y: endPoint.y });
-    } else {
-      sendMessage({
-        type: "swipe",
-        x1: startPoint.x,
-        y1: startPoint.y,
-        x2: endPoint.x,
-        y2: endPoint.y,
-        speed: 2000,
-      });
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore
     }
 
-    pointerDown = false;
-    startPoint = null;
+    sendMessage({ type: "touchDown", x: point.x, y: point.y });
+  };
+
+  const onPointerMove = (event) => {
+    if (!isTouching) {
+      return;
+    }
+
+    event.preventDefault();
+    const point = mapPoint(event);
+    sendMessage({ type: "touchMove", x: point.x, y: point.y });
+  };
+
+  const onTouchEnd = (event) => {
+    if (!isTouching) {
+      return;
+    }
+
+    event.preventDefault();
+    const point = mapPoint(event);
+    isTouching = false;
+    sendMessage({ type: "touchUp", x: point.x, y: point.y });
 
     try {
       canvas.releasePointerCapture(event.pointerId);
@@ -89,12 +96,16 @@ export function attachHarmonyCastInteraction(options) {
   };
 
   canvas.addEventListener("pointerdown", onPointerDown, passiveOpts);
-  canvas.addEventListener("pointerup", onPointerUp, passiveOpts);
-  canvas.addEventListener("pointercancel", onPointerUp, passiveOpts);
+  canvas.addEventListener("pointermove", onPointerMove, passiveOpts);
+  canvas.addEventListener("pointerup", onTouchEnd, passiveOpts);
+  canvas.addEventListener("pointercancel", onTouchEnd, passiveOpts);
+  canvas.addEventListener("pointerleave", onTouchEnd, passiveOpts);
 
   return () => {
     canvas.removeEventListener("pointerdown", onPointerDown, passiveOpts);
-    canvas.removeEventListener("pointerup", onPointerUp, passiveOpts);
-    canvas.removeEventListener("pointercancel", onPointerUp, passiveOpts);
+    canvas.removeEventListener("pointermove", onPointerMove, passiveOpts);
+    canvas.removeEventListener("pointerup", onTouchEnd, passiveOpts);
+    canvas.removeEventListener("pointercancel", onTouchEnd, passiveOpts);
+    canvas.removeEventListener("pointerleave", onTouchEnd, passiveOpts);
   };
 }

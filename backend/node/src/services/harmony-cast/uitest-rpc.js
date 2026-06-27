@@ -182,6 +182,15 @@ export class UitestRpcClient {
     });
   }
 
+  /** ECHO/hdckit real-time touch: Gestures.touchDown / touchMove / touchUp */
+  async invokeGestures(api, args = {}) {
+    return this.sendMessage({
+      module: MODULE,
+      method: "Gestures",
+      params: { api, args },
+    });
+  }
+
   async createDriver() {
     const response = await this.invoke("Driver.create", [], { this: null });
     const driverRef = Array.isArray(response.result) ? response.result[0] : response.result;

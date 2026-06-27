@@ -5,6 +5,21 @@
 export async function handleHarmonyTouchMessage(rpc, message) {
   const type = String(message?.type ?? "").toLowerCase();
 
+  if (type === "touchdown" || type === "touch_down") {
+    await rpc.invokeGestures("touchDown", { x: message.x, y: message.y });
+    return;
+  }
+
+  if (type === "touchmove" || type === "touch_move") {
+    void rpc.invokeGestures("touchMove", { x: message.x, y: message.y }).catch(() => {});
+    return;
+  }
+
+  if (type === "touchup" || type === "touch_up") {
+    await rpc.invokeGestures("touchUp", { x: message.x, y: message.y });
+    return;
+  }
+
   if (type === "click" || type === "tap") {
     await rpc.invoke("Driver.click", [{ x: message.x, y: message.y }]);
     return;

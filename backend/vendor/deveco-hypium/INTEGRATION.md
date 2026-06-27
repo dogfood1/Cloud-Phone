@@ -17,7 +17,7 @@
 - **设备 Agent**：`agent.so` + `uitest start-daemon singleness`
 - **端口转发**：`hdc fport tcp:<local> tcp:8012`
 - **实时画面**：uitest `Captures.startCaptureScreen` → JPEG 流（非 H.264）
-- **触控**：Hypium RPC `Driver.click` / `Driver.swipe`
+- **触控**：Hypium RPC `Gestures.touchDown` / `touchMove` / `touchUp`（ECHO/hdckit 实时拖动）；`Driver.click` / `Driver.swipe` 仍可用于单次操作
 
 运行时资源：
 
