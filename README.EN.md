@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.13.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.13.5** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -443,7 +443,7 @@ chmod +x build-multiarch.sh
 ./build-multiarch.sh
 ```
 
-Open `http://localhost:${FRONTEND_PORT}` (default 5173).
+Open `https://localhost:${FRONTEND_PORT}` (default 5173; trust the self-signed cert in the browser). On LAN use `https://<host-ip>:5173`; set `FRONTEND_TLS_SAN=<host-ip>` in `.env` to reduce warnings.
 
 ---
 
@@ -460,6 +460,8 @@ Root `.env` (see `.env.example`):
 | `CLOUD_PHONE_ROOT` | Repo root when path resolution fails (Termux) | auto-detect |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | Modded scrcpy-server jar path | `backend/bin/scrcpy/<platform>/scrcpy-server` |
 | `BACKEND_ORIGIN` | Frontend `/api` proxy target (Compose sets `http://backend:3000` automatically) | `http://127.0.0.1:3000` |
+| `FRONTEND_HTTPS` | Enable HTTPS for production frontend (`server.mjs`; on by default in Docker) | `1` (set `0` to disable) |
+| `FRONTEND_TLS_SAN` | Self-signed cert SAN entries (comma-separated IPs/hostnames) | empty |
 | `DOCKERHUB_NAMESPACE` | Docker Hub image namespace | `yiyifred` |
 | `IMAGE_TAG` | Docker Hub image tag (project semver, e.g. `0.13.0`) | `package.json` `version` |
 | `DOCKER_PLATFORMS` | Multi-arch build platforms (`build-multiarch.sh` / CI) | `linux/amd64,linux/arm64` |

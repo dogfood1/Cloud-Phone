@@ -54,12 +54,21 @@ export function getServerConfig() {
   const backendOrigin =
     process.env.BACKEND_ORIGIN?.trim() || `http://127.0.0.1:${backendPort}`;
 
+  const frontendHttps = process.env.FRONTEND_HTTPS !== "0";
+  const frontendScheme = frontendHttps ? "https" : "http";
+  const frontendTlsSans = String(process.env.FRONTEND_TLS_SAN ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
   return {
     host,
     backendPort,
     frontendPort,
     backendOrigin,
-    frontendOrigin: `http://127.0.0.1:${frontendPort}`,
+    frontendHttps,
+    frontendTlsSans,
+    frontendOrigin: `${frontendScheme}://127.0.0.1:${frontendPort}`,
     corsAllowOrigins,
   };
 }

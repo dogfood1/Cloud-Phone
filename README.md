@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.13.4** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.13.5** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -447,7 +447,7 @@ chmod +x build-multiarch.sh
 ./build-multiarch.sh
 ```
 
-浏览器访问 `http://localhost:${FRONTEND_PORT}`（默认 5173）。
+浏览器访问 `https://localhost:${FRONTEND_PORT}`（默认 5173；自签名证书需在浏览器中信任）。局域网请用 `https://<主机IP>:5173`，可在 `.env` 设置 `FRONTEND_TLS_SAN=<主机IP>`。
 
 ---
 
@@ -464,6 +464,8 @@ chmod +x build-multiarch.sh
 | `CLOUD_PHONE_ROOT` | 仓库根目录（Termux 路径解析异常时） | 自动推断 |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | 魔改 scrcpy-server 路径 | `backend/bin/scrcpy/<平台>/scrcpy-server` |
 | `BACKEND_ORIGIN` | 前端代理 `/api` 的后端地址（Docker Compose 自动设为 `http://backend:3000`） | `http://127.0.0.1:3000` |
+| `FRONTEND_HTTPS` | 生产前端是否启用 HTTPS（`server.mjs`，Docker 默认开启） | `1`（设 `0` 关闭） |
+| `FRONTEND_TLS_SAN` | 自签名证书 SAN（逗号分隔 IP/域名，如 `192.168.1.10`） | 空 |
 | `DOCKERHUB_NAMESPACE` | Docker Hub 镜像命名空间 | `yiyifred` |
 | `IMAGE_TAG` | Docker Hub 镜像标签（与项目版本号一致，如 `0.13.0`） | 见 `package.json` `version` |
 | `DOCKER_PLATFORMS` | 多架构构建平台（`build-multiarch.sh` / CI） | `linux/amd64,linux/arm64` |

@@ -1,13 +1,21 @@
 import fs from "node:fs";
 import http from "node:http";
+import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { applyProjectEnv } from "../../tools/env-loader.js";
+import { createSelfSignedTlsOptions } from "./tls-self-signed.mjs";
 
 const currentDirPath = path.dirname(fileURLToPath(import.meta.url));
 const distRootPath = path.resolve(currentDirPath, "dist");
-const { host, backendPort, frontendPort, backendOrigin } = applyProjectEnv();
+const {
+  host,
+  frontendPort,
+  backendOrigin,
+  frontendHttps,
+  frontendTlsSans,
+} = applyProjectEnv();
 
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
@@ -24,8 +32,9 @@ if (!fs.existsSync(distRootPath)) {
   process.exit(1);
 }
 
-const server = http.createServer(async (req, res) => {
-  const requestUrl = new URL(req.url ?? "/", `http://127.0.0.1:${frontendPort}`);
+const requestListener = async (req, res) => {
+  const requestScheme = frontendHttps ? "https" : "http";
+  const requestUrl = new URL(req.url ?? "/", `${requestScheme}://127.0.0.1:${frontendPort}`);
   const { pathname } = requestUrl;
 
   if (pathname.startsWith("/api/")) {
@@ -34,11 +43,25 @@ const server = http.createServer(async (req, res) => {
   }
 
   await serveStaticFile(pathname, res);
-});
+};
+
+const tlsOptions = frontendHttps ? await createSelfSignedTlsOptions(frontendTlsSans) : null;
+const server = tlsOptions
+  ? https.createServer(tlsOptions, requestListener)
+  : http.createServer(requestListener);
 
 server.listen(frontendPort, host, () => {
-  console.log(`Cloud Phone frontend: http://127.0.0.1:${frontendPort}`);
-  console.log(`Serving build from dist/`);
+  const scheme = frontendHttps ? "https" : "http";
+  console.log(`Cloud Phone frontend: ${scheme}://127.0.0.1:${frontendPort}`);
+  console.log("Serving build from dist/");
+
+  if (frontendHttps) {
+    console.log("Self-signed TLS enabled (accept browser warning on first visit).");
+    if (frontendTlsSans.length > 0) {
+      console.log(`TLS SAN: ${frontendTlsSans.join(", ")}`);
+    }
+  }
+
   console.log(`API proxy /api/* -> ${backendOrigin}`);
 });
 

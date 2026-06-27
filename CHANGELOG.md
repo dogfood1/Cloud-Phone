@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.5 - 2026-06-27
+
+- Docker/生产前端默认启用 HTTPS（自签名证书），修复局域网 `https://<IP>:5173` 的 `ERR_SSL_PROTOCOL_ERROR`
+- 支持 `FRONTEND_HTTPS`、`FRONTEND_TLS_SAN` 环境变量；登录所需 Web Crypto 在局域网 HTTPS 下可用
+
 ## 0.13.4 - 2026-06-27
 
 - 修复 Docker 部署前端无法代理 API：Compose 前端容器通过 `BACKEND_ORIGIN=http://backend:3000` 访问后端，不再误连 `127.0.0.1`
