@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.13.11** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.14.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -74,7 +74,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；苹果暂未开发 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送 |
-| **鸿蒙投屏** | HDC + uitest agent，JPEG 实时流；`cast/start` 建立管道，浏览器 WebSocket 订阅帧；仅 **scale** 可调；支持 arm64 / x86_64 agent（`backend/assets/harmony/`） |
+| **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；agent 见 `backend/assets/harmony/` |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
 

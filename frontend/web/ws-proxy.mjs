@@ -45,8 +45,18 @@ function proxyUpgradeRequest(clientReq, clientSocket, clientHead, backendOrigin,
       buildUpgradeResponse(proxyRes.statusCode ?? 101, proxyRes.statusMessage ?? "Switching Protocols", proxyRes.headers),
     );
 
+    const pending = [];
+
     if (proxyHead?.length) {
-      proxySocket.write(proxyHead);
+      pending.push(proxyHead);
+    }
+
+    if (clientHead?.length) {
+      pending.push(clientHead);
+    }
+
+    if (pending.length > 0) {
+      proxySocket.write(Buffer.concat(pending));
     }
 
     proxySocket.pipe(clientSocket);
@@ -56,7 +66,7 @@ function proxyUpgradeRequest(clientReq, clientSocket, clientHead, backendOrigin,
     clientSocket.on("error", () => proxySocket.destroy());
   });
 
-  proxyReq.end(clientHead);
+  proxyReq.end();
 }
 
 /**

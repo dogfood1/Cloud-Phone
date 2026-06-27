@@ -2,7 +2,7 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
-import { buildCastWebSocketCandidates, buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
+import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
 import { attachHarmonyCastInteraction } from "../utils/harmony-cast-interaction.js";
 
@@ -11,11 +11,18 @@ function delay(ms) {
 }
 
 function openHarmonyCastWebSocketOnce(serial) {
-  const candidates = buildCastWebSocketCandidates(serial);
-  const url = candidates[0] ?? buildCastWebSocketUrl(serial);
+  const url = buildCastWebSocketUrl(serial);
 
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    let ws;
+
+    try {
+      ws = new WebSocket(url);
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+
     ws.binaryType = "arraybuffer";
     let settled = false;
 
@@ -75,7 +82,7 @@ async function openHarmonyCastWebSocket(serial) {
   }
 
   throw new Error(
-    `${lastError.message} 请使用 npm run dev 启动前后端，从 Vite 页面 (https://127.0.0.1:5173) 访问并保持登录。`,
+    `${lastError.message} 请从当前页面地址（${window.location.origin}）访问并保持登录；Docker 部署需 v0.13.9+ 前端镜像（含 WebSocket 代理）。`,
   );
 }
 
@@ -344,9 +351,9 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     applyPreviewRotation: () => {},
     isRecording: ref(false),
     recordingElapsedMs: ref(0),
-    castVideoRecordingSupported: ref(false),
-    castAudioRecordingSupported: ref(false),
-    isCastRecordingSupported: ref(false),
+    isCastRecordingSupported: () => false,
+    castVideoRecordingSupported: false,
+    castAudioRecordingSupported: false,
     startCastRecording: async () => {},
     stopCastRecording: async () => {},
     toggleCastRecording: async () => {},

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, toRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRef, unref, watch } from "vue";
 
 import { useDeviceCast } from "../composables/useDeviceCast.js";
 
@@ -32,15 +32,27 @@ const cast = useDeviceCast(
   viewportRef,
 );
 
+function resolveCastRecordingSupported(castOptions) {
+  const checker = cast.isCastRecordingSupported;
+
+  if (typeof checker === "function") {
+    return checker(castOptions);
+  }
+
+  return false;
+}
+
 const status = computed(() => cast.status.value);
 const errorMessage = computed(() => cast.errorMessage.value);
 const startupLogText = computed(() => cast.startupLogText.value);
 const showStartupLogs = computed(() => cast.showStartupLogs.value);
 const isRecording = computed(() => cast.isRecording.value);
 const recordingElapsedMs = computed(() => cast.recordingElapsedMs.value);
-const castVideoRecordingSupported = computed(() => cast.castVideoRecordingSupported.value);
-const castAudioRecordingSupported = computed(() => cast.castAudioRecordingSupported.value);
-const isCastRecordingSupported = computed(() => cast.isCastRecordingSupported.value);
+const castVideoRecordingSupported = computed(() => Boolean(unref(cast.castVideoRecordingSupported)));
+const castAudioRecordingSupported = computed(() => Boolean(unref(cast.castAudioRecordingSupported)));
+const isCastRecordingSupported = computed(() =>
+  resolveCastRecordingSupported(castOptionsRef.value),
+);
 const displayScreenOn = computed(() => cast.displayScreenOn.value);
 
 const isStreaming = computed(() => status.value === "streaming");
@@ -147,7 +159,7 @@ defineExpose({
   recordingElapsedMs: cast.recordingElapsedMs,
   castVideoRecordingSupported: cast.castVideoRecordingSupported,
   castAudioRecordingSupported: cast.castAudioRecordingSupported,
-  isCastRecordingSupported: cast.isCastRecordingSupported,
+  isCastRecordingSupported: resolveCastRecordingSupported,
   startCastRecording: (...args) => cast.startCastRecording(...args),
   stopCastRecording: (...args) => cast.stopCastRecording(...args),
   toggleCastRecording: (...args) => cast.toggleCastRecording(...args),

@@ -2,7 +2,6 @@ import { pickHarmonyLocalPort } from "../../config/harmony-paths.js";
 import { listHdcTargets } from "../hdc/hdc-exec.js";
 import { runWithHdcLock } from "../hdc/hdc-lock.js";
 import { forwardHarmonyUitestPort, setupHarmonyUitestAgent } from "./agent-setup.js";
-import { startHarmonyCastPipe } from "./cast-pipe.js";
 import { normalizeHarmonyCastOptions } from "./cast-options.js";
 import { logHarmonyCastInfo } from "./cast-logger.js";
 import { deleteHarmonyCastSession, getHarmonyCastSession, setHarmonyCastSession } from "./session-store.js";
@@ -54,8 +53,7 @@ export async function startHarmonyCast(serial, options = {}) {
       appendHarmonyStartupLog(session, `hdc：fport 完成 (local:${session.localPort})`);
     }, { lockKey: serial });
 
-    appendHarmonyStartupLog(session, "后端：建立 uitest RPC 与 JPEG 管道…");
-    await startHarmonyCastPipe(session);
+    appendHarmonyStartupLog(session, "后端：cast/start 完成，等待 WebSocket 连接");
 
     const encoded = encodeURIComponent(serial);
 

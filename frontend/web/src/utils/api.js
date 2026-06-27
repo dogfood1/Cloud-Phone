@@ -271,7 +271,14 @@ export async function fetchEncryptedBinary(url, options = {}) {
 
 export function getErrorMessage(error, fallback) {
   if (error instanceof TypeError) {
-    return "无法连接后端 API，请先启动后端（根目录 npm run dev 或 npm run dev:backend）。";
+    const detail = error.message?.trim();
+
+    if (detail && /failed to fetch|networkerror|network error|load failed/i.test(detail)) {
+      const hint = detail !== "Failed to fetch" ? `（${detail}）` : "";
+      return `无法连接后端 API${hint}。请确认后端已启动，Docker 生产环境请使用 https://<IP>:5173 并重建 v0.13.9+ 镜像。`;
+    }
+
+    return detail || fallback;
   }
 
   return error instanceof Error ? error.message : fallback;

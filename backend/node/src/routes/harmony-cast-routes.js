@@ -5,8 +5,10 @@ import {
   startHarmonyCast,
   stopHarmonyCast,
   attachHarmonyCastWebSocket,
+  ensureHarmonyCastPipe,
 } from "../services/harmony-cast/index.js";
 import { logHarmonyCastError, logHarmonyCastInfo } from "../services/harmony-cast/cast-logger.js";
+import { appendHarmonyStartupLog } from "../services/harmony-cast/startup-log.js";
 import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleHarmonyCastRoute(req, res, method, pathname) {
@@ -98,8 +100,16 @@ export async function handleHarmonyCastWebSocket(ws, serial) {
   }
 
   logHarmonyCastInfo(serial, "ws.client.connected", { localPort: session.localPort });
+  appendHarmonyStartupLog(session, "后端：WebSocket 客户端已接入");
 
   try {
+    await ensureHarmonyCastPipe(serial);
+
+    if (ws.readyState !== 1) {
+      logHarmonyCastInfo(serial, "ws.client.closed_before_attach", { readyState: ws.readyState });
+      return;
+    }
+
     await attachHarmonyCastWebSocket(ws, serial);
   } catch (error) {
     logHarmonyCastError(serial, "ws.failed", {

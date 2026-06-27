@@ -108,6 +108,7 @@ async function proxyToBackend(clientReq, clientRes, requestUrl) {
     {
       method: clientReq.method,
       headers,
+      timeout: 0,
     },
     (proxyRes) => {
       clientRes.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);

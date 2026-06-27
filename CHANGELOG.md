@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 - 2026-06-27
+
+- 鸿蒙投屏：`cast/start` 仅 fport，WebSocket 接入后再启动 JPEG 管道（对齐 scrcpy 流程）
+- 修复鸿蒙投屏误报「无法连接后端 API」：`isCastRecordingSupported` 类型不一致导致 TypeError
+- 优化 WebSocket 升级代理与 API 错误提示；鸿蒙 WS 失败提示 Docker 版本要求
+
 ## 0.13.11 - 2026-06-27
 
 - Docker Compose 默认挂载 `docker-cloud-phone/data` 到后端 `/data`，持久化 `auth.key` 与 `cloud-phone.db`
