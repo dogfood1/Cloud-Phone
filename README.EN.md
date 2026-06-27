@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.13.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.13.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -459,6 +459,7 @@ Root `.env` (see `.env.example`):
 | `CLOUD_PHONE_ADB_PATH` | Custom adb binary path (Termux, etc.) | auto-detect |
 | `CLOUD_PHONE_ROOT` | Repo root when path resolution fails (Termux) | auto-detect |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | Modded scrcpy-server jar path | `backend/bin/scrcpy/<platform>/scrcpy-server` |
+| `BACKEND_ORIGIN` | Frontend `/api` proxy target (Compose sets `http://backend:3000` automatically) | `http://127.0.0.1:3000` |
 | `DOCKERHUB_NAMESPACE` | Docker Hub image namespace | `yiyifred` |
 | `IMAGE_TAG` | Docker Hub image tag (project semver, e.g. `0.13.0`) | `package.json` `version` |
 | `DOCKER_PLATFORMS` | Multi-arch build platforms (`build-multiarch.sh` / CI) | `linux/amd64,linux/arm64` |

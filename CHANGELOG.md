@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.4 - 2026-06-27
+
+- 修复 Docker 部署前端无法代理 API：Compose 前端容器通过 `BACKEND_ORIGIN=http://backend:3000` 访问后端，不再误连 `127.0.0.1`
+- `env-loader.js` 支持 `BACKEND_ORIGIN` 环境变量；局域网访问 `http://<主机IP>:5173` 可正常登录
+
 ## 0.13.3 - 2026-06-27
 
 - Docker 后端镜像升级 Node 22，恢复内置 `node:sqlite`，移除 `better-sqlite3` 及编译依赖，显著加快多架构构建

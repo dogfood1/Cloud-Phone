@@ -51,11 +51,14 @@ export function getServerConfig() {
     .map((item) => item.trim())
     .filter(Boolean);
 
+  const backendOrigin =
+    process.env.BACKEND_ORIGIN?.trim() || `http://127.0.0.1:${backendPort}`;
+
   return {
     host,
     backendPort,
     frontendPort,
-    backendOrigin: `http://127.0.0.1:${backendPort}`,
+    backendOrigin,
     frontendOrigin: `http://127.0.0.1:${frontendPort}`,
     corsAllowOrigins,
   };

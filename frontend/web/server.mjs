@@ -70,7 +70,8 @@ async function serveStaticFile(pathname, res) {
 }
 
 async function proxyToBackend(clientReq, clientRes, requestUrl) {
-  const headers = { ...clientReq.headers, host: `127.0.0.1:${backendPort}` };
+  const backendUrl = new URL(backendOrigin);
+  const headers = { ...clientReq.headers, host: backendUrl.host };
   const proxyReq = http.request(
     `${backendOrigin}${requestUrl.pathname}${requestUrl.search}`,
     {
