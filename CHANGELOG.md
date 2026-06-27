@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.11 - 2026-06-27
+
+- Docker Compose 默认挂载 `docker-cloud-phone/data` 到后端 `/data`，持久化 `auth.key` 与 `cloud-phone.db`
+
 ## 0.13.10 - 2026-06-27
 
 - 修复 Docker 后端启动失败：`app.js` 中 `api-crypto.js` 导入路径错误

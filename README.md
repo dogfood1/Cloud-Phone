@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.13.10** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.13.11** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -449,6 +449,8 @@ chmod +x build-multiarch.sh
 
 浏览器访问 `https://localhost:${FRONTEND_PORT}`（默认 5173；自签名证书需在浏览器中信任）。局域网请用 `https://<主机IP>:5173`，可在 `.env` 设置 `FRONTEND_TLS_SAN=<主机IP>`。
 
+**数据持久化**：后端默认将 `docker-cloud-phone/data/` 挂载到容器 `/data`，保存 `auth.key` 与 `cloud-phone.db`（密码、会话等）。重建或升级镜像后数据保留；首次启动会自动创建该目录。
+
 **网络模式（Linux 默认 host）**：前后端容器与宿主机共用网络栈，后端可读取全部宿主机网卡（`GET /api/host/networks`），ADB 无线连接与 mDNS 广播使用真实 LAN 地址。Mac/Windows Docker Desktop 不支持 host 网络，请执行：
 
 ```bash
@@ -470,6 +472,7 @@ chmod +x build-multiarch.sh
 | `CLOUD_PHONE_ROOT` | 仓库根目录（Termux 路径解析异常时） | 自动推断 |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | 魔改 scrcpy-server 路径 | `backend/bin/scrcpy/<平台>/scrcpy-server` |
 | `CLOUD_PHONE_USE_HOST_NETWORK` | Docker host 网络（Linux compose 默认 `1`） | `1` |
+| `CLOUD_PHONE_DATA_DIR` | 后端数据目录（Docker compose 默认 `/data`，挂载 `docker-cloud-phone/data`） | `backend/node/data`（非 Docker） |
 | `CLOUD_PHONE_PREFER_SYSTEM_ADB` | Docker/Linux 优先使用 apt 安装的 adb | `1`（Docker 默认） |
 | `CLOUD_PHONE_LAN_IP` | 指定主 LAN IPv4（mDNS / 展示，可选） | 自动选取 |
 | `BACKEND_ORIGIN` | 前端代理 `/api` 的后端地址（host 网络为 `127.0.0.1`） | `http://127.0.0.1:3000` |

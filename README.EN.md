@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.13.10** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.13.11** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -445,6 +445,8 @@ chmod +x build-multiarch.sh
 
 Open `https://localhost:${FRONTEND_PORT}` (default 5173; trust the self-signed cert in the browser). On LAN use `https://<host-ip>:5173`; set `FRONTEND_TLS_SAN=<host-ip>` in `.env` to reduce warnings.
 
+**Data persistence**: compose mounts `docker-cloud-phone/data/` to `/data` in the backend container (`auth.key`, `cloud-phone.db` for passwords and sessions). Data survives image rebuilds; the host directory is created on first start.
+
 **Network mode (Linux host by default)**: frontend and backend share the host network stack so the API can list all host interfaces (`GET /api/host/networks`) and ADB/mDNS use real LAN addresses. On Mac/Windows Docker Desktop:
 
 ```bash
@@ -466,6 +468,7 @@ Root `.env` (see `.env.example`):
 | `CLOUD_PHONE_ROOT` | Repo root when path resolution fails (Termux) | auto-detect |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | Modded scrcpy-server jar path | `backend/bin/scrcpy/<platform>/scrcpy-server` |
 | `CLOUD_PHONE_USE_HOST_NETWORK` | Docker host network (Linux compose default `1`) | `1` |
+| `CLOUD_PHONE_DATA_DIR` | Backend data directory (Docker compose default `/data`, host path `docker-cloud-phone/data`) | `backend/node/data` (non-Docker) |
 | `CLOUD_PHONE_PREFER_SYSTEM_ADB` | Prefer apt-installed adb on Docker/Linux | `1` (Docker default) |
 | `CLOUD_PHONE_LAN_IP` | Primary LAN IPv4 for mDNS/display (optional) | auto |
 | `BACKEND_ORIGIN` | Frontend `/api` proxy target (host network uses `127.0.0.1`) | `http://127.0.0.1:3000` |
