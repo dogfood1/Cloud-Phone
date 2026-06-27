@@ -328,6 +328,7 @@ export function createApp() {
         sendProtectedJson(res, pairResult.success ? 200 : 400, {
           success: pairResult.success,
           version: APP_VERSION,
+          message: pairResult.success ? undefined : pairResult.output,
           pair: pairResult,
           connect: connectResult,
         });

@@ -95,6 +95,31 @@ function enterHarmonyUsb() {
   step.value = "harmony-usb";
 }
 
+function formatPairConnectMessage(connect, t) {
+  if (!connect) {
+    return t("devices.addDeviceModal.pairCode.connectSkipped");
+  }
+
+  if (connect.success) {
+    return (
+      connect.connectedEndpoint ||
+      connect.attempts?.find((item) => item.ok)?.endpoint ||
+      t("devices.addDeviceModal.pairCode.connectSuccess")
+    );
+  }
+
+  const failedAttempt = connect.attempts?.find((item) => !item.ok && item.output);
+  return failedAttempt?.output || t("devices.addDeviceModal.pairCode.connectFailed");
+}
+
+function formatPairMessage(result, t) {
+  return (
+    result?.pair?.output ||
+    result?.message ||
+    t("devices.addDeviceModal.pairCode.pairSuccess")
+  );
+}
+
 async function submitPairCode() {
   pairPending.value = true;
   pairResult.value = null;
@@ -106,17 +131,15 @@ async function submitPairCode() {
 
     const result = await requestJson("/api/devices/pair-code", {
       method: "POST",
+      allowFailure: true,
       body: { host, port, pairingCode },
     });
 
     pairResult.value = {
       ok: Boolean(result.success),
-      message: result?.pair?.output || t("devices.addDeviceModal.pairCode.pairSuccess"),
+      message: formatPairMessage(result, t),
       connectOk: Boolean(result?.connect?.success),
-      connectMessage:
-        result?.connect?.connectedEndpoint ||
-        result?.connect?.attempts?.find((item) => item.ok)?.endpoint ||
-        t("devices.addDeviceModal.pairCode.connectFailed"),
+      connectMessage: formatPairConnectMessage(result?.connect, t),
     };
   } catch (error) {
     pairResult.value = {
@@ -185,6 +208,7 @@ async function submitQrPairing() {
   try {
     const result = await requestJson("/api/devices/pair-qr", {
       method: "POST",
+      allowFailure: true,
       body: {
         serviceName: qrSession.value.serviceName,
         pairingCode: qrSession.value.pairingCode,
@@ -193,12 +217,9 @@ async function submitQrPairing() {
 
     pairResult.value = {
       ok: Boolean(result.success),
-      message: result?.pair?.output || t("devices.addDeviceModal.pairCode.pairSuccess"),
+      message: formatPairMessage(result, t),
       connectOk: Boolean(result?.connect?.success),
-      connectMessage:
-        result?.connect?.connectedEndpoint ||
-        result?.connect?.attempts?.find((item) => item.ok)?.endpoint ||
-        t("devices.addDeviceModal.pairCode.connectFailed"),
+      connectMessage: formatPairConnectMessage(result?.connect, t),
     };
   } catch (error) {
     pairResult.value = {

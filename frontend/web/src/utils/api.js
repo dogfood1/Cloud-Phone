@@ -134,8 +134,14 @@ export async function requestJson(url, options = {}) {
     );
   }
 
+  if (options.allowFailure) {
+    return result;
+  }
+
   if (!response.ok || result.success === false) {
-    throw new Error(result.message ?? result.error ?? "Request failed.");
+    throw new Error(
+      result.message ?? result.error ?? result.pair?.output ?? "Request failed.",
+    );
   }
 
   return result;
