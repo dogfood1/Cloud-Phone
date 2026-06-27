@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.10 - 2026-06-27
+
+- 修复 Docker 后端启动失败：`app.js` 中 `api-crypto.js` 导入路径错误
+
 ## 0.13.9 - 2026-06-27
 
 - 修复 Docker 生产前端投屏卡在「WebSocket 视频管道就绪」：生产 `server.mjs` 增加 `/api/*` WebSocket 代理；`cast/start` 预启动 scrcpy-server shell

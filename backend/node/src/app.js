@@ -33,7 +33,7 @@ import {
 } from "./middleware/api-auth.js";
 import { parseCookies } from "./utils/cookies.js";
 import { applyCors, readJsonBody, sendEmpty, sendJson } from "./utils/http.js";
-import { decryptPayload } from "./api-crypto.js";
+import { decryptPayload } from "./utils/api-crypto.js";
 import {
   attachResponseEncryption,
   readProtectedJsonBody,
