@@ -7,7 +7,7 @@ function clamp(value, min, max) {
  * Scrcpy fields such as maxSize, bitRate, encoder are ignored.
  */
 export function normalizeHarmonyCastOptions(raw = {}) {
-  const scale = clamp(Number(raw.scale ?? raw.harmony?.scale ?? 0.5), 0.2, 1);
+  const scale = clamp(Number(raw.scale ?? raw.harmony?.scale ?? 1), 0.2, 1);
   const quality = clamp(Number(raw.quality ?? raw.harmony?.quality ?? 30), 5, 95);
 
   return {

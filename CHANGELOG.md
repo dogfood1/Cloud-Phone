@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.1 - 2026-06-27
+
+- 鸿蒙投屏默认按设备原生分辨率采集（scale=1）；`cast/start` 返回设备 displaySize
+- 修复投屏画面被 CSS 拉伸变扁：画布等比缩放（contain）；触控坐标适配留白
+
 ## 0.14.0 - 2026-06-27
 
 - 鸿蒙投屏：`cast/start` 仅 fport，WebSocket 接入后再启动 JPEG 管道（对齐 scrcpy 流程）

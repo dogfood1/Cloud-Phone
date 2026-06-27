@@ -40,6 +40,7 @@ export function useDeviceCast(
 
   const harmonyCast = useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef, {
     ...castHooks,
+    getDevice: () => unref(deviceRef),
     isCastActive: () =>
       activeCastMode.value === "harmony" ||
       (activeCastMode.value === null && isHarmony.value),

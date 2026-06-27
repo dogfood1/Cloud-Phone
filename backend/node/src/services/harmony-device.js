@@ -17,7 +17,7 @@ async function readHarmonyParam(serial, key) {
   }
 }
 
-async function readHarmonyDisplaySize(serial) {
+export async function readHarmonyDisplaySize(serial) {
   try {
     const { stdout } = await runHdc(["shell", "hidumper -s RenderService -a screen"], {
       serial,

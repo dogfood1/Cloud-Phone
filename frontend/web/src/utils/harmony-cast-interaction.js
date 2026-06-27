@@ -1,13 +1,32 @@
+import { mapClientToVideoLocal } from "./canvas-rotation.js";
+
 const passiveOpts = { passive: false };
 
-function mapPoint(canvas, clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
+function mapDevicePoint(clientX, clientY, canvas, nativeSize) {
+  const videoSize = { width: canvas.width, height: canvas.height };
+
+  if (!videoSize.width || !videoSize.height) {
+    return { x: 0, y: 0 };
+  }
+
+  const local = mapClientToVideoLocal(clientX, clientY, canvas, videoSize, null);
+  const canvasPoint = {
+    x: Math.round((local.x / local.width) * canvas.width),
+    y: Math.round((local.y / local.height) * canvas.height),
+  };
+
+  if (
+    !nativeSize?.width ||
+    !nativeSize?.height ||
+    canvas.width === nativeSize.width &&
+    canvas.height === nativeSize.height
+  ) {
+    return canvasPoint;
+  }
 
   return {
-    x: Math.round((clientX - rect.left) * scaleX),
-    y: Math.round((clientY - rect.top) * scaleY),
+    x: Math.round((canvasPoint.x * nativeSize.width) / canvas.width),
+    y: Math.round((canvasPoint.y * nativeSize.height) / canvas.height),
   };
 }
 
@@ -15,11 +34,12 @@ function mapPoint(canvas, clientX, clientY) {
  * @param {{
  *   canvas: HTMLCanvasElement,
  *   sendMessage: (payload: object) => void,
+ *   nativeSize?: { width: number, height: number } | null,
  *   interactionEnabled?: boolean,
  * }} options
  */
 export function attachHarmonyCastInteraction(options) {
-  const { canvas, sendMessage, interactionEnabled = true } = options;
+  const { canvas, sendMessage, nativeSize = null, interactionEnabled = true } = options;
 
   if (!interactionEnabled) {
     return () => {};
@@ -31,7 +51,7 @@ export function attachHarmonyCastInteraction(options) {
   const onPointerDown = (event) => {
     event.preventDefault();
     pointerDown = true;
-    startPoint = mapPoint(canvas, event.clientX, event.clientY);
+    startPoint = mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
     canvas.setPointerCapture(event.pointerId);
   };
 
@@ -41,7 +61,7 @@ export function attachHarmonyCastInteraction(options) {
     }
 
     event.preventDefault();
-    const endPoint = mapPoint(canvas, event.clientX, event.clientY);
+    const endPoint = mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
     const dx = Math.abs(endPoint.x - startPoint.x);
     const dy = Math.abs(endPoint.y - startPoint.y);
 

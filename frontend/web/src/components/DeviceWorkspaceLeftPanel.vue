@@ -59,7 +59,7 @@ const modeOptions = computed(() =>
 
 function buildCastOptions() {
   if (isHarmonyDevice.value) {
-    return harmonySettingsRef.value?.getSettings?.() ?? buildHarmonyCastOptions();
+    return harmonySettingsRef.value?.getSettings?.() ?? buildHarmonyCastOptions(props.device);
   }
 
   if (castMode.value === "camera") {
@@ -109,6 +109,7 @@ defineExpose({ stepPreviewRotationDeg });
       <HarmonyCastSettings
         v-if="isHarmonyDevice"
         ref="harmonySettingsRef"
+        :device="device"
         :casting="casting"
         @settings-change="handleSettingsChange"
       />

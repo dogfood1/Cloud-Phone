@@ -1,3 +1,4 @@
+import { readHarmonyDisplaySize } from "../harmony-device.js";
 import { pickHarmonyLocalPort } from "../../config/harmony-paths.js";
 import { listHdcTargets } from "../hdc/hdc-exec.js";
 import { runWithHdcLock } from "../hdc/hdc-lock.js";
@@ -55,6 +56,9 @@ export async function startHarmonyCast(serial, options = {}) {
 
     appendHarmonyStartupLog(session, "后端：cast/start 完成，等待 WebSocket 连接");
 
+    const displaySize = await readHarmonyDisplaySize(serial);
+    session.displaySize = displaySize;
+
     const encoded = encodeURIComponent(serial);
 
     return {
@@ -65,10 +69,13 @@ export async function startHarmonyCast(serial, options = {}) {
       wsPath: `/api/devices/${encoded}/cast/ws`,
       castProtocol: "harmony-jpeg",
       castOptions,
+      displaySize,
       video: {
         codec: "jpeg",
         scale: castOptions.scale,
         quality: castOptions.quality,
+        nativeWidth: displaySize?.width ?? null,
+        nativeHeight: displaySize?.height ?? null,
       },
       streaming: session.streaming,
       frameCount: session.frameCount,

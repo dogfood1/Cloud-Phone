@@ -5,6 +5,7 @@ import { createCastStartupLog } from "../utils/cast-startup-log.js";
 import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
 import { attachHarmonyCastInteraction } from "../utils/harmony-cast-interaction.js";
+import { resolveHarmonyNativeDisplaySize } from "../utils/harmony-cast-options.js";
 
 function delay(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -104,11 +105,13 @@ async function resolveCastCanvas(canvasRef, viewportRef) {
 export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef, castHooks = {}) {
   const isCastActive = castHooks.isCastActive ?? (() => true);
   const getInteractionEnabled = castHooks.getInteractionEnabled ?? (() => true);
+  const getDevice = castHooks.getDevice ?? (() => null);
   const status = ref("idle");
   const errorMessage = ref("");
   const startupLogText = ref("等待连接日志…");
   const showStartupLogs = ref(false);
   const screenSize = ref({ width: 0, height: 0 });
+  const sessionMeta = ref(null);
   const player = shallowRef(null);
   let socket = null;
   let stopRequest = null;
@@ -258,10 +261,15 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     syncStartupLogText();
     showStartupLogs.value = true;
     backendSessionActive = true;
+    sessionMeta.value = payload;
     appendStartupLog("鸿蒙投屏：准备连接…");
     ingestStartupLogs(payload?.startupLogs ?? []);
     logPollConsumed = Array.isArray(payload?.startupLogs) ? payload.startupLogs.length : 0;
     startLogPolling(serial);
+    const nativeSize = resolveHarmonyNativeDisplaySize(getDevice() ?? {}, payload);
+    if (nativeSize) {
+      appendStartupLog(`鸿蒙投屏：设备分辨率 ${nativeSize.width} × ${nativeSize.height}`);
+    }
     appendStartupLog("鸿蒙投屏：cast/start 完成，连接 WebSocket…");
 
     const canvas = await resolveCastCanvas(canvasRef, viewportRef);
@@ -310,6 +318,7 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
       unbindInteraction = attachHarmonyCastInteraction({
         canvas,
         sendMessage: sendHarmonyMessage,
+        nativeSize,
         interactionEnabled: getInteractionEnabled(),
       });
     } catch (error) {

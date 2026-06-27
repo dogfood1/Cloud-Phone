@@ -24,17 +24,23 @@ export function maxSizeToHarmonyScale(maxSize, device = {}) {
     return 0.6;
   }
 
-  return 0.5;
+  return 1;
 }
 
 /**
  * Harmony cast only accepts scale + quality. Other mirror/scrcpy fields are ignored.
+ * Default scale is 1 (device native resolution).
  */
 export function buildHarmonyCastOptions(device = {}, options = {}) {
-  const scale =
-    typeof options.scale === "number"
-      ? clamp(options.scale, 0.2, 1)
-      : maxSizeToHarmonyScale(Number(options.maxSize) || 0, device);
+  let scale;
+
+  if (typeof options.scale === "number") {
+    scale = clamp(options.scale, 0.2, 1);
+  } else if (Number(options.maxSize) > 0) {
+    scale = maxSizeToHarmonyScale(Number(options.maxSize), device);
+  } else {
+    scale = 1;
+  }
 
   const quality = clamp(Number(options.quality ?? 30), 5, 95);
 
@@ -50,4 +56,23 @@ export function buildCastOptionsForDevice(device = {}, options = {}) {
   }
 
   return options;
+}
+
+export function resolveHarmonyNativeDisplaySize(device = {}, payload = {}) {
+  const fromPayload = payload?.displaySize;
+  if (fromPayload?.width > 0 && fromPayload?.height > 0) {
+    return { width: fromPayload.width, height: fromPayload.height };
+  }
+
+  const video = payload?.video ?? {};
+  if (video.nativeWidth > 0 && video.nativeHeight > 0) {
+    return { width: video.nativeWidth, height: video.nativeHeight };
+  }
+
+  const fromDevice = device?.displaySize;
+  if (fromDevice?.width > 0 && fromDevice?.height > 0) {
+    return { width: fromDevice.width, height: fromDevice.height };
+  }
+
+  return null;
 }
