@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.6 - 2026-06-27
+
+- Docker Linux 默认 **host 网络**：前后端共享宿主机网卡，支持 ADB 局域网与 mDNS；Mac/Windows 可叠加 `docker-compose.bridge.yml`
+- 新增 `GET /api/host/networks` 与设备列表/health 中的 `network` 字段，枚举宿主机全部网卡
+- Docker 后端镜像预装 `android-tools-adb`（apt）；bundled adb 自动 `chmod +x`；`CLOUD_PHONE_PREFER_SYSTEM_ADB` 优先系统 adb
+
 ## 0.13.5 - 2026-06-27
 
 - Docker/生产前端默认启用 HTTPS（自签名证书），修复局域网 `https://<IP>:5173` 的 `ERR_SSL_PROTOCOL_ERROR`

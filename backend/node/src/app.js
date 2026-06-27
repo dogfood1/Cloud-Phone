@@ -1,7 +1,9 @@
 import http from "node:http";
 
 import { APP_VERSION } from "./config/version.js";
+import { serverConfig } from "./config/env.js";
 import { getHostRuntimeInfo } from "./config/runtime-env.js";
+import { getHostNetworkSummary } from "./utils/host-networks.js";
 import { getScrcpyServerDiagnostics } from "./config/scrcpy-paths.js";
 import {
   connectDeviceByHost,
@@ -88,6 +90,7 @@ export function createApp() {
         service: "cloud-phone-node",
         version: APP_VERSION,
         host: getHostRuntimeInfo(),
+        network: getHostNetworkSummary(serverConfig.host),
         scrcpyServer: getScrcpyServerDiagnostics(),
       });
       return;
@@ -119,6 +122,15 @@ export function createApp() {
         success: true,
         service: "cloud-phone-node",
         version: APP_VERSION,
+      });
+      return;
+    }
+
+    if (method === "GET" && pathname === "/api/host/networks") {
+      sendProtectedJson(res, 200, {
+        success: true,
+        version: APP_VERSION,
+        ...getHostNetworkSummary(serverConfig.host),
       });
       return;
     }

@@ -1,6 +1,7 @@
 import { serverConfig } from "./config/env.js";
 import { createApp } from "./app.js";
 import { APP_VERSION } from "./config/version.js";
+import { getHostNetworkSummary } from "./utils/host-networks.js";
 import { startMdnsService } from "./services/mdns-service.js";
 import { setupDeviceWebSocket } from "./ws/device-websocket-server.js";
 
@@ -23,7 +24,12 @@ server.listen(backendPort, host, () => {
   if (host === "0.0.0.0" || host === "::") {
     console.log(`LAN access: http://<your-ip>:${backendPort}`);
   }
-  stopMdns = startMdnsService({ host, port: backendPort, version: APP_VERSION });
+  stopMdns = startMdnsService({
+    host,
+    port: backendPort,
+    version: APP_VERSION,
+    lanIpv4Addresses: getHostNetworkSummary(host).lanIpv4Addresses,
+  });
   console.log("Start frontend: cd frontend/web && npm run dev");
 });
 

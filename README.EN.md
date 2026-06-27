@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.13.5** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.13.6** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -68,7 +68,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
-- **Docker/CI**: `docker-cloud-phone/` multi-arch images `linux/amd64` + `linux/arm64` (`build-multiarch.sh` / Actions); `compose.sh` deploy; backend image Node 22 (built-in `node:sqlite`); GitHub Actions pushes when commit messages contain `docker`
+- **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent, JPEG stream; `cast/start` builds the pipe, browser WebSocket subscribes to frames; **scale** only; arm64 / x86_64 agents in `backend/assets/harmony/`
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
@@ -445,6 +445,12 @@ chmod +x build-multiarch.sh
 
 Open `https://localhost:${FRONTEND_PORT}` (default 5173; trust the self-signed cert in the browser). On LAN use `https://<host-ip>:5173`; set `FRONTEND_TLS_SAN=<host-ip>` in `.env` to reduce warnings.
 
+**Network mode (Linux host by default)**: frontend and backend share the host network stack so the API can list all host interfaces (`GET /api/host/networks`) and ADB/mDNS use real LAN addresses. On Mac/Windows Docker Desktop:
+
+```bash
+./compose.sh -f docker-compose.yml -f docker-compose.bridge.yml up -d
+```
+
 ---
 
 ## Environment
@@ -459,7 +465,10 @@ Root `.env` (see `.env.example`):
 | `CLOUD_PHONE_ADB_PATH` | Custom adb binary path (Termux, etc.) | auto-detect |
 | `CLOUD_PHONE_ROOT` | Repo root when path resolution fails (Termux) | auto-detect |
 | `CLOUD_PHONE_SCRCPY_SERVER_JAR` | Modded scrcpy-server jar path | `backend/bin/scrcpy/<platform>/scrcpy-server` |
-| `BACKEND_ORIGIN` | Frontend `/api` proxy target (Compose sets `http://backend:3000` automatically) | `http://127.0.0.1:3000` |
+| `CLOUD_PHONE_USE_HOST_NETWORK` | Docker host network (Linux compose default `1`) | `1` |
+| `CLOUD_PHONE_PREFER_SYSTEM_ADB` | Prefer apt-installed adb on Docker/Linux | `1` (Docker default) |
+| `CLOUD_PHONE_LAN_IP` | Primary LAN IPv4 for mDNS/display (optional) | auto |
+| `BACKEND_ORIGIN` | Frontend `/api` proxy target (host network uses `127.0.0.1`) | `http://127.0.0.1:3000` |
 | `FRONTEND_HTTPS` | Enable HTTPS for production frontend (`server.mjs`; on by default in Docker) | `1` (set `0` to disable) |
 | `FRONTEND_TLS_SAN` | Self-signed cert SAN entries (comma-separated IPs/hostnames) | empty |
 | `DOCKERHUB_NAMESPACE` | Docker Hub image namespace | `yiyifred` |

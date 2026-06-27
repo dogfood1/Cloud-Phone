@@ -1,6 +1,7 @@
 import mdns from "multicast-dns";
 import { encode } from "dns-packet";
-import os from "node:os";
+
+import { pickLanIpv4 } from "../utils/host-networks.js";
 
 function toTxtRecords(txt) {
   return Object.entries(txt)
@@ -9,65 +10,6 @@ function toTxtRecords(txt) {
       const safeValue = String(value);
       return Buffer.from(`${key}=${safeValue}`);
     });
-}
-
-function pickLanIpv4(hostHint) {
-  const forced = process.env.CLOUD_PHONE_LAN_IP?.trim();
-  if (forced) {
-    return forced;
-  }
-
-  if (hostHint && hostHint !== "0.0.0.0" && hostHint !== "::" && hostHint !== "127.0.0.1") {
-    return hostHint;
-  }
-
-  const isIpv4InCidr = (ip, prefix, bits) => {
-    const a = ip.split(".").map((n) => Number(n));
-    const b = prefix.split(".").map((n) => Number(n));
-    if (a.length !== 4 || b.length !== 4 || a.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
-      return false;
-    }
-    const toInt = (p) => ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
-    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-    return (toInt(a) & mask) === (toInt(b) & mask);
-  };
-
-  const isPreferredLanIpv4 = (ip) => {
-    // RFC1918
-    if (isIpv4InCidr(ip, "192.168.0.0", 16)) return true;
-    if (isIpv4InCidr(ip, "10.0.0.0", 8)) return true;
-    if (isIpv4InCidr(ip, "172.16.0.0", 12)) return true;
-    return false;
-  };
-
-  const isExcludedIpv4 = (ip) => {
-    // Link-local, loopback, benchmarking nets
-    if (isIpv4InCidr(ip, "127.0.0.0", 8)) return true;
-    if (isIpv4InCidr(ip, "169.254.0.0", 16)) return true;
-    if (isIpv4InCidr(ip, "198.18.0.0", 15)) return true;
-    return false;
-  };
-
-  const nets = os.networkInterfaces();
-  const candidates = [];
-  for (const items of Object.values(nets)) {
-    for (const item of items ?? []) {
-      if (item && item.family === "IPv4" && !item.internal) {
-        const ip = item.address;
-        if (isExcludedIpv4(ip)) {
-          continue;
-        }
-        candidates.push(ip);
-      }
-    }
-  }
-
-  const preferred = candidates.find(isPreferredLanIpv4);
-  if (preferred) {
-    return preferred;
-  }
-
-  return candidates[0] ?? "127.0.0.1";
 }
 
 function buildServiceRecords({ serviceName, serviceType, port, txt, ipv4 }) {
@@ -87,9 +29,10 @@ function buildServiceRecords({ serviceName, serviceType, port, txt, ipv4 }) {
   };
 }
 
-export function startMdnsService({ host, port, version }) {
+export function startMdnsService({ host, port, version, lanIpv4Addresses = [] }) {
   const ipv4 = pickLanIpv4(host);
   const mdnsServer = mdns();
+  const lanList = [...new Set([ipv4, ...lanIpv4Addresses].filter(Boolean))];
 
   const cloudphone = buildServiceRecords({
     serviceName: `Cloud-Phone-${port}`,
@@ -100,6 +43,7 @@ export function startMdnsService({ host, port, version }) {
       version,
       path: "/api/ping",
       lan: ipv4,
+      lan_all: lanList.join(","),
       port,
     },
   });
@@ -113,6 +57,7 @@ export function startMdnsService({ host, port, version }) {
       version,
       path: "/api/ping",
       lan: ipv4,
+      lan_all: lanList.join(","),
       port,
     },
   });
@@ -153,7 +98,6 @@ export function startMdnsService({ host, port, version }) {
     console.error("[mdns] Broadcast error:", error);
   });
 
-  // Proactively announce once to help caches populate.
   try {
     const packet = encode({ answers: [cloudphone.ptr, cloudphone.srv, cloudphone.txt, cloudphone.a] });
     mdnsServer.send(packet);
@@ -165,6 +109,9 @@ export function startMdnsService({ host, port, version }) {
 
   console.log(`[mdns] Broadcast ready: _cloudphone._tcp on port ${port} (${ipv4})`);
   console.log(`[mdns] Broadcast ready: _http._tcp on port ${port} (${ipv4})`);
+  if (lanList.length > 1) {
+    console.log(`[mdns] LAN addresses: ${lanList.join(", ")}`);
+  }
 
   return async () => {
     try {

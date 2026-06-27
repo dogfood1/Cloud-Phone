@@ -1,4 +1,5 @@
 # 本地构建镜像（context 为仓库根目录，当前机器架构）
+# Linux 默认 host 网络；Mac/Windows 叠加 docker-compose.bridge.yml
 # 多架构请用 build-multiarch.sh
 # 用法:
 #   ./compose.sh -f docker-compose.build.yml up -d --build
@@ -11,14 +12,15 @@ services:
       context: ..
       dockerfile: docker-cloud-phone/docker/backend.Dockerfile
     image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    network_mode: host
     env_file:
       - ../.env
     environment:
       HOST: 0.0.0.0
       BACKEND_PORT: ${BACKEND_PORT:-3000}
       FRONTEND_PORT: ${FRONTEND_PORT:-5173}
-    ports:
-      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}"
+      CLOUD_PHONE_USE_HOST_NETWORK: "1"
+      CLOUD_PHONE_PREFER_SYSTEM_ADB: "1"
     restart: unless-stopped
 
   frontend:
@@ -26,15 +28,15 @@ services:
       context: ..
       dockerfile: docker-cloud-phone/docker/frontend.Dockerfile
     image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    network_mode: host
     env_file:
       - ../.env
     environment:
       HOST: 0.0.0.0
       BACKEND_PORT: ${BACKEND_PORT:-3000}
       FRONTEND_PORT: ${FRONTEND_PORT:-5173}
-      BACKEND_ORIGIN: http://backend:${BACKEND_PORT:-3000}
-    ports:
-      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
+      BACKEND_ORIGIN: http://127.0.0.1:${BACKEND_PORT:-3000}
+      CLOUD_PHONE_USE_HOST_NETWORK: "1"
     depends_on:
       - backend
     restart: unless-stopped

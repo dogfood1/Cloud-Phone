@@ -1,0 +1,25 @@
+# Bridge 网络叠加（Mac/Windows Docker Desktop 或无需 host 网络时使用）
+# 用法:
+#   ./compose.sh -f docker-compose.yml -f docker-compose.bridge.yml up -d
+#   ./compose.sh -f docker-compose.build.yml -f docker-compose.bridge.yml up -d --build
+name: cloud-phone
+
+services:
+  backend:
+    network_mode: bridge
+    ports:
+      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}"
+    environment:
+      CLOUD_PHONE_USE_HOST_NETWORK: "0"
+
+  frontend:
+    network_mode: bridge
+    ports:
+      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
+    environment:
+      BACKEND_ORIGIN: http://backend:${BACKEND_PORT:-3000}
+      CLOUD_PHONE_USE_HOST_NETWORK: "0"
+
+networks:
+  default:
+    name: cloud-phone-net

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { firstExistingPath, isTermux } from "../config/runtime-env.js";
 
@@ -22,6 +23,59 @@ function bundledAdbPath(platform = process.platform) {
   }
 
   return path.resolve(projectRootPath, ...adbSegments);
+}
+
+function isBundledAdbPath(candidate) {
+  const normalized = path.normalize(candidate);
+  const bundledRoot = path.normalize(path.join(projectRootPath, "backend", "bin", "adb"));
+
+  return normalized.startsWith(bundledRoot);
+}
+
+function ensureExecutable(filePath) {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK);
+    return true;
+  } catch {
+    try {
+      fs.chmodSync(filePath, 0o755);
+      fs.accessSync(filePath, fs.constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function prepareAdbCandidate(candidate) {
+  if (!candidate || !fs.existsSync(candidate)) {
+    return null;
+  }
+
+  if (isBundledAdbPath(candidate) && !ensureExecutable(candidate)) {
+    return null;
+  }
+
+  try {
+    fs.accessSync(candidate, fs.constants.X_OK);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
+function preferSystemAdb() {
+  const override = process.env.CLOUD_PHONE_PREFER_SYSTEM_ADB?.trim();
+
+  if (override === "1") {
+    return true;
+  }
+
+  if (override === "0") {
+    return false;
+  }
+
+  return process.platform === "linux" && fs.existsSync("/.dockerenv");
 }
 
 function termuxAdbCandidates() {
@@ -52,6 +106,9 @@ export function listAdbPathCandidates() {
   const configured =
     process.env.CLOUD_PHONE_ADB_PATH?.trim() || process.env.ADB_PATH?.trim() || null;
   const candidates = [];
+  const fromPath = resolveAdbFromPath();
+  const bundled = bundledAdbPath(process.platform) ?? bundledAdbPath("linux");
+  const useSystemFirst = preferSystemAdb();
 
   if (configured) {
     candidates.push(configured);
@@ -61,15 +118,15 @@ export function listAdbPathCandidates() {
     candidates.push(...termuxAdbCandidates());
   }
 
-  const bundled = bundledAdbPath(process.platform) ?? bundledAdbPath("linux");
+  if (useSystemFirst && fromPath) {
+    candidates.push(fromPath);
+  }
 
   if (bundled) {
     candidates.push(bundled);
   }
 
-  const fromPath = resolveAdbFromPath();
-
-  if (fromPath) {
+  if (!useSystemFirst && fromPath) {
     candidates.push(fromPath);
   }
 
@@ -77,15 +134,23 @@ export function listAdbPathCandidates() {
 }
 
 export function resolveAdbPath() {
-  const resolved = firstExistingPath(listAdbPathCandidates());
+  for (const candidate of listAdbPathCandidates()) {
+    const prepared = prepareAdbCandidate(candidate);
 
-  if (resolved) {
-    return resolved;
+    if (prepared) {
+      return prepared;
+    }
   }
 
   if (isTermux()) {
     throw new Error(
       "Termux 未找到 adb。请执行: pkg install android-tools，或设置 CLOUD_PHONE_ADB_PATH。",
+    );
+  }
+
+  if (fs.existsSync("/.dockerenv")) {
+    throw new Error(
+      "Docker 未找到可执行的 adb。请重建后端镜像（已预装 android-tools-adb），或设置 CLOUD_PHONE_ADB_PATH。",
     );
   }
 
