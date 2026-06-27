@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.7 - 2026-06-27
+
+- 修复首次改密报 `INVALID_PASSWORD`：清除残留会话加密密钥，首次改密使用明文请求；后端拒绝无会话的加密改密请求
+
 ## 0.13.6 - 2026-06-27
 
 - Docker Linux 默认 **host 网络**：前后端共享宿主机网卡，支持 ADB 局域网与 mDNS；Mac/Windows 可叠加 `docker-compose.bridge.yml`

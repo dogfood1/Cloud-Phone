@@ -67,6 +67,10 @@ export function useAuth() {
         return false;
       }
 
+      if (!result.authenticated) {
+        clearSessionEncryptionKey();
+      }
+
       syncAuthState(result);
       state.sessionStateText = result.authenticated
         ? t("auth.sessionValid")
@@ -96,6 +100,7 @@ export function useAuth() {
       syncAuthState(result);
 
       if (result.requiresPasswordChange) {
+        clearSessionEncryptionKey();
         state.currentPassword = state.loginPassword;
         state.sessionStateText = t("auth.defaultVerified");
         return false;
@@ -133,10 +138,13 @@ export function useAuth() {
     state.changeFeedback = "";
 
     try {
-      const result = await changePasswordRequest({
-        currentPassword: state.currentPassword,
-        nextPassword: state.nextPassword,
-      });
+      const result = await changePasswordRequest(
+        {
+          currentPassword: state.currentPassword,
+          nextPassword: state.nextPassword,
+        },
+        { plainJson: state.requiresPasswordChange },
+      );
 
       syncAuthState(result);
       state.sessionStateText = t("auth.passwordChanged");

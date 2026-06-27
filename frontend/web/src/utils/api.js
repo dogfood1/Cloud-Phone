@@ -164,6 +164,8 @@ export async function loginRequest(password) {
 
   if (result.encryptionKey) {
     saveSessionEncryptionKey(result.encryptionKey);
+  } else {
+    clearSessionEncryptionKey();
   }
 
   return result;
@@ -185,15 +187,18 @@ export async function parseEncryptedFetchResponse(response) {
   return decryptPayload(envelope, base64ToKey(sessionKey));
 }
 
-export async function changePasswordRequest(body) {
-  const hasKey = hasSessionEncryptionKey();
+export async function changePasswordRequest(body, options = {}) {
+  const usePlainJson = options.plainJson || !hasSessionEncryptionKey();
   const response = await fetchWithLanFallback("/api/auth/change-password", {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: hasKey
-      ? JSON.stringify(await encryptPayload(body, base64ToKey(getSessionEncryptionKey())))
-      : JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Encrypted-Request": usePlainJson ? "0" : "1",
+    },
+    body: usePlainJson
+      ? JSON.stringify(body)
+      : JSON.stringify(await encryptPayload(body, base64ToKey(getSessionEncryptionKey()))),
   });
 
   const envelope = await response.json();
@@ -201,10 +206,15 @@ export async function changePasswordRequest(body) {
   if (!response.ok) {
     const message = envelope.message ?? envelope.error ?? "Password change failed.";
 
-    if (envelope?.encrypted && !hasKey) {
+    if (envelope?.encrypted && usePlainJson) {
       const loginKey = await deriveLoginResponseKey(body.currentPassword);
       const decrypted = await decryptPayload(envelope, loginKey);
       throw new Error(decrypted.message ?? message);
+    }
+
+    if (envelope?.encrypted && !usePlainJson) {
+      const result = await decryptPayload(envelope, base64ToKey(getSessionEncryptionKey()));
+      throw new Error(result.message ?? message);
     }
 
     throw new Error(message);
@@ -214,7 +224,7 @@ export async function changePasswordRequest(body) {
     return envelope;
   }
 
-  if (hasKey) {
+  if (!usePlainJson) {
     const result = await decryptPayload(envelope, base64ToKey(getSessionEncryptionKey()));
     if (result.encryptionKey) {
       saveSessionEncryptionKey(result.encryptionKey);

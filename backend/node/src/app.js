@@ -33,6 +33,7 @@ import {
 } from "./middleware/api-auth.js";
 import { parseCookies } from "./utils/cookies.js";
 import { applyCors, readJsonBody, sendEmpty, sendJson } from "./utils/http.js";
+import { decryptPayload } from "./api-crypto.js";
 import {
   attachResponseEncryption,
   readProtectedJsonBody,
@@ -184,11 +185,27 @@ export function createApp() {
     if (method === "POST" && pathname === "/api/auth/change-password") {
       try {
         const session = await requireApiSession(sessionToken);
+        const rawBody = await readJsonBody(req);
+
         if (session) {
           attachResponseEncryption(res, session.encryptionKey);
         }
 
-        const body = session ? await readProtectedJsonBody(req, res) : await readJsonBody(req);
+        if (!session && rawBody?.encrypted) {
+          sendJson(res, 400, {
+            success: false,
+            version: APP_VERSION,
+            code: "SESSION_REQUIRED",
+            message: "Sign in before sending encrypted password change requests.",
+          });
+          return;
+        }
+
+        const body = session
+          ? rawBody?.encrypted
+            ? decryptPayload(rawBody, session.encryptionKey)
+            : rawBody
+          : rawBody;
 
         const result = await changePassword(
           String(body.currentPassword ?? ""),
