@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.13.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.13.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -68,7 +68,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
-- **Docker/CI**: `docker-cloud-phone/` multi-arch images `linux/amd64` + `linux/arm64` (`build-multiarch.sh` / Actions); `compose.sh` deploy; GitHub Actions pushes when commit messages contain `docker`
+- **Docker/CI**: `docker-cloud-phone/` multi-arch images `linux/amd64` + `linux/arm64` (`build-multiarch.sh` / Actions); `compose.sh` deploy; Node 20 image compatible (`better-sqlite3`); GitHub Actions pushes when commit messages contain `docker`
 - **HarmonyOS cast**: HDC + uitest agent, JPEG stream; `cast/start` builds the pipe, browser WebSocket subscribes to frames; **scale** only; arm64 / x86_64 agents in `backend/assets/harmony/`
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing

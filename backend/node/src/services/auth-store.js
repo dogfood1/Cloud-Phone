@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import Database from "better-sqlite3";
 
 import { BACKEND_DATA_PATH } from "../config/paths.js";
 
@@ -10,7 +10,7 @@ const KEY_PATH = path.resolve(BACKEND_DATA_PATH, "auth.key");
 
 fs.mkdirSync(BACKEND_DATA_PATH, { recursive: true });
 
-const database = new DatabaseSync(DATABASE_PATH);
+const database = new Database(DATABASE_PATH);
 database.exec(`
   CREATE TABLE IF NOT EXISTS auth_settings (
     key TEXT PRIMARY KEY,

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.2 - 2026-06-27
+
+- 修复 Docker 后端启动失败：`node:sqlite` 仅 Node 22+ 可用，改用 `better-sqlite3` 兼容 Node 20 镜像
+- 后端 Dockerfile 增加原生模块编译依赖（python3、make、g++），保障多架构构建
+
 ## 0.13.1 - 2026-06-06
 
 - Docker Hub image tags use project semver from `package.json` (e.g. `yiyifred/cloud-phone-backend:0.13.1`); CI and `build-multiarch.sh` no longer tag with git SHA
