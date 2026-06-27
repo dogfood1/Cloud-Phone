@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { applyProjectEnv } from "../../tools/env-loader.js";
 import { createSelfSignedTlsOptions } from "./tls-self-signed.mjs";
+import { attachApiWebSocketProxy } from "./ws-proxy.mjs";
 
 const currentDirPath = path.dirname(fileURLToPath(import.meta.url));
 const distRootPath = path.resolve(currentDirPath, "dist");
@@ -63,6 +64,13 @@ server.listen(frontendPort, host, () => {
   }
 
   console.log(`API proxy /api/* -> ${backendOrigin}`);
+  console.log("WebSocket proxy /api/* -> backend enabled");
+});
+
+attachApiWebSocketProxy(server, {
+  backendOrigin,
+  frontendPort,
+  frontendHttps,
 });
 
 async function serveStaticFile(pathname, res) {

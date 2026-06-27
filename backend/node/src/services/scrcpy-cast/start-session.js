@@ -119,6 +119,12 @@ export async function startScrcpyCast(serial, options = {}) {
       });
       appendCastStartupLog(session, `adb：forward 隧道完成 (local:${localPort})`);
     }, { lockKey: serial });
+
+    if (isWsScrcpy) {
+      const { ensureServerShell } = await import("./shell-launcher.js");
+      appendCastStartupLog(session, "后端：预启动 scrcpy-server shell");
+      await ensureServerShell(session, serverOptions);
+    }
   } catch (error) {
     logCastError(serial, "cast.start.adb_failed", {
       message: error instanceof Error ? error.message : "unknown",

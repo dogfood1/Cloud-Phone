@@ -390,8 +390,16 @@ export function useDeviceScrcpyCast(
         failReady(new Error("投屏 WebSocket 连接失败"));
       });
 
-      socket.addEventListener("close", () => {
+      socket.addEventListener("close", (event) => {
         clearTimeout(readyTimeout);
+
+        if (!settled) {
+          const reason = typeof event.reason === "string" && event.reason.trim()
+            ? event.reason.trim()
+            : "投屏 WebSocket 连接已关闭";
+          failReady(new Error(reason));
+          return;
+        }
 
         if (status.value === "streaming") {
           status.value = "error";

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.9 - 2026-06-27
+
+- 修复 Docker 生产前端投屏卡在「WebSocket 视频管道就绪」：生产 `server.mjs` 增加 `/api/*` WebSocket 代理；`cast/start` 预启动 scrcpy-server shell
+
 ## 0.13.8 - 2026-06-27
 
 - 修复无线配对失败只显示 `Request failed.` / `未执行连接扫描`：展示 ADB 真实输出与连接尝试详情

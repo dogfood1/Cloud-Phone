@@ -217,6 +217,11 @@ export async function handleCastWebSocket(ws, serial) {
 
     await ensureCastVideoPipe(serial);
 
+    if (ws.readyState !== 1) {
+      logCastWarn(serial, "ws.session.client_closed", { readyState: ws.readyState });
+      return;
+    }
+
     logCastInfo(serial, "ws.session.pipe_ready", {
       webCast: Boolean(session.webCast),
       serverExited: session.serverExited ?? false,
