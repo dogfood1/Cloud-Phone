@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.3 - 2026-06-27
+
+- Docker 后端镜像升级 Node 22，恢复内置 `node:sqlite`，移除 `better-sqlite3` 及编译依赖，显著加快多架构构建
+- 安装脚本最低 Node 版本要求调整为 22
+
 ## 0.13.2 - 2026-06-27
 
 - 修复 Docker 后端启动失败：`node:sqlite` 仅 Node 22+ 可用，改用 `better-sqlite3` 兼容 Node 20 镜像

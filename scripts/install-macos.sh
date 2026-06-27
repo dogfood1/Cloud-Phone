@@ -58,7 +58,7 @@ macos_configure_options() {
     1) OPT_NODE=1; OPT_NPM=1;;
     2) OPT_NODE=1; OPT_NPM=1; OPT_JDK=1; OPT_BUILD_SERVER=1;;
     3)
-      tui_confirm "Node.js (brew node@20)" y && OPT_NODE=1 || OPT_NODE=0
+      tui_confirm "Node.js (brew node@22)" y && OPT_NODE=1 || OPT_NODE=0
       tui_confirm "npm install" y && OPT_NPM=1 || OPT_NPM=0
       tui_confirm "OpenJDK 17 (brew)" n && OPT_JDK=1 || OPT_JDK=0
       tui_confirm "Meson + Ninja (brew)" n && OPT_MESON=1 || OPT_MESON=0
@@ -73,9 +73,9 @@ macos_install_node() {
     return 0
   fi
   macos_ensure_brew || return 1
-  macos_brew_install "node@20" || macos_brew_install "node" || return 1
-  if [ -d "$(brew --prefix node@20 2>/dev/null)/bin" ]; then
-    tui_log info '请将 eval "$(brew --prefix node@20)/bin" 加入 shell 配置'
+  macos_brew_install "node@22" || macos_brew_install "node" || return 1
+  if [ -d "$(brew --prefix node@22 2>/dev/null)/bin" ]; then
+    tui_log info '请将 eval "$(brew --prefix node@22)/bin" 加入 shell 配置'
   fi
   cp_check_node
 }

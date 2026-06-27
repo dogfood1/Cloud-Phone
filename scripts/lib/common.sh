@@ -31,7 +31,7 @@ cp_check_node() {
   fi
   local major
   major=$(cp_node_major)
-  [ "$major" -ge 18 ] 2>/dev/null
+  [ "$major" -ge 22 ] 2>/dev/null
 }
 
 cp_ensure_env_file() {

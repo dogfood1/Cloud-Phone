@@ -20,7 +20,7 @@ function Test-NodeOk {
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }
   try {
     $major = [int](node -p "process.versions.node.split('.')[0]" 2>$null)
-    return $major -ge 18
+    return $major -ge 22
   } catch { return $false }
 }
 
