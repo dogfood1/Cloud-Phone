@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.3 - 2026-06-27
+
+- 修复鸿蒙投屏触控坐标未随画面缩放：ECHO fit rect + 归一化映射至原生分辨率
+- 修复横屏/预览旋转后点击偏移：对齐画布方向交换宽高；支持 rotator 预览旋转
+
 ## 0.14.2 - 2026-06-27
 
 - 鸿蒙投屏触控对齐 ECHO/hdckit：`Gestures.touchDown` / `touchMove` / `touchUp` 实时拖动；`pointermove` 边滑边反馈到设备

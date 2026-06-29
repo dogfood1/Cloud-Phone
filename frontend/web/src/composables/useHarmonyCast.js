@@ -3,6 +3,7 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 import { stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
 import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
+import { applyStagePreviewRotation } from "../utils/canvas-rotation.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
 import { attachHarmonyCastInteraction } from "../utils/harmony-cast-interaction.js";
 import { resolveHarmonyNativeDisplaySize } from "../utils/harmony-cast-options.js";
@@ -102,7 +103,7 @@ async function resolveCastCanvas(canvasRef, viewportRef) {
   return null;
 }
 
-export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef, castHooks = {}) {
+export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, rotatorRef, viewportRef, castHooks = {}) {
   const isCastActive = castHooks.isCastActive ?? (() => true);
   const getInteractionEnabled = castHooks.getInteractionEnabled ?? (() => true);
   const getDevice = castHooks.getDevice ?? (() => null);
@@ -116,6 +117,8 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
   let socket = null;
   let stopRequest = null;
   let unbindInteraction = null;
+  /** @type {{ width: number, height: number } | null} */
+  let deviceDisplaySize = null;
   let logPollTimer = null;
   let logPollConsumed = 0;
   let backendSessionActive = false;
@@ -177,6 +180,54 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
 
   function sendControl(buffer) {
     void buffer;
+  }
+
+  function applyPreviewRotation(degrees) {
+    applyStagePreviewRotation(
+      rotatorRef?.value ?? null,
+      degrees,
+      viewportRef?.value ?? null,
+    );
+
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    }
+  }
+
+  function getDeviceDisplaySize() {
+    const live = getDevice()?.displaySize;
+    if (live?.width > 0 && live?.height > 0) {
+      return { width: live.width, height: live.height };
+    }
+
+    if (deviceDisplaySize?.width > 0 && deviceDisplaySize?.height > 0) {
+      return deviceDisplaySize;
+    }
+
+    const canvas = canvasRef?.value ?? null;
+    const scale = Number(sessionMeta.value?.castOptions?.scale ?? sessionMeta.value?.video?.scale) || 1;
+
+    if (canvas?.width > 0 && canvas?.height > 0 && scale > 0) {
+      return {
+        width: Math.round(canvas.width / scale),
+        height: Math.round(canvas.height / scale),
+      };
+    }
+
+    return null;
+  }
+
+  function bindHarmonyInteraction(canvas) {
+    teardownInteraction();
+    unbindInteraction = attachHarmonyCastInteraction({
+      canvas,
+      sendMessage: sendHarmonyMessage,
+      getRotator: () => rotatorRef?.value ?? null,
+      getDeviceDisplaySize,
+      interactionEnabled: getInteractionEnabled(),
+    });
   }
 
   function sendNavigation() {}
@@ -266,9 +317,9 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     ingestStartupLogs(payload?.startupLogs ?? []);
     logPollConsumed = Array.isArray(payload?.startupLogs) ? payload.startupLogs.length : 0;
     startLogPolling(serial);
-    const nativeSize = resolveHarmonyNativeDisplaySize(getDevice() ?? {}, payload);
-    if (nativeSize) {
-      appendStartupLog(`鸿蒙投屏：设备分辨率 ${nativeSize.width} × ${nativeSize.height}`);
+    deviceDisplaySize = resolveHarmonyNativeDisplaySize(getDevice() ?? {}, payload);
+    if (deviceDisplaySize) {
+      appendStartupLog(`鸿蒙投屏：设备分辨率 ${deviceDisplaySize.width} × ${deviceDisplaySize.height}`);
     }
     appendStartupLog("鸿蒙投屏：cast/start 完成，连接 WebSocket…");
 
@@ -315,12 +366,8 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
       };
 
       teardownInteraction();
-      unbindInteraction = attachHarmonyCastInteraction({
-        canvas,
-        sendMessage: sendHarmonyMessage,
-        nativeSize,
-        interactionEnabled: getInteractionEnabled(),
-      });
+      applyPreviewRotation(unref(castOptionsRef)?.mirror?.video?.rotationDeg ?? 0);
+      bindHarmonyInteraction(canvas);
     } catch (error) {
       status.value = "error";
       errorMessage.value = error instanceof Error ? error.message : "Harmony cast failed.";
@@ -334,6 +381,13 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
       void stopCast();
     }
   });
+
+  watch(
+    () => unref(castOptionsRef)?.mirror?.video?.rotationDeg,
+    (degrees) => {
+      applyPreviewRotation(degrees ?? 0);
+    },
+  );
 
   watch(
     () => unref(serialRef),
@@ -357,7 +411,7 @@ export function useHarmonyCast(serialRef, canvasRef, castOptionsRef, viewportRef
     sendControl,
     getEffectiveScreenSize,
     displayScreenOn: ref(true),
-    applyPreviewRotation: () => {},
+    applyPreviewRotation,
     isRecording: ref(false),
     recordingElapsedMs: ref(0),
     isCastRecordingSupported: () => false,

@@ -1,46 +1,96 @@
-import { mapClientToVideoLocal } from "./canvas-rotation.js";
+import {
+  mapClientToVideoLocal,
+  normalizeRotationDeg,
+} from "./canvas-rotation.js";
+import { resolveEventClientXY } from "./scrcpy-cast-touch.js";
+import { orientDisplaySizeToCanvas } from "./harmony-cast-options.js";
 
 const passiveOpts = { passive: false };
 
-function mapDevicePoint(clientX, clientY, canvas, nativeSize) {
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * ECHO-style fit rect: map pointer within the letterboxed video area on screen.
+ * Falls back to mapClientToVideoLocal when preview rotation is active.
+ */
+function mapClientToHarmonyVideoLocal(clientX, clientY, canvas, rotator) {
   const videoSize = { width: canvas.width, height: canvas.height };
 
   if (!videoSize.width || !videoSize.height) {
-    return { x: 0, y: 0 };
+    return { x: 0, y: 0, width: 1, height: 1 };
   }
 
-  const local = mapClientToVideoLocal(clientX, clientY, canvas, videoSize, null);
-  const canvasPoint = {
-    x: Math.round((local.x / local.width) * canvas.width),
-    y: Math.round((local.y / local.height) * canvas.height),
-  };
+  const deg = rotator ? normalizeRotationDeg(Number(rotator.dataset?.rotation || 0)) : 0;
 
-  if (
-    !nativeSize?.width ||
-    !nativeSize?.height ||
-    (canvas.width === nativeSize.width && canvas.height === nativeSize.height)
-  ) {
-    return canvasPoint;
+  if (deg) {
+    return mapClientToVideoLocal(clientX, clientY, canvas, videoSize, rotator);
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const videoRatio = videoSize.width / videoSize.height;
+  const displayRatio = rect.width / rect.height;
+
+  let fitWidth = rect.width;
+  let fitHeight = rect.height;
+  let fitX = rect.left;
+  let fitY = rect.top;
+
+  if (videoRatio < displayRatio) {
+    fitHeight = rect.height;
+    fitWidth = fitHeight * videoRatio;
+    fitX = rect.left + (rect.width - fitWidth) / 2;
+  } else if (videoRatio > displayRatio) {
+    fitWidth = rect.width;
+    fitHeight = fitWidth / videoRatio;
+    fitY = rect.top + (rect.height - fitHeight) / 2;
   }
 
   return {
-    x: Math.round((canvasPoint.x * nativeSize.width) / canvas.width),
-    y: Math.round((canvasPoint.y * nativeSize.height) / canvas.height),
+    x: clientX - fitX,
+    y: clientY - fitY,
+    width: fitWidth,
+    height: fitHeight,
+  };
+}
+
+function mapDevicePoint(clientX, clientY, canvas, rotator, getDeviceDisplaySize) {
+  if (!canvas.width || !canvas.height) {
+    return { x: 0, y: 0 };
+  }
+
+  const local = mapClientToHarmonyVideoLocal(clientX, clientY, canvas, rotator);
+  const nx = clamp01(local.x / (local.width || 1));
+  const ny = clamp01(local.y / (local.height || 1));
+  const deviceSize = orientDisplaySizeToCanvas(getDeviceDisplaySize?.() ?? null, canvas);
+
+  return {
+    x: Math.round(nx * deviceSize.width),
+    y: Math.round(ny * deviceSize.height),
   };
 }
 
 /**
  * ECHO/hdckit-style real-time touch: touchDown on press, touchMove while dragging, touchUp on release.
+ * Device coordinates follow displayed canvas scale and native device resolution.
  *
  * @param {{
  *   canvas: HTMLCanvasElement,
  *   sendMessage: (payload: object) => void,
- *   nativeSize?: { width: number, height: number } | null,
+ *   getRotator?: () => HTMLElement | null,
+ *   getDeviceDisplaySize?: () => { width: number, height: number } | null,
  *   interactionEnabled?: boolean,
  * }} options
  */
 export function attachHarmonyCastInteraction(options) {
-  const { canvas, sendMessage, nativeSize = null, interactionEnabled = true } = options;
+  const {
+    canvas,
+    sendMessage,
+    getRotator = () => null,
+    getDeviceDisplaySize = () => null,
+    interactionEnabled = true,
+  } = options;
 
   if (!interactionEnabled) {
     return () => {};
@@ -48,7 +98,10 @@ export function attachHarmonyCastInteraction(options) {
 
   let isTouching = false;
 
-  const mapPoint = (event) => mapDevicePoint(event.clientX, event.clientY, canvas, nativeSize);
+  const mapPoint = (event) => {
+    const { clientX, clientY } = resolveEventClientXY(event, canvas);
+    return mapDevicePoint(clientX, clientY, canvas, getRotator(), getDeviceDisplaySize);
+  };
 
   const onPointerDown = (event) => {
     if (event.button !== 0) {

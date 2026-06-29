@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.14.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.14.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -69,7 +69,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
-- **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures` touchDown/Move/Up); agents in `backend/assets/harmony/`
+- **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
 

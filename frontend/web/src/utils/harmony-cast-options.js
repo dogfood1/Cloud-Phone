@@ -76,3 +76,22 @@ export function resolveHarmonyNativeDisplaySize(device = {}, payload = {}) {
 
   return null;
 }
+
+/** Match device native size to current JPEG/canvas orientation (portrait ↔ landscape). */
+export function orientDisplaySizeToCanvas(displaySize, canvas) {
+  if (!displaySize?.width || !displaySize?.height || !canvas?.width || !canvas?.height) {
+    return {
+      width: canvas?.width || displaySize?.width || 1,
+      height: canvas?.height || displaySize?.height || 1,
+    };
+  }
+
+  const canvasLandscape = canvas.width > canvas.height;
+  const displayLandscape = displaySize.width > displaySize.height;
+
+  if (canvasLandscape === displayLandscape) {
+    return { width: displaySize.width, height: displaySize.height };
+  }
+
+  return { width: displaySize.height, height: displaySize.width };
+}
