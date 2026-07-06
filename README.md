@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.14.4** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.14.5** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -112,7 +112,7 @@ images/readme/
 ![设备画廊](images/readme/gallery.png)
 
 - 左侧 Tab：**设备**、**群控**、**设置**
-- 自动发现 ADB 与 **HDC** 设备（内置 `platform-tools` / `backend/bin/hdc`），展示型号、厂商、IP、系统版本、序列号
+- 自动发现 ADB 与 **HDC** 设备（内置 `platform-tools` / `backend/bin/hdc`；Windows 含 `libusb_shared.dll`），展示型号、厂商、IP、系统版本、序列号
 - 每台设备约 **5 秒**刷新截图（可调），列表约 **1 秒**刷新；刷新时保留上一帧，不闪全屏 loading
 - 汇总在线/离线数量、最近刷新时间，支持手动刷新；设备多时可滚动浏览全部卡片，截图懒加载减轻卡顿
 - 后端截图并发限制（最多 4 路），设备离线或 ADB 断开时返回可重试状态，避免日志 `unhandledRejection`

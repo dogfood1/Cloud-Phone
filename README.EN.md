@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.14.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.14.5** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -109,7 +109,7 @@ Images are embedded in the corresponding feature sections below.
 ![Device gallery](images/readme/gallery.png)
 
 - Tabs: **Devices**, **Group control**, **Settings**
-- Uses bundled `platform-tools` ADB and **HDC** (`backend/bin/hdc`) to discover devices
+- Uses bundled `platform-tools` ADB and **HDC** (`backend/bin/hdc`; Windows includes `libusb_shared.dll`) to discover devices
 - Shows model, manufacturer, IP, Android/HarmonyOS version, serial, product name
 - Screenshot refresh ~5s by default (configurable), list refresh ~1s
 - Keeps the previous frame while updating to avoid full-page loading flicker

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.5 - 2026-07-06
+
+- 补充 Windows 版 HDC 依赖 `backend/bin/hdc/windows/libusb_shared.dll`，修复 USB 连接鸿蒙设备时 `hdc.exe` 缺少 libusb 无法启动
+
 ## 0.14.4 - 2026-07-06
 
 - 收录 [WebDriverAgent](https://github.com/appium/WebDriverAgent) 至 `backend/source/WebDriverAgent`，为后续 iOS 设备控制与投屏集成做准备（当前尚未接入 UI）
