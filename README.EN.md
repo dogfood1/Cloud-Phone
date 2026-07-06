@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.14.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.14.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
 
 [中文](README.md) · **English**
 
@@ -66,7 +66,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); Apple placeholder
+- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); **Apple** — WebDriverAgent source vendored, UI integration in progress
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
@@ -352,7 +352,8 @@ node tools/build-scrcpy-server.mjs
 ```text
 scripts/               cross-platform install wizards (terminal UI)
 backend/node/          API + WebSocket
-backend/source/scrcpy/ scrcpy 4.0 + WebSocket fork
+backend/source/scrcpy/         scrcpy 4.0 + WebSocket fork
+backend/source/WebDriverAgent/ iOS WebDriver server (Appium WDA, integration pending)
 frontend/web/          Vue 3 + Vite (web console)
 frontend/android/      Android companion app
 tools/                 build & dev scripts
@@ -493,6 +494,7 @@ For this repo, please file clear, reproducible issues and focused pull requests.
 Thanks to these projects (in no particular order):
 
 - [scrcpy](https://github.com/Genymobile/scrcpy) – the core for display/control; this repo extends scrcpy 4.0 server with WebSocket
+- [WebDriverAgent](https://github.com/appium/WebDriverAgent) – iOS automation and touch/screenshot HTTP API; vendored in `backend/source/WebDriverAgent` for future Apple device control
 - [ws-scrcpy](https://github.com/NetrisTV/ws-scrcpy) – WebSocket wire protocol reference
 - [escrcpy](https://github.com/viarotel-org/escrcpy) – inspiration for mirror settings grouping and naming
 - [Vue](https://github.com/vuejs/core)

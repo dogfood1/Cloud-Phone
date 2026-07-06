@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.14.3** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
+当前版本：**v0.14.4** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -71,7 +71,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
-| **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；苹果暂未开发 |
+| **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**（`hdc list targets`）；**苹果** 已收录 WebDriverAgent 源码，UI 接入开发中 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送 |
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
@@ -351,7 +351,8 @@ node tools/build-scrcpy-server.mjs
 Cloud-Phone/
 ├── scripts/               # 三平台自动安装向导（install-linux/macos/windows）
 ├── backend/node/          # Node HTTP + WebSocket API
-├── backend/source/scrcpy/ # scrcpy 4.0 源码 + WebSocket 改造
+├── backend/source/scrcpy/         # scrcpy 4.0 源码 + WebSocket 改造
+├── backend/source/WebDriverAgent/ # iOS WebDriver 服务（Appium WDA，待集成）
 ├── backend/bin/           # adb、scrcpy 预编译产物
 ├── frontend/web/          # Vue 3 + Vite + Naive UI（Web 控制台）
 ├── frontend/android/      # Android 伴侣 App（设备画廊、设置、全屏投屏）
@@ -493,6 +494,7 @@ Cloud Phone 站在很多优秀项目肩上，特此感谢（排名不分先后�
 | 项目 | 用途 | 链接 |
 |---|---|---|
 | **scrcpy** | 屏幕/摄像头采集、编码、控制的核心；本仓库 `backend/source/scrcpy` 在其 4.0 上扩展 WebSocket | https://github.com/Genymobile/scrcpy |
+| **WebDriverAgent** | iOS 自动化与触控/截图 HTTP API；收录于 `backend/source/WebDriverAgent`，供后续苹果设备控制集成 | https://github.com/appium/WebDriverAgent |
 | **ws-scrcpy** | 浏览器 WebSocket 线协议（`scrcpy_initial`、Annex-B H.264、type 101 等）参考 | https://github.com/NetrisTV/ws-scrcpy |
 | **escrcpy** | 镜像参数分组与选项命名习惯的参考（非代码依赖） | https://github.com/viarotel-org/escrcpy |
 | **Vue** | 前端框架 | https://github.com/vuejs/core |
