@@ -22,6 +22,12 @@ import {
   handleHarmonyCastRoute,
   handleHarmonyCastWebSocket,
 } from "./harmony-cast-routes.js";
+import { getIosCastSession, startIosCast } from "../services/ios-cast/index.js";
+import { logIosCastError, logIosCastInfo } from "../services/ios-cast/cast-logger.js";
+import {
+  handleIosCastRoute,
+  handleIosCastWebSocket,
+} from "./ios-cast-routes.js";
 import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceCastRoute(req, res, method, pathname) {
@@ -34,6 +40,31 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
 
     const body = await readProtectedJsonBody(req, res);
     const platform = await resolveDevicePlatform(serial);
+
+    if (platform === "ios") {
+      try {
+        logIosCastInfo(serial, "api.cast.start", { options: body ?? {} });
+        const session = await startIosCast(serial);
+
+        sendProtectedJson(res, 200, {
+          success: true,
+          version: APP_VERSION,
+          ...session,
+        });
+      } catch (error) {
+        logIosCastError(serial, "api.cast.start_failed", {
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "ios_cast_start_failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+
+      return true;
+    }
 
     if (platform === "harmony") {
       try {
@@ -105,6 +136,10 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
   if (method === "DELETE" && stopMatch) {
     const serial = decodeURIComponent(stopMatch[1]);
 
+    if (getIosCastSession(serial) || (await resolveDevicePlatform(serial)) === "ios") {
+      return handleIosCastRoute(req, res, method, pathname);
+    }
+
     if (getHarmonyCastSession(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
       return handleHarmonyCastRoute(req, res, method, pathname);
     }
@@ -133,6 +168,10 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
 
   if (method === "GET" && statusMatch) {
     const serial = decodeURIComponent(statusMatch[1]);
+
+    if (getIosCastSession(serial) || (await resolveDevicePlatform(serial)) === "ios") {
+      return handleIosCastRoute(req, res, method, pathname);
+    }
 
     if (getHarmonyCastSession(serial) || (await resolveDevicePlatform(serial)) === "harmony") {
       return handleHarmonyCastRoute(req, res, method, pathname);
@@ -181,6 +220,16 @@ export function parseCastWebSocketPath(pathname) {
 }
 
 export async function handleCastWebSocket(ws, serial) {
+  if (getIosCastSession(serial)) {
+    await handleIosCastWebSocket(ws, serial);
+    return;
+  }
+
+  if ((await resolveDevicePlatform(serial)) === "ios") {
+    await handleIosCastWebSocket(ws, serial);
+    return;
+  }
+
   if (getHarmonyCastSession(serial)) {
     await handleHarmonyCastWebSocket(ws, serial);
     return;

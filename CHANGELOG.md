@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 - 2026-07-07
+
+- **iOS / WDA 初版**：添加设备支持局域网 mDNS 扫描（`_cloudphone-wda._tcp`）与手动 IP 连接；`ios-cast` MJPEG 投屏 + 触控/导航键；Mac 桥接脚本 `tools/ios-wda-bridge.mjs`
+- 新增 API：`GET /api/devices/ios/discover`、`POST /api/devices/ios/connect`、`DELETE /api/devices/ios/:serial`；设备列表合并已注册 iOS 端点
+- 前端：`AddDeviceApplePanel`、 `useIosCast`；画廊截图与投屏工作区适配 `platform: ios`
+
 ## 0.14.5 - 2026-07-06
 
 - 补充 Windows 版 HDC 依赖 `backend/bin/hdc/windows/libusb_shared.dll`，修复 USB 连接鸿蒙设备时 `hdc.exe` 缺少 libusb 无法启动

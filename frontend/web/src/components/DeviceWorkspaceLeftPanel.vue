@@ -42,6 +42,8 @@ const harmonySettingsRef = ref(null);
 const castMode = ref(DEFAULT_CAST_MODE);
 
 const isHarmonyDevice = computed(() => props.device?.platform === "harmony");
+const isIosDevice = computed(() => props.device?.platform === "ios");
+const isJpegCastDevice = computed(() => isHarmonyDevice.value || isIosDevice.value);
 
 const canStartCast = computed(() => {
   if (props.casting || props.castBusy) {
@@ -58,8 +60,12 @@ const modeOptions = computed(() =>
 );
 
 function buildCastOptions() {
-  if (isHarmonyDevice.value) {
-    return harmonySettingsRef.value?.getSettings?.() ?? buildHarmonyCastOptions(props.device);
+  if (isJpegCastDevice.value) {
+    if (isHarmonyDevice.value) {
+      return harmonySettingsRef.value?.getSettings?.() ?? buildHarmonyCastOptions(props.device);
+    }
+
+    return {};
   }
 
   if (castMode.value === "camera") {
@@ -93,7 +99,7 @@ defineExpose({ stepPreviewRotationDeg });
 <template>
   <aside class="workspace-left" aria-label="投屏设置">
     <div class="workspace-left__section workspace-left__top">
-      <NForm v-if="!isHarmonyDevice" size="small" :show-feedback="false">
+      <NForm v-if="!isJpegCastDevice" size="small" :show-feedback="false">
         <NFormItem label="投屏模式" label-placement="top">
           <MirrorSearchableSelect
             v-model:value="castMode"
@@ -102,7 +108,9 @@ defineExpose({ stepPreviewRotationDeg });
           />
         </NFormItem>
       </NForm>
-      <NText v-else depth="2" style="font-weight: 600">鸿蒙 JPEG 投屏</NText>
+      <NText v-else depth="2" style="font-weight: 600">
+        {{ isIosDevice ? "iOS MJPEG 投屏" : "鸿蒙 JPEG 投屏" }}
+      </NText>
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
@@ -113,6 +121,9 @@ defineExpose({ stepPreviewRotationDeg });
         :casting="casting"
         @settings-change="handleSettingsChange"
       />
+      <div v-else-if="isIosDevice" class="workspace-left__placeholder">
+        通过 Mac 上的 WebDriverAgent 推送 MJPEG 画面；支持触控与主屏幕/电源/音量键。
+      </div>
       <MirrorCastSettings
         v-else-if="castMode === 'mirror'"
         ref="mirrorSettingsRef"

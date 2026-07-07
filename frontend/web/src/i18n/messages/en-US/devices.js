@@ -6,7 +6,7 @@ export default {
     addDevice: "Add device",
     addDeviceModal: {
       title: "Add device",
-      desc: "Choose a device type to connect (not available yet)",
+      desc: "Choose a device type to connect",
       comingSoon: "Coming soon",
       close: "Close",
       usb: {
@@ -31,6 +31,38 @@ export default {
       harmonyUsb: {
         desc: "Connect your HarmonyOS device over USB, enable developer mode and HDC debugging. Devices are discovered via hdc list targets.",
         empty: "No new HarmonyOS devices yet. Ensure HDC is installed and debugging is authorized.",
+      },
+      appleModes: {
+        connect: "LAN scan / manual IP",
+      },
+      apple: {
+        title: "Apple · WebDriverAgent",
+        desc: "Run WDA and the mDNS bridge on your Intel Mac; scan the LAN from Windows or enter an IP manually.",
+        action: "Start",
+        tabs: {
+          scan: "Scan LAN",
+          manual: "Manual IP",
+        },
+        guideTitle: "Mac setup (one-time)",
+        guideStep1: "Run WebDriverAgentRunner in Xcode; enable Developer Mode and trust the Mac",
+        guideStep2: "In Terminal: iproxy 8100 8100 and iproxy 9100 9100",
+        guideStep3: "From repo root: node tools/ios-wda-bridge.mjs",
+        guideStep4: "Keep the Mac and Windows PC on the same LAN",
+        guideNote: "The bridge advertises _cloudphone-wda._tcp so Windows can discover your iPhone.",
+        scanSummary: "Found {total} bridge(s), {online} reachable",
+        scanning: "Scanning…",
+        rescan: "Rescan",
+        scanEmpty: "No WDA bridge found. Start the Mac bridge script or use manual IP.",
+        scanFailed: "LAN scan failed",
+        hostLabel: "Mac / WDA host IP",
+        hostPlaceholder: "192.168.1.88",
+        httpPortLabel: "HTTP port",
+        mjpegPortLabel: "MJPEG port",
+        manualHint: "Enter the Mac LAN IP and WDA ports (default 8100 / 9100).",
+        manualInvalid: "Enter a valid host IP and ports",
+        connect: "Connect",
+        connecting: "Connecting…",
+        connectFailed: "WDA connection failed. Check IP, ports, and iproxy on the Mac",
       },
       androidModes: {
         usb: "USB connection",

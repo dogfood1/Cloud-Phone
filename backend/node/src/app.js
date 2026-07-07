@@ -14,6 +14,7 @@ import {
 import { captureDeviceScreenshot } from "./services/device-screenshot.js";
 import { resolveDevicePlatform } from "./services/device-platform-registry.js";
 import { captureHarmonyScreenshot } from "./services/harmony-device.js";
+import { captureIosScreenshot } from "./services/ios/ios-device.js";
 import { listAllDevices } from "./services/device-list-service.js";
 import {
   changePassword,
@@ -24,6 +25,7 @@ import {
   revokeSessionToken,
 } from "./services/auth-service.js";
 import { handleDeviceCastRoute } from "./routes/device-cast-routes.js";
+import { handleIosDeviceRoute } from "./routes/ios-device-routes.js";
 import { handleDeviceRoute } from "./routes/device-routes.js";
 import { handleScrcpyRoute } from "./routes/scrcpy-routes.js";
 import {
@@ -398,6 +400,10 @@ export function createApp() {
       return;
     }
 
+    if (await handleIosDeviceRoute(req, res, method, pathname)) {
+      return;
+    }
+
     if (await handleDeviceCastRoute(req, res, method, pathname)) {
       return;
     }
@@ -418,10 +424,17 @@ export function createApp() {
       try {
         const platform = await resolveDevicePlatform(serial);
         const screenshot =
-          platform === "harmony"
+          platform === "ios"
+            ? await captureIosScreenshot(serial)
+            : platform === "harmony"
             ? await captureHarmonyScreenshot(serial)
             : await captureDeviceScreenshot(serial);
-        const mime = platform === "harmony" ? "image/jpeg" : "image/png";
+        const mime =
+          platform === "harmony"
+            ? "image/jpeg"
+            : platform === "ios"
+              ? "image/png"
+              : "image/png";
         sendProtectedBuffer(res, 200, screenshot, mime);
       } catch (error) {
         const code = error?.code ?? "screenshot_failed";

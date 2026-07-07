@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.14.5** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG cast
+Current version: **v0.15.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -66,10 +66,11 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC** (`hdc list targets`); **Apple** — WebDriverAgent source vendored, UI integration in progress
+- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC**; **Apple WDA** — run `tools/ios-wda-bridge.mjs` on Mac for mDNS, scan LAN or manual IP on Windows
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
+- **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; Mac runs `iproxy` + `ios-wda-bridge.mjs` broadcasting `_cloudphone-wda._tcp`; Windows adds device then casts in the browser with nav keys
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
 
@@ -356,7 +357,7 @@ backend/source/scrcpy/         scrcpy 4.0 + WebSocket fork
 backend/source/WebDriverAgent/ iOS WebDriver server (Appium WDA, integration pending)
 frontend/web/          Vue 3 + Vite (web console)
 frontend/android/      Android companion app
-tools/                 build & dev scripts
+tools/                 build & dev scripts (incl. ios-wda-bridge.mjs)
 images/qr/             sponsorship QR codes
 ```
 

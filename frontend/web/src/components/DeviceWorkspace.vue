@@ -121,16 +121,17 @@ async function startCast(options) {
     return;
   }
 
+  const isJpegCast = props.device?.platform === "harmony" || props.device?.platform === "ios";
   const isHarmonyCast = props.device?.platform === "harmony";
   const isCameraCast = options?.castMode === "camera";
-  const audioOnly = !isHarmonyCast && !isCameraCast && options?.mirror?.video?.disabled === true;
+  const audioOnly = !isJpegCast && !isCameraCast && options?.mirror?.video?.disabled === true;
 
   if (isCameraCast && Number(props.device.sdkVersion) > 0 && Number(props.device.sdkVersion) < 31) {
     castHint.value = "摄像头投屏需要 Android 12（API 31）及以上。";
     return;
   }
 
-  if (!isHarmonyCast) {
+  if (!isJpegCast) {
     if (audioOnly) {
       if (!WsScrcpyAudioCanvas.isSupported()) {
         castHint.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
@@ -150,14 +151,18 @@ async function startCast(options) {
 
   let castPayload = null;
   const isHarmonyDevice = props.device?.platform === "harmony";
+  const isIosDevice = props.device?.platform === "ios";
+  const isJpegDevice = isHarmonyDevice || isIosDevice;
 
   try {
     castPayload = await startDeviceCast(
       props.device.serial,
       buildCastOptionsForDevice(props.device, castOptions.value),
     );
-    const isHarmonySession =
-      isHarmonyDevice || castPayload?.castProtocol === "harmony-jpeg";
+    const isJpegSession =
+      isJpegDevice ||
+      castPayload?.castProtocol === "harmony-jpeg" ||
+      castPayload?.castProtocol === "ios-mjpeg";
     isCasting.value = true;
     await nextTick();
     await nextTick();
@@ -176,13 +181,15 @@ async function startCast(options) {
       window.dispatchEvent(new Event("resize"));
     }
   } catch (error) {
-    const isHarmonySession =
-      isHarmonyDevice || castPayload?.castProtocol === "harmony-jpeg";
+    const isJpegSession =
+      isJpegDevice ||
+      castPayload?.castProtocol === "harmony-jpeg" ||
+      castPayload?.castProtocol === "ios-mjpeg";
     castHint.value = getErrorMessage(error, "投屏启动失败");
     isCasting.value = false;
 
     try {
-      if (isHarmonySession && castPayload) {
+      if (isJpegSession && castPayload) {
         // Backend JPEG pipe keeps running (ECHO-style); only tear down the browser WS layer.
         await castViewportRef.value?.stopCast?.({ backend: false });
       } else {
@@ -192,7 +199,7 @@ async function startCast(options) {
         }
       }
     } catch {
-      if (props.device?.serial && !(isHarmonySession && castPayload)) {
+      if (props.device?.serial && !(isJpegSession && castPayload)) {
         await stopDeviceCast(props.device.serial).catch(() => {});
       }
     }
@@ -235,11 +242,13 @@ function handleCastFailed() {
     castHint.value = message;
   }
 
-  const isHarmonySession =
+  const isJpegSession =
     props.device?.platform === "harmony" ||
-    viewport?.activeCastMode?.value === "harmony";
+    props.device?.platform === "ios" ||
+    viewport?.activeCastMode?.value === "harmony" ||
+    viewport?.activeCastMode?.value === "ios";
 
-  if (isHarmonySession) {
+  if (isJpegSession) {
     isCasting.value = false;
     void viewport?.stopCast?.({ backend: false });
     return;

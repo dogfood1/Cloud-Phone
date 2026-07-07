@@ -6,7 +6,7 @@ export default {
     addDevice: "添加设备",
     addDeviceModal: {
       title: "添加设备",
-      desc: "选择要接入的设备类型（以下功能尚未开放）",
+      desc: "选择要接入的设备类型",
       comingSoon: "未开发",
       close: "关闭",
       usb: {
@@ -31,6 +31,38 @@ export default {
       harmonyUsb: {
         desc: "请用数据线连接鸿蒙设备，在手机上开启开发者模式与 HDC 调试。设备将通过 hdc list targets 自动出现在画廊。",
         empty: "暂未检测到新的鸿蒙设备，请确认已安装 HDC 并授权调试。",
+      },
+      appleModes: {
+        connect: "局域网 / 手动 IP",
+      },
+      apple: {
+        title: "苹果 · WebDriverAgent",
+        desc: "在 Intel Mac 上运行 WDA 与 mDNS 桥接，Windows 端可扫描局域网或手动输入 IP。",
+        action: "开始",
+        tabs: {
+          scan: "扫描局域网",
+          manual: "手动输入 IP",
+        },
+        guideTitle: "Mac 端准备（一次性）",
+        guideStep1: "Xcode 运行 WebDriverAgentRunner，iPhone 开启开发者模式并信任电脑",
+        guideStep2: "终端执行：iproxy 8100 8100 与 iproxy 9100 9100",
+        guideStep3: "在项目根目录执行：node tools/ios-wda-bridge.mjs",
+        guideStep4: "确保 Mac 与 Windows 电脑在同一局域网",
+        guideNote: "桥接脚本会广播 _cloudphone-wda._tcp，Windows 端「扫描局域网」即可发现设备。",
+        scanSummary: "发现 {total} 个桥接，{online} 个可连接",
+        scanning: "扫描中…",
+        rescan: "重新扫描",
+        scanEmpty: "未发现 WDA 桥接。请确认 Mac 上桥接脚本正在运行，或改用手动输入 IP。",
+        scanFailed: "局域网扫描失败",
+        hostLabel: "Mac / WDA 主机 IP",
+        hostPlaceholder: "192.168.1.88",
+        httpPortLabel: "HTTP 端口",
+        mjpegPortLabel: "MJPEG 端口",
+        manualHint: "若已知 Mac 局域网 IP，可直接填写 WDA 端口（默认 8100 / 9100）。",
+        manualInvalid: "请填写有效的主机 IP 与端口",
+        connect: "连接",
+        connecting: "连接中…",
+        connectFailed: "连接 WDA 失败，请检查 IP、端口与 Mac 端 iproxy",
       },
       androidModes: {
         usb: "USB 连接",

@@ -20,6 +20,10 @@ export function getDeviceStateLabel(state) {
 }
 
 export function formatAndroidVersion(device) {
+  if (device?.platform === "ios" && device?.iosVersion) {
+    return `iOS ${device.iosVersion}`;
+  }
+
   if (device.androidVersion && device.sdkVersion) {
     return `Android ${device.androidVersion} · SDK ${device.sdkVersion}`;
   }

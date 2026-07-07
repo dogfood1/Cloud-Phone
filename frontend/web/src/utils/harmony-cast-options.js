@@ -55,6 +55,10 @@ export function buildCastOptionsForDevice(device = {}, options = {}) {
     return buildHarmonyCastOptions(device, options);
   }
 
+  if (device?.platform === "ios") {
+    return {};
+  }
+
   return options;
 }
 

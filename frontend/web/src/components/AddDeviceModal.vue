@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { useI18n } from "vue-i18n";
 
 import "../assets/add-device-modal.css";
+import AddDeviceApplePanel from "./AddDeviceApplePanel.vue";
 import { getErrorMessage, requestJson } from "../utils/api.js";
 
 const props = defineProps({
@@ -18,7 +19,7 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb
+const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb | apple-connect
 const baselineSerials = ref(new Set());
 const pairForm = ref({
   host: "",
@@ -38,7 +39,7 @@ const platforms = [
     modes: ["usb", "qr", "pairCode"],
   },
   { id: "harmony", icon: "simple-icons:huawei", modes: ["usb"] },
-  { id: "apple", icon: "mdi:apple" },
+  { id: "apple", icon: "mdi:apple", modes: ["connect"] },
 ];
 
 const currentDevices = computed(() => props.devices ?? []);
@@ -246,6 +247,11 @@ function enterQrStep() {
   createQrSession();
 }
 
+function enterAppleConnect() {
+  step.value = "apple-connect";
+  pairResult.value = null;
+}
+
 function backToPlatforms() {
   step.value = "platforms";
 }
@@ -255,6 +261,7 @@ function backToPlatforms() {
   <div class="modal-layer" @click.self="emit('close')">
     <section
       class="add-device-modal"
+      :class="{ 'add-device-modal--wide': step === 'apple-connect' }"
       role="dialog"
       aria-modal="true"
       :aria-label="t('devices.addDeviceModal.title')"
@@ -267,6 +274,8 @@ function backToPlatforms() {
                 ? t("devices.addDeviceModal.usb.title")
                 : step === "android-pair-code"
                   ? t("devices.addDeviceModal.pairCode.title")
+                  : step === "apple-connect"
+                    ? t("devices.addDeviceModal.apple.title")
                 : t("devices.addDeviceModal.title")
             }}
           </h2>
@@ -276,6 +285,8 @@ function backToPlatforms() {
                 ? t("devices.addDeviceModal.usb.desc")
                 : step === "android-pair-code"
                   ? t("devices.addDeviceModal.pairCode.desc")
+                  : step === "apple-connect"
+                    ? t("devices.addDeviceModal.apple.desc")
                 : t("devices.addDeviceModal.desc")
             }}
           </p>
@@ -295,8 +306,7 @@ function backToPlatforms() {
           v-for="item in platforms"
           :key="item.id"
           class="add-device-modal__card"
-          :class="{ 'add-device-modal__card--disabled': item.id === 'apple' }"
-          :aria-disabled="item.id === 'apple'"
+          :class="{ 'add-device-modal__card--apple': item.id === 'apple' }"
         >
           <Icon :icon="item.icon" class="add-device-modal__icon" />
           <h3>{{ t(`devices.addDeviceModal.platforms.${item.id}`) }}</h3>
@@ -327,6 +337,17 @@ function backToPlatforms() {
                 <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
                 <span class="add-device-modal__mode-badge">
                   {{ t("devices.addDeviceModal.usb.action") }}
+                </span>
+              </button>
+              <button
+                v-else-if="item.id === 'apple' && mode === 'connect'"
+                type="button"
+                class="add-device-modal__mode-btn"
+                @click="enterAppleConnect"
+              >
+                <span>{{ t("devices.addDeviceModal.appleModes.connect") }}</span>
+                <span class="add-device-modal__mode-badge">
+                  {{ t("devices.addDeviceModal.apple.action") }}
                 </span>
               </button>
               <button
@@ -361,11 +382,14 @@ function backToPlatforms() {
               </template>
             </li>
           </ul>
-          <p v-if="item.id === 'apple'" class="add-device-modal__badge">
-            {{ t("devices.addDeviceModal.comingSoon") }}
-          </p>
         </article>
       </div>
+
+      <AddDeviceApplePanel
+        v-else-if="step === 'apple-connect'"
+        :on-back="backToPlatforms"
+        :on-connected="() => emit('close')"
+      />
 
       <div v-else-if="step === 'harmony-usb'" class="add-device-modal__usb">
         <div class="add-device-modal__usb-layout">

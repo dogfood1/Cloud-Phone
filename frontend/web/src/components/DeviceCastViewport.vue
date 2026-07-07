@@ -211,14 +211,20 @@ defineExpose({
     <div v-else-if="showStartupLogs" class="device-cast-viewport__overlay device-cast-viewport__overlay--logs">
       <div class="device-cast-viewport__log-panel">
         <p class="device-cast-viewport__log-title">
-          {{ device.platform === "harmony" ? "正在启动鸿蒙投屏…" : "正在启动 scrcpy 投屏…" }}
+          {{
+            device.platform === "harmony"
+              ? "正在启动鸿蒙投屏…"
+              : device.platform === "ios"
+                ? "正在启动 iOS 投屏…"
+                : "正在启动 scrcpy 投屏…"
+          }}
         </p>
         <pre class="device-cast-viewport__log-text">{{ startupLogText }}</pre>
       </div>
     </div>
     <div v-else-if="hasError" class="device-cast-viewport__overlay device-cast-viewport__overlay--error">
       <p>{{ errorMessage }}</p>
-      <span v-if="device.platform !== 'harmony'" class="device-cast-viewport__hint">
+      <span v-if="device.platform !== 'harmony' && device.platform !== 'ios'" class="device-cast-viewport__hint">
         请确认设备已 adb 连接、已执行 node tools/build-scrcpy-server.mjs，并使用 Chrome/Edge 浏览器。
       </span>
     </div>
