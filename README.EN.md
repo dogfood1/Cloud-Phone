@@ -66,11 +66,11 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
-- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC**; **Apple WDA** — run `tools/ios-wda-bridge.mjs` on Mac for mDNS, scan LAN or manual IP on Windows
+- **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC**; **Apple WDA** — Windows USB wizard (sign/install/connect), or Mac `tools/ios-wda-bridge.mjs` for LAN discovery
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
-- **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; Mac runs `iproxy` + `ios-wda-bridge.mjs` broadcasting `_cloudphone-wda._tcp`; Windows adds device then casts in the browser with nav keys
+- **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; place `wda.ipa` in `backend/bin/wda/` for the Windows sign/install wizard, or use Mac `iproxy` + `ios-wda-bridge.mjs` for LAN bridge; browser cast with nav keys
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
 

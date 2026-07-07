@@ -26,6 +26,7 @@ import {
 } from "./services/auth-service.js";
 import { handleDeviceCastRoute } from "./routes/device-cast-routes.js";
 import { handleIosDeviceRoute } from "./routes/ios-device-routes.js";
+import { handleIosWdaPipelineRoute } from "./routes/ios-wda-pipeline-routes.js";
 import { handleDeviceRoute } from "./routes/device-routes.js";
 import { handleScrcpyRoute } from "./routes/scrcpy-routes.js";
 import {
@@ -397,6 +398,10 @@ export function createApp() {
           message: error instanceof Error ? error.message : "Unknown error",
         });
       }
+      return;
+    }
+
+    if (await handleIosWdaPipelineRoute(req, res, method, pathname)) {
       return;
     }
 

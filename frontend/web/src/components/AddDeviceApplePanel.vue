@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Icon } from "@iconify/vue";
 import { useI18n } from "vue-i18n";
 
@@ -18,108 +18,211 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const mode = ref("scan");
-const scanning = ref(false);
-const discovered = ref([]);
-const connectPending = ref(false);
-const connectResult = ref(null);
-const manualForm = ref({
-  host: "",
-  httpPort: "8100",
-  mjpegPort: "9100",
+const STEPS = ["prepare", "login", "sign", "install", "discover", "connect"];
+
+const prepareInfo = ref(null);
+const prepareError = ref("");
+const loadingPrepare = ref(true);
+
+const appleId = ref("");
+const password = ref("");
+const skipInstall = ref(false);
+const skipSign = ref(false);
+
+const pipelineJob = ref(null);
+const pipelineError = ref("");
+const running = ref(false);
+const pollTimer = ref(null);
+
+const currentStepIndex = computed(() => {
+  const step = pipelineJob.value?.step ?? "prepare";
+  const index = STEPS.indexOf(step);
+  return index >= 0 ? index : 0;
 });
 
-const scanSummary = computed(() => ({
-  total: discovered.value.length,
-  online: discovered.value.filter((item) => item.connected !== false && item.state !== "offline").length,
-}));
+const overallProgress = computed(() => pipelineJob.value?.progress ?? (loadingPrepare.value ? 2 : 8));
 
-async function scanLan() {
-  scanning.value = true;
-  connectResult.value = null;
+const isCompleted = computed(() => pipelineJob.value?.status === "completed");
+const isFailed = computed(() => pipelineJob.value?.status === "error");
+
+const pipelineLogsText = computed(() => {
+  const logs = pipelineJob.value?.logs;
+
+  if (!Array.isArray(logs) || logs.length === 0) {
+    return "";
+  }
+
+  return logs
+    .map((entry) => {
+      const step = entry.step ? `[${entry.step}] ` : "";
+      const level = entry.level ? `${entry.level}: ` : "";
+      return `${step}${level}${entry.message ?? ""}`.trim();
+    })
+    .filter(Boolean)
+    .join("\n");
+});
+
+const stepItems = computed(() =>
+  STEPS.map((id) => ({
+    id,
+    label: t(`devices.addDeviceModal.apple.pipeline.steps.${id}`),
+    state: resolveStepState(id),
+  })),
+);
+
+function resolveStepState(stepId) {
+  const job = pipelineJob.value;
+
+  if (!job) {
+    return stepId === "prepare" && !loadingPrepare.value ? "done" : "pending";
+  }
+
+  if (job.status === "error" && job.step === stepId) {
+    return "error";
+  }
+
+  const stepIndex = STEPS.indexOf(stepId);
+  const activeIndex = STEPS.indexOf(job.step);
+
+  if (job.status === "completed") {
+    return "done";
+  }
+
+  if (stepIndex < activeIndex) {
+    return "done";
+  }
+
+  if (stepIndex === activeIndex) {
+    return job.status === "error" ? "error" : "active";
+  }
+
+  return "pending";
+}
+
+async function loadPrepare() {
+  loadingPrepare.value = true;
+  prepareError.value = "";
 
   try {
-    const result = await requestJson("/api/devices/ios/discover?timeout=4000");
-    discovered.value = result.devices ?? [];
+    prepareInfo.value = await requestJson("/api/devices/ios/wda/prepare");
   } catch (error) {
-    connectResult.value = {
-      ok: false,
-      message: getErrorMessage(error, t("devices.addDeviceModal.apple.scanFailed")),
-    };
-    discovered.value = [];
+    prepareError.value = getErrorMessage(error, t("devices.addDeviceModal.apple.pipeline.prepareFailed"));
   } finally {
-    scanning.value = false;
+    loadingPrepare.value = false;
   }
 }
 
-async function connectEndpoint(endpoint, meta = {}) {
-  connectPending.value = true;
-  connectResult.value = null;
+function stopPolling() {
+  if (pollTimer.value) {
+    clearInterval(pollTimer.value);
+    pollTimer.value = null;
+  }
+}
+
+async function pollPipeline(jobId) {
+  const payload = await requestJson(`/api/devices/ios/wda/pipeline/${encodeURIComponent(jobId)}`);
+  pipelineJob.value = payload.job ?? null;
+
+  if (pipelineJob.value?.status === "completed") {
+    stopPolling();
+    running.value = false;
+
+    if (pipelineJob.value.result?.device) {
+      props.onConnected?.(pipelineJob.value.result.device);
+    }
+  }
+
+  if (pipelineJob.value?.status === "error") {
+    stopPolling();
+    running.value = false;
+    pipelineError.value = pipelineJob.value.error || pipelineJob.value.message;
+  }
+}
+
+function startPolling(jobId) {
+  stopPolling();
+  pollTimer.value = window.setInterval(() => {
+    void pollPipeline(jobId).catch((error) => {
+      pipelineError.value = getErrorMessage(error, t("devices.addDeviceModal.apple.pipeline.pollFailed"));
+      stopPolling();
+      running.value = false;
+    });
+  }, 700);
+}
+
+async function startPipeline(options = {}) {
+  pipelineError.value = "";
+
+  const useSkipInstall = options.skipInstall ?? skipInstall.value;
+  const useSkipSign = options.skipSign ?? skipSign.value;
+
+  if (!useSkipSign && (!appleId.value.trim() || !password.value.trim())) {
+    pipelineError.value = t("devices.addDeviceModal.apple.pipeline.loginRequired");
+    return;
+  }
+
+  if (!prepareInfo.value?.prepare?.ipaExists && !useSkipInstall) {
+    pipelineError.value = t("devices.addDeviceModal.apple.pipeline.ipaMissing");
+    return;
+  }
+
+  if (!prepareInfo.value?.prepare?.ipaExists && useSkipInstall && !useSkipSign) {
+    pipelineError.value = t("devices.addDeviceModal.apple.pipeline.ipaMissing");
+    return;
+  }
+
+  running.value = true;
+  pipelineJob.value = {
+    status: "running",
+    step: "prepare",
+    progress: 0,
+    message: t("devices.addDeviceModal.apple.pipeline.starting"),
+  };
 
   try {
-    const result = await requestJson("/api/devices/ios/connect", {
+    const result = await requestJson("/api/devices/ios/wda/pipeline", {
       method: "POST",
       body: {
-        host: endpoint.host,
-        httpPort: Number(endpoint.httpPort),
-        mjpegPort: Number(endpoint.mjpegPort),
-        name: meta.name,
-        udid: meta.udid,
-        source: meta.source ?? "manual",
+        appleId: appleId.value.trim(),
+        password: password.value,
+        skipInstall: useSkipInstall,
+        skipSign: useSkipSign,
       },
     });
 
-    connectResult.value = {
-      ok: true,
-      message: result.device?.displayName || result.device?.serial,
-      device: result.device,
-    };
-    props.onConnected?.(result.device);
+    pipelineJob.value = result.job;
+    startPolling(result.job.id);
+    await pollPipeline(result.job.id);
   } catch (error) {
-    connectResult.value = {
-      ok: false,
-      message: getErrorMessage(error, t("devices.addDeviceModal.apple.connectFailed")),
+    running.value = false;
+    pipelineError.value = getErrorMessage(error, t("devices.addDeviceModal.apple.pipeline.startFailed"));
+    pipelineJob.value = {
+      status: "error",
+      step: "prepare",
+      progress: 0,
+      message: pipelineError.value,
+      error: pipelineError.value,
     };
-  } finally {
-    connectPending.value = false;
   }
 }
 
-async function connectDiscovered(device) {
-  if (!device?.endpoint) {
-    return;
-  }
-
-  await connectEndpoint(device.endpoint, {
-    name: device.displayName,
-    udid: device.udid,
-    source: "mdns",
-  });
-}
-
-async function submitManual() {
-  const host = manualForm.value.host.trim();
-  const httpPort = Number.parseInt(manualForm.value.httpPort, 10);
-  const mjpegPort = Number.parseInt(manualForm.value.mjpegPort, 10);
-
-  if (!host || !httpPort || !mjpegPort) {
-    connectResult.value = {
-      ok: false,
-      message: t("devices.addDeviceModal.apple.manualInvalid"),
-    };
-    return;
-  }
-
-  await connectEndpoint({ host, httpPort, mjpegPort }, { source: "manual" });
+function startSkipInstallPipeline() {
+  skipInstall.value = true;
+  skipSign.value = true;
+  void startPipeline({ skipInstall: true, skipSign: true });
 }
 
 onMounted(() => {
-  void scanLan();
+  void loadPrepare();
+});
+
+onBeforeUnmount(() => {
+  stopPolling();
 });
 </script>
 
 <template>
-  <div class="apple-panel">
+  <div class="apple-panel apple-panel--wizard">
     <div class="apple-panel__hero" aria-hidden="true">
       <div class="apple-panel__glow" />
       <Icon icon="mdi:apple" class="apple-panel__hero-icon" />
@@ -131,122 +234,143 @@ onMounted(() => {
     </div>
 
     <div class="apple-panel__content">
-      <div class="apple-panel__tabs" role="tablist">
-        <button
-          type="button"
-          class="apple-panel__tab"
-          :class="{ 'apple-panel__tab--active': mode === 'scan' }"
-          @click="mode = 'scan'; scanLan()"
-        >
-          <Icon icon="lucide:radar" />
-          {{ t("devices.addDeviceModal.apple.tabs.scan") }}
-        </button>
-        <button
-          type="button"
-          class="apple-panel__tab"
-          :class="{ 'apple-panel__tab--active': mode === 'manual' }"
-          @click="mode = 'manual'"
-        >
-          <Icon icon="lucide:keyboard" />
-          {{ t("devices.addDeviceModal.apple.tabs.manual") }}
-        </button>
+      <div class="apple-wizard__progress-head">
+        <div class="apple-wizard__progress-meta">
+          <strong>{{ t("devices.addDeviceModal.apple.pipeline.title") }}</strong>
+          <span>{{ pipelineJob?.message || t("devices.addDeviceModal.apple.pipeline.subtitle") }}</span>
+        </div>
+        <div class="apple-wizard__progress-value">{{ overallProgress }}%</div>
       </div>
 
-      <aside class="apple-panel__guide">
-        <h3>{{ t("devices.addDeviceModal.apple.guideTitle") }}</h3>
-        <ol>
-          <li>{{ t("devices.addDeviceModal.apple.guideStep1") }}</li>
-          <li>{{ t("devices.addDeviceModal.apple.guideStep2") }}</li>
-          <li>{{ t("devices.addDeviceModal.apple.guideStep3") }}</li>
-          <li>{{ t("devices.addDeviceModal.apple.guideStep4") }}</li>
-        </ol>
-        <p class="apple-panel__guide-note">{{ t("devices.addDeviceModal.apple.guideNote") }}</p>
-      </aside>
+      <div class="apple-wizard__progress-track" aria-hidden="true">
+        <div class="apple-wizard__progress-bar" :style="{ width: `${overallProgress}%` }" />
+      </div>
 
-      <div v-if="mode === 'scan'" class="apple-panel__scan">
-        <div class="apple-panel__scan-toolbar">
-          <p>
-            {{
-              t("devices.addDeviceModal.apple.scanSummary", {
-                total: scanSummary.total,
-                online: scanSummary.online,
-              })
-            }}
-          </p>
-          <button type="button" class="ghost-button" :disabled="scanning" @click="scanLan">
-            <Icon :icon="scanning ? 'lucide:loader-circle' : 'lucide:refresh-cw'" />
-            {{
-              scanning
-                ? t("devices.addDeviceModal.apple.scanning")
-                : t("devices.addDeviceModal.apple.rescan")
-            }}
-          </button>
-        </div>
+      <ol class="apple-wizard__steps">
+        <li
+          v-for="(step, index) in stepItems"
+          :key="step.id"
+          class="apple-wizard__step"
+          :class="[
+            `apple-wizard__step--${step.state}`,
+            { 'apple-wizard__step--current': index === currentStepIndex },
+          ]"
+        >
+          <span class="apple-wizard__step-index">
+            <Icon
+              v-if="step.state === 'done'"
+              icon="lucide:check"
+            />
+            <Icon
+              v-else-if="step.state === 'error'"
+              icon="lucide:x"
+            />
+            <Icon
+              v-else-if="step.state === 'active'"
+              icon="lucide:loader-circle"
+              class="apple-wizard__spin"
+            />
+            <template v-else>{{ index + 1 }}</template>
+          </span>
+          <span class="apple-wizard__step-label">{{ step.label }}</span>
+        </li>
+      </ol>
 
-        <p v-if="!scanning && discovered.length === 0" class="apple-panel__empty">
-          {{ t("devices.addDeviceModal.apple.scanEmpty") }}
+      <section class="apple-wizard__card">
+        <h3>{{ t("devices.addDeviceModal.apple.pipeline.prepareTitle") }}</h3>
+        <p v-if="loadingPrepare" class="apple-panel__empty">
+          {{ t("devices.addDeviceModal.apple.pipeline.prepareLoading") }}
         </p>
-
-        <ul v-else class="apple-panel__list">
-          <li v-for="device in discovered" :key="device.serial" class="apple-panel__card-item">
-            <div class="apple-panel__card-main">
-              <strong>{{ device.displayName || device.serial }}</strong>
-              <span>{{ device.endpoint?.host }}:{{ device.endpoint?.httpPort }}</span>
-              <span v-if="device.iosVersion" class="apple-panel__meta">
-                iOS {{ device.iosVersion }}
-              </span>
-            </div>
-            <button
-              type="button"
-              class="primary-button"
-              :disabled="connectPending || device.state === 'offline'"
-              @click="connectDiscovered(device)"
-            >
-              {{ t("devices.addDeviceModal.apple.connect") }}
-            </button>
+        <ul v-else-if="prepareInfo" class="apple-wizard__checklist">
+          <li :class="{ 'is-ok': prepareInfo.prepare?.ipaExists, 'is-fail': !prepareInfo.prepare?.ipaExists }">
+            <Icon :icon="prepareInfo.prepare?.ipaExists ? 'lucide:check' : 'lucide:x'" />
+            {{ t("devices.addDeviceModal.apple.pipeline.checkIpa") }}
+          </li>
+          <li :class="{ 'is-ok': prepareInfo.python?.ok, 'is-fail': !prepareInfo.python?.ok }">
+            <Icon :icon="prepareInfo.python?.ok ? 'lucide:check' : 'lucide:x'" />
+            Python {{ prepareInfo.python?.version || prepareInfo.python?.error }}
+          </li>
+          <li :class="{ 'is-ok': prepareInfo.pymobiledevice3?.ok, 'is-fail': !prepareInfo.pymobiledevice3?.ok }">
+            <Icon :icon="prepareInfo.pymobiledevice3?.ok ? 'lucide:check' : 'lucide:x'" />
+            pymobiledevice3
+          </li>
+          <li :class="{ 'is-ok': prepareInfo.prepare?.zsignExists, 'is-warn': !prepareInfo.prepare?.zsignExists }">
+            <Icon :icon="prepareInfo.prepare?.zsignExists ? 'lucide:check' : 'lucide:alert-triangle'" />
+            zsign ({{ prepareInfo.prepare?.zsignPath || t("devices.addDeviceModal.apple.pipeline.zsignMissing") }})
           </li>
         </ul>
-      </div>
+        <p v-if="prepareInfo?.hints?.installHint" class="apple-wizard__hint">
+          {{ prepareInfo.hints.installHint }}
+        </p>
+        <p v-if="prepareError" class="apple-wizard__error">{{ prepareError }}</p>
+      </section>
 
-      <form v-else class="apple-panel__manual" @submit.prevent="submitManual">
-        <label>
-          <span>{{ t("devices.addDeviceModal.apple.hostLabel") }}</span>
-          <input
-            v-model.trim="manualForm.host"
-            type="text"
-            required
-            :placeholder="t('devices.addDeviceModal.apple.hostPlaceholder')"
-          />
-        </label>
-        <div class="apple-panel__manual-row">
+      <section class="apple-wizard__card">
+        <h3>{{ t("devices.addDeviceModal.apple.pipeline.loginTitle") }}</h3>
+        <form class="apple-wizard__form" @submit.prevent="startPipeline">
           <label>
-            <span>{{ t("devices.addDeviceModal.apple.httpPortLabel") }}</span>
-            <input v-model.trim="manualForm.httpPort" type="number" min="1" max="65535" required />
+            <span>Apple ID</span>
+            <input v-model.trim="appleId" type="email" autocomplete="username" :disabled="running || skipSign" />
           </label>
           <label>
-            <span>{{ t("devices.addDeviceModal.apple.mjpegPortLabel") }}</span>
-            <input v-model.trim="manualForm.mjpegPort" type="number" min="1" max="65535" required />
+            <span>{{ t("devices.addDeviceModal.apple.pipeline.passwordLabel") }}</span>
+            <input
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              :disabled="running || skipSign"
+            />
           </label>
-        </div>
-        <p class="apple-panel__manual-hint">{{ t("devices.addDeviceModal.apple.manualHint") }}</p>
-        <button type="submit" class="primary-button" :disabled="connectPending">
-          {{
-            connectPending
-              ? t("devices.addDeviceModal.apple.connecting")
-              : t("devices.addDeviceModal.apple.connect")
-          }}
-        </button>
-      </form>
 
-      <div v-if="connectResult" class="apple-panel__result" :class="connectResult.ok ? 'is-ok' : 'is-fail'">
-        <Icon :icon="connectResult.ok ? 'lucide:check-circle-2' : 'lucide:alert-circle'" />
-        <span>{{ connectResult.message }}</span>
+          <div class="apple-wizard__toggles">
+            <label class="apple-wizard__toggle">
+              <input v-model="skipSign" type="checkbox" :disabled="running" />
+              <span>{{ t("devices.addDeviceModal.apple.pipeline.skipSign") }}</span>
+            </label>
+            <label class="apple-wizard__toggle">
+              <input v-model="skipInstall" type="checkbox" :disabled="running" />
+              <span>{{ t("devices.addDeviceModal.apple.pipeline.skipInstall") }}</span>
+            </label>
+          </div>
+
+          <div class="apple-wizard__actions">
+            <button type="button" class="ghost-button" :disabled="running" @click="props.onBack?.()">
+              {{ t("common.back") }}
+            </button>
+            <div class="apple-wizard__actions-right">
+              <button
+                type="button"
+                class="ghost-button"
+                :disabled="running || loadingPrepare"
+                @click="startSkipInstallPipeline"
+              >
+                {{ t("devices.addDeviceModal.apple.pipeline.skipInstallButton") }}
+              </button>
+              <button type="submit" class="primary-button" :disabled="running || loadingPrepare">
+                {{
+                  running
+                    ? t("devices.addDeviceModal.apple.pipeline.running")
+                    : t("devices.addDeviceModal.apple.pipeline.start")
+                }}
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <div v-if="pipelineError || isFailed" class="apple-panel__result is-fail">
+        <Icon icon="lucide:alert-circle" />
+        <span>{{ pipelineError || pipelineJob?.message }}</span>
       </div>
 
-      <div class="apple-panel__actions">
-        <button type="button" class="ghost-button" @click="props.onBack?.()">
-          {{ t("common.back") }}
-        </button>
+      <section v-if="pipelineLogsText" class="apple-wizard__card">
+        <h3>{{ t("devices.addDeviceModal.apple.pipeline.logsTitle") }}</h3>
+        <pre class="apple-wizard__logs">{{ pipelineLogsText }}</pre>
+      </section>
+
+      <div v-if="isCompleted" class="apple-panel__result is-ok">
+        <Icon icon="lucide:check-circle-2" />
+        <span>{{ pipelineJob?.message || t("devices.addDeviceModal.apple.pipeline.completed") }}</span>
       </div>
     </div>
   </div>

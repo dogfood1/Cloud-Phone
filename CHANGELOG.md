@@ -3,8 +3,9 @@
 ## 0.15.0 - 2026-07-07
 
 - **iOS / WDA 初版**：添加设备支持局域网 mDNS 扫描（`_cloudphone-wda._tcp`）与手动 IP 连接；`ios-cast` MJPEG 投屏 + 触控/导航键；Mac 桥接脚本 `tools/ios-wda-bridge.mjs`
-- 新增 API：`GET /api/devices/ios/discover`、`POST /api/devices/ios/connect`、`DELETE /api/devices/ios/:serial`；设备列表合并已注册 iOS 端点
-- 前端：`AddDeviceApplePanel`、 `useIosCast`；画廊截图与投屏工作区适配 `platform: ios`
+- **iOS / Windows USB 流水线**：`backend/bin/wda/wda.ipa` + Apple ID 签名（zsign）+ pymobiledevice3 安装；六步向导（准备 → 登录 → 签名 → 安装 → 搜索设备 → 连接）；支持跳过已安装 WDA
+- 新增 API：`GET /api/devices/ios/discover`、`POST /api/devices/ios/connect`、`DELETE /api/devices/ios/:serial`；`GET /api/devices/ios/wda/prepare`、`POST /api/devices/ios/wda/pipeline`、`GET /api/devices/ios/wda/pipeline/:jobId`
+- 前端：`AddDeviceApplePanel` 向导进度条、`useIosCast`；画廊截图与投屏工作区适配 `platform: ios`
 
 ## 0.14.5 - 2026-07-06
 

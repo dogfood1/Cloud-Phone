@@ -1,0 +1,5 @@
+{
+  "bundleId": "com.facebook.WebDriverAgentRunner.xctrunner",
+  "httpPort": 8100,
+  "mjpegPort": 9100
+}
