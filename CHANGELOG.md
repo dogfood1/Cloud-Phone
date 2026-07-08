@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.3 - 2026-07-08
+
+- **Docker**：修复 arm64 构建时 `sslpsk-pmd3` 编译失败，pip 安装阶段临时加入 `gcc`/`python3-dev`/`libssl-dev` 等构建依赖
+
 ## 0.15.2 - 2026-07-08
 
 - **iOS 签名**：IPA 重签名改用 npm `@lbr77/zsign-wasm-resigner-wrapper`（Node WASM），无需手动放置 `zsign.exe`
