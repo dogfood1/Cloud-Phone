@@ -294,9 +294,15 @@ onBeforeUnmount(() => {
             <Icon :icon="prepareInfo.pymobiledevice3?.ok ? 'lucide:check' : 'lucide:x'" />
             pymobiledevice3
           </li>
-          <li :class="{ 'is-ok': prepareInfo.prepare?.zsignExists, 'is-warn': !prepareInfo.prepare?.zsignExists }">
-            <Icon :icon="prepareInfo.prepare?.zsignExists ? 'lucide:check' : 'lucide:alert-triangle'" />
-            zsign ({{ prepareInfo.prepare?.zsignPath || t("devices.addDeviceModal.apple.pipeline.zsignMissing") }})
+          <li :class="{ 'is-ok': prepareInfo.prepare?.zsignWasmAvailable, 'is-warn': !prepareInfo.prepare?.zsignWasmAvailable }">
+            <Icon :icon="prepareInfo.prepare?.zsignWasmAvailable ? 'lucide:check' : 'lucide:alert-triangle'" />
+            zsign-wasm
+            <template v-if="prepareInfo.prepare?.zsignWasmVersion">
+              (v{{ prepareInfo.prepare.zsignWasmVersion }})
+            </template>
+            <template v-else>
+              ({{ t("devices.addDeviceModal.apple.pipeline.zsignWasmMissing") }})
+            </template>
           </li>
         </ul>
         <p v-if="prepareInfo?.hints?.installHint" class="apple-wizard__hint">

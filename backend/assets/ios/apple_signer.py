@@ -271,35 +271,36 @@ def _create_signing_assets(session, bundle_id, work_dir):
     }
 
 
-def _run_zsign(zsign_path, input_ipa, output_ipa, assets, bundle_id):
+def _run_zsign_wasm(node_path, sign_script_path, input_ipa, output_ipa, assets, bundle_id):
     cmd = [
-        zsign_path,
-        "-f",
-        "-k",
-        assets["p12"],
-        "-p",
-        assets["p12_password"],
-        "-m",
-        assets["mobileprovision"],
-        "-b",
-        bundle_id,
-        "-o",
-        output_ipa,
+        node_path or "node",
+        sign_script_path,
+        "--input",
         input_ipa,
+        "--output",
+        output_ipa,
+        "--p12",
+        assets["p12"],
+        "--password",
+        assets["p12_password"],
+        "--mobileprovision",
+        assets["mobileprovision"],
+        "--bundle-id",
+        bundle_id,
     ]
 
     completed = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "").strip()
-        raise AppleSignError(detail or "zsign 签名失败")
+        raise AppleSignError(detail or "IPA 签名失败（zsign-wasm）")
 
 
-def sign_ipa(apple_id, password, input_ipa, output_ipa, bundle_id, zsign_path, certs_dir, emit):
+def sign_ipa(apple_id, password, input_ipa, output_ipa, bundle_id, certs_dir, emit, *, node_path, sign_script_path):
     emit("sign", "running", "正在登录 Apple ID…", 35)
 
-    if not zsign_path or not os.path.exists(zsign_path):
-        raise AppleSignError("未找到 zsign，请将 zsign.exe 放到 backend/bin/wda/。")
+    if not sign_script_path or not os.path.exists(sign_script_path):
+        raise AppleSignError("未找到 Node 签名脚本，请在后端目录执行 npm install。")
 
     if not shutil.which("openssl"):
         raise AppleSignError("未找到 openssl，请安装 OpenSSL 并加入 PATH。")
@@ -317,10 +318,10 @@ def sign_ipa(apple_id, password, input_ipa, output_ipa, bundle_id, zsign_path, c
         with tempfile.TemporaryDirectory(prefix="cloudphone-wda-sign-") as work_dir:
             assets = _create_signing_assets(session, bundle_id, work_dir)
             emit("sign", "running", "正在签名 IPA…", 55)
-            _run_zsign(zsign_path, input_ipa, output_ipa, assets, bundle_id)
+            _run_zsign_wasm(node_path, sign_script_path, input_ipa, output_ipa, assets, bundle_id)
             emit("sign", "running", "签名完成", 60)
             return
 
     emit("sign", "running", "正在签名 IPA…", 55)
-    _run_zsign(zsign_path, input_ipa, output_ipa, assets, bundle_id)
+    _run_zsign_wasm(node_path, sign_script_path, input_ipa, output_ipa, assets, bundle_id)
     emit("sign", "running", "签名完成", 60)

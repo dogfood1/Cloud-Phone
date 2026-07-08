@@ -6,10 +6,11 @@ import {
   WDA_BIN_DIR,
   WDA_IPA_PATH,
   WDA_PIPELINE_SCRIPT,
+  WDA_SIGN_IPA_CLI,
   WDA_SIGNED_DIR,
   getWdaPrepareStatus,
+  isZsignWasmAvailable,
   readWdaConfig,
-  resolveZsignPath,
 } from "../../../config/ios-wda-paths.js";
 import { connectIosDevice } from "../ios-device.js";
 import { getPythonCommand } from "../pymobile-exec.js";
@@ -98,6 +99,12 @@ export async function startWdaPipeline(input = {}) {
     throw error;
   }
 
+  if (!input.skipSign && !isZsignWasmAvailable()) {
+    const error = new Error("未安装 zsign-wasm 签名依赖，请在 backend/node 目录执行 npm install。");
+    error.code = "wda_signer_missing";
+    throw error;
+  }
+
   const job = createWdaPipelineJob({
     skipInstall: Boolean(input.skipInstall),
     skipSign: Boolean(input.skipSign),
@@ -107,7 +114,8 @@ export async function startWdaPipeline(input = {}) {
   const pythonConfig = {
     ipaPath: WDA_IPA_PATH,
     signedDir: WDA_SIGNED_DIR,
-    zsignPath: resolveZsignPath(),
+    signScriptPath: WDA_SIGN_IPA_CLI,
+    nodePath: process.execPath,
     certsDir: path.resolve(WDA_BIN_DIR, "certs"),
     bundleId: config.bundleId,
     httpPort: config.httpPort,

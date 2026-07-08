@@ -12,22 +12,40 @@ export const WDA_CONFIG_PATH = path.resolve(WDA_BIN_DIR, "config.json");
 export const WDA_SIGNED_DIR = path.resolve(WDA_BIN_DIR, "signed");
 export const WDA_PIPELINE_SCRIPT = path.resolve(PROJECT_ROOT_PATH, "backend", "assets", "ios", "wda_pipeline.py");
 export const WDA_REQUIREMENTS = path.resolve(PROJECT_ROOT_PATH, "backend", "assets", "ios", "requirements.txt");
+export const WDA_SIGN_IPA_CLI = path.resolve(
+  currentDirPath,
+  "..",
+  "services",
+  "ios",
+  "wda-pipeline",
+  "sign-ipa-cli.js",
+);
 
-const ZSIGN_CANDIDATES = [
-  path.resolve(WDA_BIN_DIR, "zsign.exe"),
-  path.resolve(WDA_BIN_DIR, "zsign"),
-  path.resolve(WDA_BIN_DIR, "zsign", "zsign.exe"),
-  path.resolve(WDA_BIN_DIR, "zsign", "zsign"),
-];
+const ZSIGN_WASM_PACKAGE = path.resolve(
+  PROJECT_ROOT_PATH,
+  "backend",
+  "node",
+  "node_modules",
+  "@lbr77",
+  "zsign-wasm-resigner-wrapper",
+  "package.json",
+);
 
-export function resolveZsignPath() {
-  for (const candidate of ZSIGN_CANDIDATES) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
+export function isZsignWasmAvailable() {
+  return fs.existsSync(ZSIGN_WASM_PACKAGE) && fs.existsSync(WDA_SIGN_IPA_CLI);
+}
+
+export function getZsignWasmVersion() {
+  if (!isZsignWasmAvailable()) {
+    return null;
   }
 
-  return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(ZSIGN_WASM_PACKAGE, "utf8"));
+    return parsed.version ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function readWdaConfig() {
@@ -57,8 +75,8 @@ export function getWdaPrepareStatus() {
   return {
     ipaPath: WDA_IPA_PATH,
     ipaExists: fs.existsSync(WDA_IPA_PATH),
-    zsignPath: resolveZsignPath(),
-    zsignExists: Boolean(resolveZsignPath()),
+    zsignWasmAvailable: isZsignWasmAvailable(),
+    zsignWasmVersion: getZsignWasmVersion(),
     pipelineScript: WDA_PIPELINE_SCRIPT,
     pipelineExists: fs.existsSync(WDA_PIPELINE_SCRIPT),
     config: readWdaConfig(),

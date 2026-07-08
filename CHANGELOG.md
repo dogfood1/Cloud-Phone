@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.2 - 2026-07-08
+
+- **iOS 签名**：IPA 重签名改用 npm `@lbr77/zsign-wasm-resigner-wrapper`（Node WASM），无需手动放置 `zsign.exe`
+- **Docker**：后端镜像内置 Python 3、`pymobiledevice3`、OpenSSL，支持容器内 iOS WDA USB 流水线
+
 ## 0.15.1 - 2026-07-07
 
 - **iOS / Windows USB 流水线**：`backend/bin/wda/wda.ipa` + Apple ID 签名（zsign）+ pymobiledevice3 安装；六步向导（准备 → 登录 → 签名 → 安装 → 搜索设备 → 连接）；支持跳过已安装 WDA

@@ -3,11 +3,20 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends android-tools-adb \
+  && apt-get install -y --no-install-recommends \
+    android-tools-adb \
+    python3 \
+    python3-pip \
+    openssl \
+    libusb-1.0-0 \
   && rm -rf /var/lib/apt/lists/*
 
 COPY backend/node/package*.json ./backend/node/
 RUN npm --prefix backend/node ci --omit=dev
+
+COPY backend/assets/ios/requirements.txt ./backend/assets/ios/requirements.txt
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+  -r backend/assets/ios/requirements.txt
 
 COPY . .
 
@@ -22,4 +31,5 @@ RUN set -e; \
 
 ENV NODE_ENV=production
 ENV CLOUD_PHONE_PREFER_SYSTEM_ADB=1
+ENV CLOUD_PHONE_PYTHON=python3
 CMD ["npm", "--prefix", "backend/node", "run", "start"]

@@ -51,7 +51,7 @@ export default {
           skipInstall: "Skip install (WDA already on device)",
           skipInstallButton: "WDA installed — connect now",
           checkIpa: "WDA IPA (backend/bin/wda/wda.ipa)",
-          zsignMissing: "not found — zsign required for signing",
+          zsignWasmMissing: "not installed — run npm install in backend/node",
           loginRequired: "Enter Apple ID and password, or enable Skip signing",
           ipaMissing: "wda.ipa not found. Place it at backend/bin/wda/wda.ipa",
           starting: "Starting pipeline…",

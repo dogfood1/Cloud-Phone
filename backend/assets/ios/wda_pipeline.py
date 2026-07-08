@@ -33,8 +33,9 @@ def main():
 
     ipa_path = config.get("ipaPath")
     signed_dir = config.get("signedDir")
-    zsign_path = config.get("zsignPath")
     certs_dir = config.get("certsDir")
+    sign_script_path = config.get("signScriptPath")
+    node_path = config.get("nodePath")
     bundle_id = config.get("bundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
     http_port = int(config.get("httpPort", 8100))
     mjpeg_port = int(config.get("mjpegPort", 9100))
@@ -83,9 +84,10 @@ def main():
                     ipa_path,
                     signed_ipa,
                     bundle_id,
-                    zsign_path,
                     certs_dir,
                     emit,
+                    node_path=node_path,
+                    sign_script_path=sign_script_path,
                 )
             except AppleSignError as error:
                 raise RuntimeError(str(error)) from error
@@ -137,7 +139,7 @@ def main():
 
         if "Apple ID" in str(error):
             step = "login"
-        elif "签名" in str(error) or "zsign" in str(error):
+        elif "签名" in str(error) or "zsign" in str(error) or "wasm" in str(error):
             step = "sign"
         elif "安装" in str(error):
             step = "install"

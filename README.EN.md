@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.15.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v0.15.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -448,6 +448,8 @@ chmod +x build-multiarch.sh
 Open `https://localhost:${FRONTEND_PORT}` (default 5173; trust the self-signed cert in the browser). On LAN use `https://<host-ip>:5173`; set `FRONTEND_TLS_SAN=<host-ip>` in `.env` to reduce warnings.
 
 **Data persistence**: compose mounts `docker-cloud-phone/data/` to `/data` in the backend container (`auth.key`, `cloud-phone.db` for passwords and sessions). Data survives image rebuilds; the host directory is created on first start.
+
+**iOS / Python**: the backend image includes Python 3, `pymobiledevice3`, and OpenSSL for the Apple WDA USB pipeline (install, port forward, launch); IPA re-signing uses Node `zsign-wasm`. Place `wda.ipa` at `backend/bin/wda/wda.ipa` and mount it into the container. On Linux, pass the iPhone USB device into the container (e.g. `--device /dev/bus/usb` or `privileged`) and ensure the host recognizes the device.
 
 **Network mode (Linux host by default)**: frontend and backend share the host network stack so the API can list all host interfaces (`GET /api/host/networks`) and ADB/mDNS use real LAN addresses. On Mac/Windows Docker Desktop:
 

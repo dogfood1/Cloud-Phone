@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.15.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v0.15.2** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -452,6 +452,8 @@ chmod +x build-multiarch.sh
 浏览器访问 `https://localhost:${FRONTEND_PORT}`（默认 5173；自签名证书需在浏览器中信任）。局域网请用 `https://<主机IP>:5173`，可在 `.env` 设置 `FRONTEND_TLS_SAN=<主机IP>`。
 
 **数据持久化**：后端默认将 `docker-cloud-phone/data/` 挂载到容器 `/data`，保存 `auth.key` 与 `cloud-phone.db`（密码、会话等）。重建或升级镜像后数据保留；首次启动会自动创建该目录。
+
+**iOS / Python**：后端镜像已内置 Python 3、`pymobiledevice3` 与 OpenSSL，用于苹果 WDA USB 流水线（安装/转发/启动）；IPA 重签名走 Node 内 `zsign-wasm`。请将 `wda.ipa` 放到 `backend/bin/wda/wda.ipa` 并挂载进容器；Linux 下 USB 连接 iPhone 还需将设备透传进容器（如 `--device /dev/bus/usb` 或 `privileged`），并确保宿主机已识别设备。
 
 **网络模式（Linux 默认 host）**：前后端容器与宿主机共用网络栈，后端可读取全部宿主机网卡（`GET /api/host/networks`），ADB 无线连接与 mDNS 广播使用真实 LAN 地址。Mac/Windows Docker Desktop 不支持 host 网络，请执行：
 

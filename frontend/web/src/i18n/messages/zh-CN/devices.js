@@ -51,7 +51,7 @@ export default {
           skipInstall: "跳过安装（WDA 已安装在设备上）",
           skipInstallButton: "WDA 已安装，直接连接",
           checkIpa: "WDA IPA (backend/bin/wda/wda.ipa)",
-          zsignMissing: "未找到，签名步骤需要 zsign",
+          zsignWasmMissing: "未安装，请在 backend/node 执行 npm install",
           loginRequired: "签名需要填写 Apple ID 与密码，或勾选「跳过签名」",
           ipaMissing: "未找到 wda.ipa，请先将 IPA 放到 backend/bin/wda/wda.ipa",
           starting: "正在启动流水线…",
