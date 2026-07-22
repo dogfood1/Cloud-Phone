@@ -193,8 +193,11 @@ public class NewDisplayCapture extends SurfaceCapture {
 
     public void startNew(Surface surface) throws IOException {
         try {
+            // Unique name per capture instance so multi-app windows each get a
+            // distinct virtual display (some OEMs collide on a shared "scrcpy" name).
+            String vdName = "scrcpy-" + Integer.toHexString(System.identityHashCode(this));
             VirtualDisplay vd = VirtualDisplayCreator.create(
-                    "scrcpy",
+                    vdName,
                     displaySize.getWidth(),
                     displaySize.getHeight(),
                     dpi,

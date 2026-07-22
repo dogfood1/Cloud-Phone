@@ -104,6 +104,29 @@ public final class WsServer extends WebSocketServer {
     }
   }
 
+  /** Bind a per-client cast session to its virtual / physical display id. */
+  void bindSessionDisplay(WsCastSession session, int displayId) {
+    if (session == null || displayId < 0) {
+      return;
+    }
+    sessionsByDisplay.entrySet().removeIf(entry -> entry.getValue() == session);
+    sessionsByDisplay.put(displayId, session);
+    Ln.i("Web cast session bound to display " + displayId
+        + " (activeSessions=" + sessionsByDisplay.size() + ")");
+    broadcastInitialInfo();
+  }
+
+  void unbindSession(WsCastSession session) {
+    if (session == null) {
+      return;
+    }
+    boolean removed = sessionsByDisplay.entrySet().removeIf(entry -> entry.getValue() == session);
+    if (removed) {
+      Ln.i("Web cast session unbound (activeSessions=" + sessionsByDisplay.size() + ")");
+      broadcastInitialInfo();
+    }
+  }
+
   private void sendInitialTo(WebSocket socket, int clientId) {
     if (initialInfoTemplate == null) {
       initialInfoTemplate = WsInitialInfo.build(sessionsByDisplay);

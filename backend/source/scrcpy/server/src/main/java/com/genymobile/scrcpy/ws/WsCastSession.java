@@ -17,6 +17,7 @@ import com.genymobile.scrcpy.video.ScreenCapture;
 import com.genymobile.scrcpy.video.SurfaceCapture;
 import com.genymobile.scrcpy.video.SurfaceEncoder;
 import com.genymobile.scrcpy.video.VideoSource;
+import com.genymobile.scrcpy.video.VirtualDisplayListener;
 
 import org.java_websocket.WebSocket;
 
@@ -280,7 +281,8 @@ public final class WsCastSession implements WsSocketBroadcaster {
     return false;
   }
 
-  private static SurfaceCapture createSurfaceCapture(Controller controller, Options options)
+  private static SurfaceCapture createSurfaceCapture(
+      Controller controller, Options options, VirtualDisplayListener displayListener)
       throws ConfigurationException, IOException {
     if (options.getVideoSource() == VideoSource.CAMERA) {
       Ln.i("Web cast using device camera");
@@ -289,19 +291,25 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
     if (options.getNewDisplay() != null) {
       Ln.i("Web cast using new virtual display");
-      return new NewDisplayCapture(controller, options);
+      return new NewDisplayCapture(displayListener, options);
     }
 
     if (options.getDisplayId() == Device.DISPLAY_ID_NONE) {
       throw new ConfigurationException("No display id for screen capture");
     }
 
-    return new ScreenCapture(controller, options);
+    return new ScreenCapture(displayListener, options);
   }
 
   private void startVideoEncoder(Options streamOptions) throws IOException, ConfigurationException {
     stopVideoEncoder();
-    surfaceCapture = createSurfaceCapture(controller, streamOptions);
+    VirtualDisplayListener displayListener = (displayId, positionMapper) -> {
+      controller.onNewVirtualDisplay(displayId, positionMapper);
+      server.bindSessionDisplay(this, displayId);
+      Ln.i("Web cast pipeline attached to display " + displayId
+          + (streamOptions.getNewDisplay() != null ? " (virtual)" : ""));
+    };
+    surfaceCapture = createSurfaceCapture(controller, streamOptions, displayListener);
     streamer = new WsStreamer(clients, streamOptions);
     surfaceEncoder = new SurfaceEncoder(surfaceCapture, streamer, streamOptions);
     controller.setSurfaceCapture(surfaceCapture);
@@ -432,6 +440,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
   private void stopPipeline() {
     started = false;
     activeStreamOptions = null;
+    server.unbindSession(this);
     stopVideoEncoder();
     stopAudioProcessor();
     if (controller != null) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.0 - 2026-07-22
+
+- **多应用每窗口虚拟屏修复**：禁止在仍有消费者时强制重建 scrcpy 会话（避免开第二个窗口时杀掉第一路虚拟屏）；每路 WebSocket 绑定独立 displayId；虚拟屏使用唯一名称
+- **投屏稳定性**：web 多管线禁用互相抢占的 CleanUp；窗口在 `onMounted` 后再 `cast/start`，失败时正确释放 consumer；`cast/start` 响应带回本窗口的 `new_display`/`start_app` 参数
+- **应用退出检测**：识别虚拟屏上的 Activity（`displayId>0` 等），减少误关窗
+
 ## 1.10.0 - 2026-07-22
 
 - **Icon Helper**：首次授权/提取完成后进度弹窗不再出现；后台持续 sync 新应用图标，开始菜单直接显示缓存

@@ -104,8 +104,26 @@ export function parsePackageVisibleInActivities(stdout, packageName) {
   }
 
   const visibleRe = new RegExp(
-    `ActivityRecord\\{[^\\n]*\\b${escaped}/[^\\n]*(?:mVisible=true|state=RESUMED|state=STARTED)`,
+    `ActivityRecord\\{[^\\n]*\\b${escaped}/[^\\n]*(?:mVisible=true|isVisible=true|state=RESUMED|state=STARTED)`,
     "i",
   );
-  return visibleRe.test(text);
+  if (visibleRe.test(text)) {
+    return true;
+  }
+
+  // Apps on scrcpy virtual displays often sit on displayId>0 without mVisible on
+  // the same ActivityRecord line — still treat as running for multi-app windows.
+  for (const record of records) {
+    if (/finishing=true|state=DESTROYED/i.test(record)) {
+      continue;
+    }
+    if (/display(?:Id)?=([1-9]\d*)/i.test(record)) {
+      return true;
+    }
+    if (/state=(?:RESUMED|STARTED|PAUSED|STOPPED)/i.test(record)) {
+      return true;
+    }
+  }
+
+  return false;
 }

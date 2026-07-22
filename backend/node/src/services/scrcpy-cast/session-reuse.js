@@ -29,7 +29,10 @@ export function buildCastStartPayload(session, options = {}) {
     socketName: session.socketName,
     tunnel: CAST_TUNNEL_FORWARD,
     features,
-    castOptions: session.castOptions,
+    // Prefer this request's options (per-window new_display / start_app) over the
+    // first consumer's stored castOptions — multi-app windows must not inherit
+    // another window's package or display size.
+    castOptions: { ...(session.castOptions ?? {}), ...options },
     video,
     wsPath: `/api/devices/${encoded}/cast/ws`,
     controlWsPath: serverOptions.control ? `/api/devices/${encoded}/cast/control/ws` : null,

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, toRef, unref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, unref, watch } from "vue";
 
 import MultiAppVdErrorDialog from "./MultiAppVdErrorDialog.vue";
 import { useAppExitWatch } from "../../composables/useAppExitWatch.js";
@@ -59,6 +59,8 @@ const showVdError = ref(false);
 const vdErrorDetail = ref("");
 let resizeTimer = null;
 let started = false;
+/** Backend cast/start succeeded for this window (consumer counted). */
+let backendConsumerHeld = false;
 
 const statusText = computed(() => {
   if (starting.value) {
@@ -85,6 +87,22 @@ function presentError(raw) {
   errorMessage.value = text || "投屏启动失败";
 }
 
+async function releaseBackendConsumer() {
+  if (!backendConsumerHeld) {
+    return;
+  }
+  backendConsumerHeld = false;
+  const serial = props.device?.serial;
+  if (!serial) {
+    return;
+  }
+  try {
+    await stopDeviceCast(serial);
+  } catch {
+    // ignore
+  }
+}
+
 async function startWindowCast({ force = false } = {}) {
   if ((!force && started) || starting.value) {
     return;
@@ -101,7 +119,7 @@ async function startWindowCast({ force = false } = {}) {
     return;
   }
 
-  if (force && started) {
+  if (force && (started || backendConsumerHeld)) {
     await stopWindowCast();
   }
 
@@ -117,14 +135,29 @@ async function startWindowCast({ force = false } = {}) {
   });
 
   try {
+    // Wait until canvas is in the DOM (do not start from setup immediate watch).
     await nextTick();
+    if (!canvasRef.value) {
+      await nextTick();
+    }
+    if (!canvasRef.value) {
+      throw new Error("投屏画布未就绪");
+    }
+
     const payload = await startDeviceCast(serial, castOptions.value);
+    backendConsumerHeld = true;
     await cast.beginCast(payload);
     started = true;
     ready.value = true;
   } catch (error) {
     ready.value = false;
     started = false;
+    try {
+      await cast.stopCast?.({ backend: false });
+    } catch {
+      // ignore
+    }
+    await releaseBackendConsumer();
     presentError(error);
   } finally {
     starting.value = false;
@@ -153,12 +186,13 @@ async function stopWindowCast() {
     resizeTimer = null;
   }
 
-  if (!started) {
-    return;
-  }
-
+  const hadSession = started || backendConsumerHeld;
   started = false;
   ready.value = false;
+
+  if (!hadSession) {
+    return;
+  }
 
   try {
     await cast.stopCast?.({ backend: false });
@@ -166,14 +200,7 @@ async function stopWindowCast() {
     // ignore
   }
 
-  const serial = props.device?.serial;
-  if (serial) {
-    try {
-      await stopDeviceCast(serial);
-    } catch {
-      // ignore
-    }
-  }
+  await releaseBackendConsumer();
 }
 
 watch(
@@ -183,10 +210,12 @@ watch(
 
 watch(
   () => props.window.packageName,
-  () => {
-    void startWindowCast();
+  (pkg, prev) => {
+    if (!prev || pkg === prev) {
+      return;
+    }
+    void startWindowCast({ force: true });
   },
-  { immediate: true },
 );
 
 watch(
@@ -204,6 +233,10 @@ useAppExitWatch({
   getPackageName: () => String(props.window?.packageName || ""),
   enabled: () => Boolean(ready.value && started && !showVdError.value),
   onExit: () => emit("close-window"),
+});
+
+onMounted(() => {
+  void startWindowCast();
 });
 
 onBeforeUnmount(() => {

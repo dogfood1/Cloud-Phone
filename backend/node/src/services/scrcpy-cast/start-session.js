@@ -32,6 +32,17 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function tryAttachToLiveSession(serial, options) {
+  const existing = getCastSession(serial);
+  if (!existing || existing.stopping || existing.serverExited) {
+    return null;
+  }
+  if (existing.starting || !existing.shellProcess) {
+    return null;
+  }
+  return tryReuseCastSession(existing, serial, options);
+}
+
 export async function startScrcpyCast(serial, options = {}) {
   await ensureScrcpyServerBuilt();
 
@@ -57,8 +68,24 @@ export async function startScrcpyCast(serial, options = {}) {
     }
   }
 
+  // Multi-app opens N windows → N cast/start. Never force-kill a still-live session
+  // just because reuse raced; that would tear down every other window's virtual display.
+  const liveReuse = tryAttachToLiveSession(serial, options);
+  if (liveReuse) {
+    return liveReuse;
+  }
+
   existing = getCastSession(serial);
   if (existing) {
+    const consumers = Math.max(0, Number(existing.consumerCount) || 0);
+    if (consumers > 0 && existing.shellProcess && !existing.serverExited && !existing.stopping) {
+      logCastWarn(serial, "cast.start.busy_reuse_failed", {
+        localPort: existing.localPort,
+        consumerCount: consumers,
+      });
+      throw new Error("投屏会话正忙，无法为新窗口创建虚拟屏，请重试。");
+    }
+
     logCastWarn(serial, "cast.start.replace_existing", {
       localPort: existing.localPort,
     });

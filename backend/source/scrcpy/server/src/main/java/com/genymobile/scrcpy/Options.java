@@ -395,7 +395,9 @@ public class Options {
         copy.stayAwake = stayAwake;
         copy.clipboardAutosync = clipboardAutosync;
         copy.powerOn = powerOn;
-        copy.cleanup = cleanup;
+        // Multi-client web cast: each WS owns a pipeline. Competing CleanUp
+        // processes unlink the server jar and fight over global settings.
+        copy.cleanup = false;
         copy.downsizeOnError = downsizeOnError;
         copy.audioSource = audioSource;
         copy.audioDup = audioDup;
