@@ -8,6 +8,8 @@ import DeviceFileExplorer from "./DeviceFileExplorer.vue";
 import DeviceTerminal from "./DeviceTerminal.vue";
 import DeviceWorkspaceToolbar from "./DeviceWorkspaceToolbar.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
+import MultiAppDesktop from "./multi-app/MultiAppDesktop.vue";
+import MirrorSearchableSelect from "./mirror/MirrorSearchableSelect.vue";
 import { useDeviceWorkspaceToolbar } from "../composables/useDeviceWorkspaceToolbar.js";
 import { getDeviceStateLabel } from "../utils/device-format.js";
 import {
@@ -17,6 +19,7 @@ import {
 import { buildCastOptionsForDevice } from "../utils/harmony-cast-options.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
+import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
 import { getErrorMessage } from "../utils/api.js";
 import { logDebug, logError, logInfo, logWarn } from "../utils/app-event-logger.js";
 import { useAppFeedback } from "../composables/useAppFeedback.js";
@@ -47,6 +50,11 @@ const terminalOpen = ref(false);
 const mobileCastOptionsOpen = ref(false);
 const isMobileLayout = ref(false);
 const mobileCastOptionsInitialized = ref(false);
+const workspaceCastMode = ref(DEFAULT_CAST_MODE);
+const isMultiAppMode = computed(() => workspaceCastMode.value === "multiApp");
+const castModeOptions = computed(() =>
+  DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
+);
 const isViewportFullscreen = ref(false);
 const fullscreenLayoutMode = ref("portrait");
 const fullscreenAutoRotationDeg = ref(0);
@@ -491,6 +499,10 @@ async function handleViewportFullscreenChange(isFullscreen) {
         </div>
       </div>
 
+      <div v-if="isMultiAppMode" class="device-workspace__multi-app-mode">
+        <MirrorSearchableSelect v-model:value="workspaceCastMode" :options="castModeOptions" />
+      </div>
+
       <DeviceWorkspaceToolbar
         :actions="toolbarActions"
         :volume-sub-actions="volumeSubActions"
@@ -515,6 +527,7 @@ async function handleViewportFullscreenChange(isFullscreen) {
     <div
       class="device-workspace__split"
       :class="{
+        'device-workspace__split--multi-app': isMultiAppMode,
         'device-workspace__split--mobile-options-open': isMobileLayout && mobileCastOptionsOpen,
         'device-workspace__split--mobile-options-collapsed': isMobileLayout && !mobileCastOptionsOpen,
       }"
@@ -538,8 +551,9 @@ async function handleViewportFullscreenChange(isFullscreen) {
         </button>
       </div>
       <DeviceWorkspaceLeftPanel
-        v-show="!isMobileLayout || mobileCastOptionsOpen"
+        v-show="(!isMobileLayout || mobileCastOptionsOpen) && !isMultiAppMode"
         ref="leftPanelRef"
+        v-model:cast-mode="workspaceCastMode"
         class="device-workspace__pane device-workspace__pane--left"
         :device="device"
         :casting="isCasting"
@@ -549,8 +563,13 @@ async function handleViewportFullscreenChange(isFullscreen) {
         @cast-options-change="updateCastOptions"
         @camera-control="handleCameraControl"
       />
+      <MultiAppDesktop
+        v-if="isMultiAppMode"
+        class="device-workspace__pane device-workspace__pane--right device-workspace__pane--multi-app"
+        @exit="workspaceCastMode = 'mirror'"
+      />
       <DeviceCastViewport
-        v-show="!isMobileLayout || !mobileCastOptionsOpen"
+        v-show="!isMultiAppMode && (!isMobileLayout || !mobileCastOptionsOpen)"
         ref="castViewportRef"
         v-model:cast-options="castOptions"
         class="device-workspace__pane device-workspace__pane--right"

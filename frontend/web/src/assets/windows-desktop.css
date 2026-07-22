@@ -1,0 +1,375 @@
+.multi-app-desktop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  background: #6eb5ff;
+}
+
+.multi-app-desktop__wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 255, 255, 0.55), transparent 34%),
+    radial-gradient(circle at 28% 68%, rgba(120, 180, 255, 0.65), transparent 38%),
+    linear-gradient(145deg, #9fd0ff 0%, #6eb5ff 38%, #4f95e8 100%);
+}
+
+.multi-app-desktop__canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.multi-app-desktop__hint {
+  display: none;
+}
+
+.win11-taskbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(243, 243, 243, 0.82);
+  backdrop-filter: blur(24px) saturate(125%);
+}
+
+.win11-taskbar__center {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  transform: translateX(-50%);
+}
+
+.win11-taskbar__tray {
+  display: flex;
+  align-items: center;
+  gap: 0.08rem;
+  margin-left: auto;
+  min-height: 40px;
+  padding-right: 0.15rem;
+}
+
+.win11-taskbar__btn,
+.win11-taskbar__tray-btn,
+.win11-taskbar__sys-cell,
+.win11-taskbar__clock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #1f1f1f;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.win11-taskbar__btn {
+  width: 52px;
+  height: 44px;
+  border-radius: 0.35rem;
+}
+
+.win11-taskbar__btn--start {
+  width: 56px;
+}
+
+.win11-taskbar__btn:hover,
+.win11-taskbar__btn.is-active,
+.win11-taskbar__tray-btn:hover,
+.win11-taskbar__sys-cell:hover,
+.win11-taskbar__sys-cell.is-active,
+.win11-taskbar__clock:hover,
+.win11-taskbar__clock.is-active {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.win11-taskbar__tray-btn {
+  width: 32px;
+  height: 38px;
+  border-radius: 0.25rem;
+}
+
+.win11-taskbar__sys-cell {
+  gap: 0.28rem;
+  height: 38px;
+  padding: 0 0.55rem;
+  margin: 0 0.1rem;
+  border-radius: 0.35rem;
+}
+
+.win11-taskbar__clock {
+  flex-direction: column;
+  gap: 0;
+  min-width: 82px;
+  height: 44px;
+  padding: 0 0.65rem 0 0.5rem;
+  margin-left: 0.1rem;
+  border-radius: 0.35rem;
+  line-height: 1.05;
+}
+
+.win11-taskbar__clock-time {
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.win11-taskbar__clock-date {
+  font-size: 0.78rem;
+}
+
+.win11-taskbar-popover .n-popover {
+  padding: 0 !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 0.55rem !important;
+  box-shadow: 0 10px 38px rgba(0, 0, 0, 0.18) !important;
+  background: rgba(249, 249, 249, 0.98) !important;
+}
+
+.win11-flyout {
+  width: 240px;
+  padding: 0.85rem;
+  color: #1f1f1f;
+}
+
+.win11-flyout__title {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.win11-flyout__desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.win11-flyout__action {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #1f1f1f;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.win11-flyout__action:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.win11-quick-settings {
+  width: 360px;
+  padding: 0.85rem;
+  color: #1f1f1f;
+}
+
+.win11-quick-settings__tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.win11-quick-settings__tile {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 72px;
+  padding: 0.55rem 0.45rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.04);
+  color: #1f1f1f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.win11-quick-settings__tile.is-on {
+  background: rgba(0, 120, 212, 0.12);
+}
+
+.win11-quick-settings__tile span {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.win11-quick-settings__tile small {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #666;
+}
+
+.win11-quick-settings__glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.win11-quick-settings__sliders {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.win11-quick-settings__slider-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.win11-quick-settings__slider-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: #1f1f1f;
+  cursor: pointer;
+}
+
+.win11-quick-settings__range {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(#0078d4, #0078d4) 0 / var(--pct, 50%) 100% no-repeat, #ddd;
+}
+
+.win11-quick-settings__range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  appearance: none;
+  background: #0078d4;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.win11-quick-settings__footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.04);
+  color: #1f1f1f;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.win11-quick-settings__footer:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.win11-notification-center {
+  width: 380px;
+  padding: 0.85rem;
+  color: #1f1f1f;
+}
+
+.win11-notification-center__empty {
+  padding: 1.4rem 0.75rem;
+  color: #666;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.win11-notification-center__calendar {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.win11-notification-center__calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+
+.win11-notification-center__calendar-head strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.win11-notification-center__calendar-head button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #1f1f1f;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.win11-notification-center__calendar-head button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.win11-notification-center__weekdays,
+.win11-notification-center__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.15rem;
+}
+
+.win11-notification-center__weekdays {
+  margin-bottom: 0.25rem;
+  color: #666;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.win11-notification-center__day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.win11-notification-center__day.is-muted {
+  visibility: hidden;
+}
+
+.win11-notification-center__day.is-today {
+  background: #0078d4;
+  color: #fff;
+}
+
+.device-workspace__split--multi-app {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.device-workspace__pane--multi-app {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.device-workspace__multi-app-mode {
+  display: flex;
+  align-items: center;
+  min-width: 10rem;
+}
+
+.device-workspace__multi-app-mode .mirror-searchable-select {
+  min-width: 10rem;
+}

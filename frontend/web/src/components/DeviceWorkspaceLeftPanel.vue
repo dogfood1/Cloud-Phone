@@ -35,10 +35,11 @@ const props = defineProps({
 
 const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change", "camera-control"]);
 
+const castMode = defineModel("castMode", { default: DEFAULT_CAST_MODE });
+
 const mirrorSettingsRef = ref(null);
 const cameraSettingsRef = ref(null);
 const harmonySettingsRef = ref(null);
-const castMode = ref(DEFAULT_CAST_MODE);
 
 const isHarmonyDevice = computed(() => props.device?.platform === "harmony");
 const isIosDevice = computed(() => props.device?.platform === "ios");
@@ -193,6 +194,9 @@ defineExpose({ stepPreviewRotationDeg });
         @settings-change="handleSettingsChange"
         @camera-control="(payload) => emit('camera-control', payload)"
       />
+      <div v-else-if="castMode === 'multiApp'" class="workspace-left__placeholder">
+        多应用投屏将在右侧全屏桌面中打开，左侧设置栏会自动隐藏。
+      </div>
       <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
     </div>
 
