@@ -5,11 +5,22 @@ import {
   loadMissingAppIcons,
   warmupMissingAppIcons,
 } from "./device-app-icons.js";
-import { getCachedHelperApps } from "./icon-helper-extract.js";
+import { getCachedHelperApps } from "./icon-helper-cache.js";
 
 /** @type {Map<string, { expires: number, apps: Array<{ packageName: string, activity: string, label: string }> }>} */
 const launcherCache = new Map();
 const CACHE_TTL_MS = 60_000;
+
+/**
+ * @param {string} serial
+ */
+export function invalidateLauncherAppsCache(serial) {
+  for (const key of [...launcherCache.keys()]) {
+    if (key.startsWith(`${serial}::`)) {
+      launcherCache.delete(key);
+    }
+  }
+}
 
 /**
  * @param {string} serial

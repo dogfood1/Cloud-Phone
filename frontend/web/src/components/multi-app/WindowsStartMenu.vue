@@ -30,6 +30,7 @@ const {
   packageNamesOnly,
   answerConsent,
   prepareIconHelper,
+  syncIconHelper,
 } = useIconHelperGate();
 
 const searchQuery = ref("");
@@ -41,6 +42,7 @@ const gateBusy = ref(false);
 
 let inFlight = false;
 let loadGeneration = 0;
+let syncTimer = null;
 
 const normalizedQuery = computed(() => searchQuery.value.trim().toLowerCase());
 const isSearching = computed(() => normalizedQuery.value.length > 0);
@@ -78,9 +80,11 @@ watch(
   ([isActive]) => {
     if (isActive && props.serial) {
       void bootstrapAndLoad();
+      startSyncPoll();
       return;
     }
 
+    stopSyncPoll();
     if (!isActive) {
       searchQuery.value = "";
     }
@@ -90,7 +94,35 @@ watch(
 
 onBeforeUnmount(() => {
   loadGeneration += 1;
+  stopSyncPoll();
 });
+
+function startSyncPoll() {
+  stopSyncPoll();
+  if (!props.serial) {
+    return;
+  }
+  syncTimer = setInterval(() => {
+    void syncAndReload();
+  }, 12_000);
+}
+
+function stopSyncPoll() {
+  if (syncTimer) {
+    clearInterval(syncTimer);
+    syncTimer = null;
+  }
+}
+
+async function syncAndReload() {
+  if (!props.serial || !props.active || gateBusy.value) {
+    return;
+  }
+  const result = await syncIconHelper(props.serial);
+  if (result?.changed) {
+    await loadApps({ initial: false, packageNamesOnly: packageNamesOnly.value });
+  }
+}
 
 async function bootstrapAndLoad() {
   if (!props.serial || gateBusy.value) {

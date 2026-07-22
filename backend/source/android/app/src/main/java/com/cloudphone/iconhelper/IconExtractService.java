@@ -12,9 +12,9 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.os.IBinder;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.IBinder;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -28,12 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Extracts launcher app labels/icons into the app's Android/data files directory.
- *
- * Writes:
- * - progress.json
- * - apps.json
- * - icons/&lt;packageName&gt;.png
+ * Extracts launcher app labels/icons into Android/data files.
+ * Skips rewrite when the launcher fingerprint is unchanged.
  */
 public final class IconExtractService extends Service {
   public static final String ACTION_EXTRACT = "com.cloudphone.iconhelper.EXTRACT";
@@ -93,8 +89,22 @@ public final class IconExtractService extends Service {
 
     try {
       List<LauncherApp> apps = queryLauncherApps();
-      writeProgress(root, "running", apps.size(), 0, "", "extracting");
+      List<String> fingerprintRows = new ArrayList<>(apps.size());
+      for (LauncherApp app : apps) {
+        fingerprintRows.add(app.packageName + "|" + app.activity + "|" + app.label);
+      }
+      String fingerprint = AppListFingerprint.compute(fingerprintRows);
+      String previous = AppListFingerprint.readFingerprint(root);
+      File appsFile = new File(root, "apps.json");
 
+      if (fingerprint.equals(previous) && appsFile.isFile() && iconsDir.isDirectory()) {
+        writeProgress(root, "done", apps.size(), apps.size(), "", "unchanged");
+        updateNotification("Unchanged (" + apps.size() + ")");
+        stopSelfSafely();
+        return;
+      }
+
+      writeProgress(root, "running", apps.size(), 0, "", "extracting");
       JSONArray appsJson = new JSONArray();
       int done = 0;
 
@@ -104,7 +114,7 @@ public final class IconExtractService extends Service {
 
         String iconRel = "icons/" + app.packageName + ".png";
         File iconFile = new File(root, iconRel);
-        boolean wroteIcon = writeIconPng(app.icon, iconFile);
+        boolean wroteIcon = iconFile.isFile() || writeIconPng(app.icon, iconFile);
 
         JSONObject row = new JSONObject();
         row.put("packageName", app.packageName);
@@ -118,6 +128,7 @@ public final class IconExtractService extends Service {
       }
 
       writeText(new File(root, "apps.json"), appsJson.toString());
+      AppListFingerprint.writeManifest(root, fingerprint, done);
       writeProgress(root, "done", apps.size(), done, "", "complete");
       updateNotification("Done (" + done + ")");
     } catch (Exception error) {
@@ -131,7 +142,6 @@ public final class IconExtractService extends Service {
     PackageManager pm = getPackageManager();
     Intent intent = new Intent(Intent.ACTION_MAIN);
     intent.addCategory(Intent.CATEGORY_LAUNCHER);
-
     List<ResolveInfo> resolved = pm.queryIntentActivities(intent, 0);
     Map<String, LauncherApp> byPackage = new LinkedHashMap<>();
 
@@ -139,12 +149,10 @@ public final class IconExtractService extends Service {
       if (info.activityInfo == null || info.activityInfo.packageName == null) {
         continue;
       }
-
       String packageName = info.activityInfo.packageName;
       if (byPackage.containsKey(packageName)) {
         continue;
       }
-
       String activity = info.activityInfo.name;
       CharSequence labelCs = info.loadLabel(pm);
       String label = labelCs != null ? labelCs.toString() : packageName;
@@ -157,10 +165,8 @@ public final class IconExtractService extends Service {
           icon = null;
         }
       }
-
       byPackage.put(packageName, new LauncherApp(packageName, activity, label, icon));
     }
-
     return new ArrayList<>(byPackage.values());
   }
 
@@ -168,13 +174,11 @@ public final class IconExtractService extends Service {
     if (drawable == null) {
       return false;
     }
-
     try {
       Bitmap bitmap = Bitmap.createBitmap(ICON_SIZE_PX, ICON_SIZE_PX, Bitmap.Config.ARGB_8888);
       Canvas canvas = new Canvas(bitmap);
       drawable.setBounds(0, 0, ICON_SIZE_PX, ICON_SIZE_PX);
       drawable.draw(canvas);
-
       try (FileOutputStream fos = new FileOutputStream(outFile)) {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
       }
@@ -185,18 +189,10 @@ public final class IconExtractService extends Service {
     }
   }
 
-  private void writeProgress(
-      File root,
-      String phase,
-      int total,
-      int done,
-      String current,
-      String message
-  ) {
+  private void writeProgress(File root, String phase, int total, int done, String current, String message) {
     if (root == null) {
       return;
     }
-
     try {
       JSONObject json = new JSONObject();
       json.put("phase", phase);
@@ -206,7 +202,7 @@ public final class IconExtractService extends Service {
       json.put("message", message == null ? "" : message);
       writeText(new File(root, "progress.json"), json.toString());
     } catch (Exception ignored) {
-      // ignore write failures
+      // ignore
     }
   }
 
@@ -229,21 +225,14 @@ public final class IconExtractService extends Service {
     if (nm == null) {
       return;
     }
-    NotificationChannel channel = new NotificationChannel(
-        CHANNEL_ID,
-        getString(R.string.notification_channel),
-        NotificationManager.IMPORTANCE_LOW
-    );
-    nm.createNotificationChannel(channel);
+    nm.createNotificationChannel(new NotificationChannel(
+        CHANNEL_ID, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW));
   }
 
   private Notification buildNotification(String content) {
-    Notification.Builder builder;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      builder = new Notification.Builder(this, CHANNEL_ID);
-    } else {
-      builder = new Notification.Builder(this);
-    }
+    Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        ? new Notification.Builder(this, CHANNEL_ID)
+        : new Notification.Builder(this);
     return builder
         .setContentTitle(getString(R.string.notification_title))
         .setContentText(content)

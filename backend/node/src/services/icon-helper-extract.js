@@ -1,51 +1,30 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-
 import { runAdb } from "./adb-command.js";
 import { runWithAdbLock } from "./adb-lock.js";
-import { setCachedAppIcon } from "./device-app-icons.js";
 import {
-  ICON_HELPER_SERVICE,
-  iconHelperRemotePath,
-} from "./icon-helper-paths.js";
+  allHelperIconsCached,
+  clearExtractInFlight,
+  getCachedHelperApps,
+  getCachedHelperFingerprint,
+  getIconHelperProgress,
+  isExtractInFlight,
+  markExtractInFlight,
+  setIconHelperProgress,
+} from "./icon-helper-cache.js";
+import { ingestHelperOutputs, readRemoteJson } from "./icon-helper-ingest.js";
+import { ICON_HELPER_SERVICE } from "./icon-helper-paths.js";
+import { invalidateLauncherAppsCache } from "./device-launcher-apps.js";
 
-/** @type {Map<string, { apps: Array<{ packageName: string, activity: string, label: string, iconFile: string | null }>, expires: number }>} */
-const appsSnapshotCache = new Map();
+export {
+  getCachedHelperApps,
+  getIconHelperProgress,
+} from "./icon-helper-cache.js";
 
-/** @type {Map<string, { phase: string, total: number, done: number, current: string, message: string, updatedAt: number }>} */
-const progressCache = new Map();
-
-/** @type {Set<string>} */
-const extractInFlight = new Set();
-
-const APPS_TTL_MS = 5 * 60_000;
-
-/**
- * @param {string} serial
- */
-export function getCachedHelperApps(serial) {
-  const hit = appsSnapshotCache.get(serial);
-  if (!hit || hit.expires < Date.now()) {
-    return null;
+async function ingestAndInvalidate(serial, options) {
+  const apps = await ingestHelperOutputs(serial, options);
+  if (apps?.length) {
+    invalidateLauncherAppsCache(serial);
   }
-  return hit.apps;
-}
-
-/**
- * @param {string} serial
- */
-export function getIconHelperProgress(serial) {
-  return (
-    progressCache.get(serial) ?? {
-      phase: "idle",
-      total: 0,
-      done: 0,
-      current: "",
-      message: "",
-      updatedAt: 0,
-    }
-  );
+  return apps;
 }
 
 /**
@@ -56,26 +35,51 @@ export async function startIconHelperExtract(serial, options = {}) {
   const force = Boolean(options.force);
   const cached = getCachedHelperApps(serial);
   const progress = getIconHelperProgress(serial);
+  const hostFp = getCachedHelperFingerprint(serial);
 
-  if (!force && cached?.length && progress.phase === "done") {
-    return { started: false, progress, apps: cached };
+  if (!force && cached?.length && progress.phase === "done" && allHelperIconsCached(serial, cached)) {
+    return { started: false, skipped: true, reason: "memory_cache", progress, apps: cached };
   }
 
-  if (!force && !cached?.length) {
+  const remoteManifest = await readRemoteJson(serial, "manifest.json").catch(() => null);
+  const remoteFp = String(remoteManifest?.fingerprint || "");
+
+  if (!force && remoteFp && remoteFp === hostFp && cached?.length && allHelperIconsCached(serial, cached)) {
+    setIconHelperProgress(serial, {
+      phase: "done",
+      total: cached.length,
+      done: cached.length,
+      current: "",
+      message: "unchanged",
+      fingerprint: remoteFp,
+    });
+    return {
+      started: false,
+      skipped: true,
+      reason: "fingerprint_match",
+      progress: getIconHelperProgress(serial),
+      apps: cached,
+    };
+  }
+
+  if (!force) {
     const remoteProgress = await readRemoteJson(serial, "progress.json").catch(() => null);
     if (remoteProgress?.phase === "done") {
-      const apps = await ingestHelperOutputs(serial).catch(() => []);
+      const apps = await ingestAndInvalidate(serial, { onlyMissingIcons: true }).catch(() => []);
       if (apps?.length) {
-        progressCache.set(serial, {
+        const fp = getCachedHelperFingerprint(serial);
+        setIconHelperProgress(serial, {
           phase: "done",
           total: apps.length,
           done: apps.length,
           current: "",
-          message: "cached",
-          updatedAt: Date.now(),
+          message: remoteFp && remoteFp === fp ? "unchanged" : "cached",
+          fingerprint: fp,
         });
         return {
           started: false,
+          skipped: true,
+          reason: "remote_done",
           progress: getIconHelperProgress(serial),
           apps,
         };
@@ -83,50 +87,91 @@ export async function startIconHelperExtract(serial, options = {}) {
     }
   }
 
-  if (extractInFlight.has(serial) || progress.phase === "running") {
+  if (isExtractInFlight(serial) || progress.phase === "running") {
     return { started: false, progress, apps: cached };
   }
 
-  extractInFlight.add(serial);
-  progressCache.set(serial, {
+  markExtractInFlight(serial);
+  setIconHelperProgress(serial, {
     phase: "running",
     total: 0,
     done: 0,
     current: "",
     message: "starting",
-    updatedAt: Date.now(),
+    fingerprint: hostFp,
   });
 
-  void runExtractJob(serial).finally(() => {
-    extractInFlight.delete(serial);
-  });
-
+  void runExtractJob(serial).finally(() => clearExtractInFlight(serial));
   return { started: true, progress: getIconHelperProgress(serial), apps: cached };
 }
 
 /**
- * Poll device progress.json and refresh cache.
  * @param {string} serial
  */
 export async function refreshIconHelperProgress(serial) {
   const remoteProgress = await readRemoteJson(serial, "progress.json").catch(() => null);
   if (remoteProgress && typeof remoteProgress === "object") {
-    progressCache.set(serial, {
+    setIconHelperProgress(serial, {
       phase: String(remoteProgress.phase || "running"),
       total: Number(remoteProgress.total) || 0,
       done: Number(remoteProgress.done) || 0,
       current: String(remoteProgress.current || ""),
       message: String(remoteProgress.message || ""),
-      updatedAt: Date.now(),
+      fingerprint: getCachedHelperFingerprint(serial),
     });
   }
 
+  const remoteManifest = await readRemoteJson(serial, "manifest.json").catch(() => null);
+  const remoteFp = String(remoteManifest?.fingerprint || "");
+  const hostFp = getCachedHelperFingerprint(serial);
   const progress = getIconHelperProgress(serial);
-  if (progress.phase === "done" && !getCachedHelperApps(serial)) {
-    await ingestHelperOutputs(serial);
+
+  if (remoteFp && remoteFp !== hostFp && progress.phase === "done") {
+    await ingestAndInvalidate(serial, { onlyMissingIcons: false });
+  } else if (progress.phase === "done" && !getCachedHelperApps(serial)) {
+    await ingestAndInvalidate(serial, { onlyMissingIcons: true });
   }
 
-  return progress;
+  return getIconHelperProgress(serial);
+}
+
+/**
+ * @param {string} serial
+ */
+export async function syncIconHelperIfChanged(serial) {
+  const remoteManifest = await readRemoteJson(serial, "manifest.json").catch(() => null);
+  const remoteFp = String(remoteManifest?.fingerprint || "");
+  const hostFp = getCachedHelperFingerprint(serial);
+  const cached = getCachedHelperApps(serial);
+
+  if (remoteFp && remoteFp === hostFp && cached?.length && allHelperIconsCached(serial, cached)) {
+    return {
+      changed: false,
+      apps: cached,
+      progress: getIconHelperProgress(serial),
+    };
+  }
+
+  if (remoteFp && remoteFp !== hostFp) {
+    const result = await startIconHelperExtract(serial, { force: true });
+    return { changed: true, ...result };
+  }
+
+  const remoteProgress = await readRemoteJson(serial, "progress.json").catch(() => null);
+  if (remoteProgress?.phase === "done") {
+    const apps = await ingestAndInvalidate(serial, { onlyMissingIcons: true });
+    return {
+      changed: Boolean(apps?.length && (!cached || cached.length !== apps.length)),
+      apps,
+      progress: getIconHelperProgress(serial),
+    };
+  }
+
+  return {
+    changed: false,
+    apps: cached,
+    progress: getIconHelperProgress(serial),
+  };
 }
 
 async function runExtractJob(serial) {
@@ -134,28 +179,12 @@ async function runExtractJob(serial) {
     await runWithAdbLock(async () => {
       try {
         await runAdb(
-          [
-            "-s",
-            serial,
-            "shell",
-            "am",
-            "start-foreground-service",
-            "-n",
-            ICON_HELPER_SERVICE,
-          ],
+          ["-s", serial, "shell", "am", "start-foreground-service", "-n", ICON_HELPER_SERVICE],
           { timeout: 20_000 },
         );
       } catch {
         await runAdb(
-          [
-            "-s",
-            serial,
-            "shell",
-            "am",
-            "startservice",
-            "-n",
-            ICON_HELPER_SERVICE,
-          ],
+          ["-s", serial, "shell", "am", "startservice", "-n", ICON_HELPER_SERVICE],
           { timeout: 20_000 },
         );
       }
@@ -172,114 +201,24 @@ async function runExtractJob(serial) {
 
     const finalProgress = getIconHelperProgress(serial);
     if (finalProgress.phase === "done") {
-      await ingestHelperOutputs(serial);
+      await ingestAndInvalidate(serial, { onlyMissingIcons: true });
     } else if (finalProgress.phase !== "error") {
-      progressCache.set(serial, {
+      setIconHelperProgress(serial, {
         ...finalProgress,
         phase: "error",
         message: finalProgress.message || "extract timeout",
-        updatedAt: Date.now(),
       });
     }
   } catch (error) {
-    progressCache.set(serial, {
+    setIconHelperProgress(serial, {
       phase: "error",
       total: 0,
       done: 0,
       current: "",
       message: error instanceof Error ? error.message : "extract failed",
-      updatedAt: Date.now(),
+      fingerprint: "",
     });
   }
-}
-
-/**
- * @param {string} serial
- */
-async function ingestHelperOutputs(serial) {
-  const apps = await readRemoteJson(serial, "apps.json");
-  if (!Array.isArray(apps)) {
-    return [];
-  }
-
-  const normalized = [];
-  for (const row of apps) {
-    const packageName = String(row?.packageName || "").trim();
-    if (!packageName) {
-      continue;
-    }
-
-    const iconFile = row?.iconFile ? String(row.iconFile) : null;
-    if (iconFile) {
-      const dataUrl = await pullHelperIconDataUrl(serial, iconFile).catch(() => null);
-      if (dataUrl) {
-        setCachedAppIcon(serial, packageName, dataUrl);
-      }
-    }
-
-    normalized.push({
-      packageName,
-      activity: String(row?.activity || ""),
-      label: String(row?.label || packageName),
-      iconFile,
-    });
-  }
-
-  appsSnapshotCache.set(serial, {
-    apps: normalized,
-    expires: Date.now() + APPS_TTL_MS,
-  });
-
-  return normalized;
-}
-
-/**
- * @param {string} serial
- * @param {string} relative
- */
-async function pullHelperIconDataUrl(serial, relative) {
-  const remote = iconHelperRemotePath(relative);
-  const tmpPath = path.join(
-    os.tmpdir(),
-    `cloud-phone-helper-icon-${Date.now()}-${Math.random().toString(16).slice(2)}.png`,
-  );
-
-  try {
-    await runWithAdbLock(
-      () => runAdb(["-s", serial, "pull", remote, tmpPath], { timeout: 30_000 }),
-      { lockKey: serial },
-    );
-    const bytes = await fs.readFile(tmpPath);
-    if (!bytes.length) {
-      return null;
-    }
-    return `data:image/png;base64,${bytes.toString("base64")}`;
-  } finally {
-    await fs.unlink(tmpPath).catch(() => undefined);
-  }
-}
-
-/**
- * @param {string} serial
- * @param {string} relative
- */
-async function readRemoteJson(serial, relative) {
-  const remote = iconHelperRemotePath(relative);
-  const { stdout } = await runWithAdbLock(
-    () =>
-      runAdb(["-s", serial, "shell", "cat", remote], {
-        timeout: 15_000,
-        maxBuffer: 8 * 1024 * 1024,
-      }),
-    { lockKey: serial },
-  );
-
-  const text = String(stdout || "").trim();
-  if (!text || text.includes("No such file")) {
-    return null;
-  }
-
-  return JSON.parse(text);
 }
 
 function sleep(ms) {

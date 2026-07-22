@@ -56,15 +56,25 @@ const showProgress = computed(() => props.busy && !props.consentOpen);
     </div>
   </NModal>
 
-  <div v-if="showProgress" class="icon-helper-progress">
-    <p class="icon-helper-progress__label">
-      {{ progressLabel || t("iconHelper.extracting") }}
-      <span v-if="currentPackage"> · {{ currentPackage }}</span>
-    </p>
-    <NProgress type="line" :percentage="progressPercent" :show-indicator="true" />
-  </div>
+  <NModal
+    :show="showProgress"
+    preset="card"
+    :title="t('iconHelper.extracting')"
+    :mask-closable="false"
+    :close-on-esc="false"
+    :closable="false"
+    style="width: min(420px, 92vw)"
+  >
+    <div class="icon-helper-progress">
+      <p class="icon-helper-progress__label">
+        {{ progressLabel || t("iconHelper.extracting") }}
+        <span v-if="currentPackage"> · {{ currentPackage }}</span>
+      </p>
+      <NProgress type="line" :percentage="progressPercent" :show-indicator="true" />
+    </div>
+  </NModal>
 
-  <p v-else-if="deniedHint" class="icon-helper-denied">
+  <p v-if="deniedHint && !consentOpen && !showProgress" class="icon-helper-denied">
     {{ t("iconHelper.deniedHint") }}
   </p>
 </template>
@@ -85,14 +95,14 @@ const showProgress = computed(() => props.busy && !props.consentOpen);
 
 .icon-helper-progress {
   display: grid;
-  gap: 0.45rem;
-  margin: 0.35rem 0 0.75rem;
+  gap: 0.55rem;
 }
 
 .icon-helper-progress__label {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   color: var(--muted);
+  line-height: 1.45;
 }
 
 .icon-helper-denied {

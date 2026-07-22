@@ -4,6 +4,7 @@ import {
   getIconHelperProgress,
   refreshIconHelperProgress,
   startIconHelperExtract,
+  syncIconHelperIfChanged,
 } from "../services/icon-helper-extract.js";
 import { sendProtectedJson } from "../utils/protected-http.js";
 
@@ -18,12 +19,19 @@ export async function handleDeviceIconHelperRoute(req, res, method, pathname) {
   const ensureMatch = pathname.match(/^\/api\/devices\/([^/]+)\/icon-helper\/ensure$/);
   const extractMatch = pathname.match(/^\/api\/devices\/([^/]+)\/icon-helper\/extract$/);
   const progressMatch = pathname.match(/^\/api\/devices\/([^/]+)\/icon-helper\/progress$/);
+  const syncMatch = pathname.match(/^\/api\/devices\/([^/]+)\/icon-helper\/sync$/);
 
   if (method === "GET" && statusMatch) {
     const serial = decodeURIComponent(statusMatch[1]);
     try {
       const status = await getIconHelperStatus(serial);
-      sendProtectedJson(res, 200, { success: true, version: APP_VERSION, serial, ...status });
+      sendProtectedJson(res, 200, {
+        success: true,
+        version: APP_VERSION,
+        serial,
+        progress: getIconHelperProgress(serial),
+        ...status,
+      });
     } catch (error) {
       sendProtectedJson(res, 500, {
         success: false,
@@ -40,7 +48,14 @@ export async function handleDeviceIconHelperRoute(req, res, method, pathname) {
     const serial = decodeURIComponent(ensureMatch[1]);
     try {
       const result = await ensureIconHelperInstalled(serial);
-      sendProtectedJson(res, 200, { success: true, version: APP_VERSION, serial, ...result });
+      const extract = await startIconHelperExtract(serial);
+      sendProtectedJson(res, 200, {
+        success: true,
+        version: APP_VERSION,
+        serial,
+        ...result,
+        extract,
+      });
     } catch (error) {
       sendProtectedJson(res, 500, {
         success: false,
@@ -88,6 +103,23 @@ export async function handleDeviceIconHelperRoute(req, res, method, pathname) {
         error: "icon_helper_progress_failed",
         message: error instanceof Error ? error.message : "Unknown error",
         progress: getIconHelperProgress(serial),
+      });
+    }
+    return true;
+  }
+
+  if (method === "POST" && syncMatch) {
+    const serial = decodeURIComponent(syncMatch[1]);
+    try {
+      const result = await syncIconHelperIfChanged(serial);
+      sendProtectedJson(res, 200, { success: true, version: APP_VERSION, serial, ...result });
+    } catch (error) {
+      sendProtectedJson(res, 500, {
+        success: false,
+        version: APP_VERSION,
+        serial,
+        error: "icon_helper_sync_failed",
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
     return true;

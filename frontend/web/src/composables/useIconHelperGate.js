@@ -25,6 +25,8 @@ export function useIconHelperGate() {
   });
   const errorMessage = ref("");
   const packageNamesOnly = ref(false);
+  /** Serials already warmed this session (skip repeat ensure when cache hit). */
+  const warmedSerials = ref(new Set());
 
   const progressText = computed(() => {
     const p = progress.value;
@@ -93,9 +95,11 @@ export function useIconHelperGate() {
 
   /**
    * @param {string} serial
-   * @returns {Promise<{ ok: boolean, packageNamesOnly: boolean }>}
+   * @param {{ silent?: boolean }} [options]
+   * @returns {Promise<{ ok: boolean, packageNamesOnly: boolean, skipped?: boolean }>}
    */
-  async function prepareIconHelper(serial) {
+  async function prepareIconHelper(serial, options = {}) {
+    const silent = Boolean(options.silent);
     errorMessage.value = "";
     packageNamesOnly.value = false;
 
@@ -112,15 +116,35 @@ export function useIconHelperGate() {
     }
 
     try {
-      phase.value = "ensuring";
-      await requestJson(`/api/devices/${encodeURIComponent(serial)}/icon-helper/ensure`, {
-        method: "POST",
-      });
+      if (!silent) {
+        phase.value = "ensuring";
+      }
 
-      phase.value = "extracting";
-      await requestJson(`/api/devices/${encodeURIComponent(serial)}/icon-helper/extract`, {
-        method: "POST",
-      });
+      // ensure now also starts extract immediately after helper is connected.
+      const ensureResult = await requestJson(
+        `/api/devices/${encodeURIComponent(serial)}/icon-helper/ensure`,
+        { method: "POST" },
+      );
+
+      const extract = ensureResult?.extract || {};
+      applyProgress(extract.progress);
+
+      if (extract.skipped && extract.progress?.phase === "done") {
+        phase.value = "ready";
+        packageNamesOnly.value = false;
+        warmedSerials.value = new Set([...warmedSerials.value, serial]);
+        return { ok: true, packageNamesOnly: false, skipped: true };
+      }
+
+      if (!silent) {
+        phase.value = "extracting";
+      }
+
+      if (!extract.started && extract.progress?.phase !== "done") {
+        await requestJson(`/api/devices/${encodeURIComponent(serial)}/icon-helper/extract`, {
+          method: "POST",
+        });
+      }
 
       await pollUntilDone(serial);
       phase.value = progress.value.phase === "error" ? "error" : "ready";
@@ -132,12 +156,50 @@ export function useIconHelperGate() {
       }
 
       packageNamesOnly.value = false;
-      return { ok: true, packageNamesOnly: false };
+      warmedSerials.value = new Set([...warmedSerials.value, serial]);
+      return { ok: true, packageNamesOnly: false, skipped: Boolean(extract.skipped) };
     } catch (error) {
       phase.value = "error";
       errorMessage.value = error instanceof Error ? error.message : String(error);
       packageNamesOnly.value = true;
       return { ok: false, packageNamesOnly: true };
+    }
+  }
+
+  /**
+   * Background warm used when entering multi-app mode.
+   * @param {string} serial
+   */
+  async function warmIconHelper(serial) {
+    if (!serial || warmedSerials.value.has(serial)) {
+      return { ok: true, packageNamesOnly: false, skipped: true };
+    }
+    if (resolveIconHelperConsent(serial) === "denied") {
+      return { ok: false, packageNamesOnly: true };
+    }
+    return prepareIconHelper(serial, { silent: true });
+  }
+
+  /**
+   * Detect helper-side package list changes and refresh host cache if needed.
+   * @param {string} serial
+   */
+  async function syncIconHelper(serial) {
+    if (!serial || resolveIconHelperConsent(serial) !== "allowed") {
+      return { changed: false };
+    }
+    try {
+      const result = await requestJson(
+        `/api/devices/${encodeURIComponent(serial)}/icon-helper/sync`,
+        { method: "POST" },
+      );
+      applyProgress(result.progress);
+      if (result.changed && result.started) {
+        await pollUntilDone(serial);
+      }
+      return result;
+    } catch {
+      return { changed: false };
     }
   }
 
@@ -151,14 +213,7 @@ export function useIconHelperGate() {
       const result = await requestJson(
         `/api/devices/${encodeURIComponent(serial)}/icon-helper/progress`,
       );
-      const next = result.progress || {};
-      progress.value = {
-        phase: String(next.phase || "running"),
-        total: Number(next.total) || 0,
-        done: Number(next.done) || 0,
-        current: String(next.current || ""),
-        message: String(next.message || ""),
-      };
+      applyProgress(result.progress);
 
       if (progress.value.phase === "done" || progress.value.phase === "error") {
         return;
@@ -171,6 +226,22 @@ export function useIconHelperGate() {
       ...progress.value,
       phase: "error",
       message: "timeout",
+    };
+  }
+
+  /**
+   * @param {Record<string, unknown> | null | undefined} next
+   */
+  function applyProgress(next) {
+    if (!next || typeof next !== "object") {
+      return;
+    }
+    progress.value = {
+      phase: String(next.phase || "running"),
+      total: Number(next.total) || 0,
+      done: Number(next.done) || 0,
+      current: String(next.current || ""),
+      message: String(next.message || ""),
     };
   }
 
@@ -191,6 +262,8 @@ export function useIconHelperGate() {
     ensureConsent,
     answerConsent,
     prepareIconHelper,
+    warmIconHelper,
+    syncIconHelper,
     resetGate,
   };
 }

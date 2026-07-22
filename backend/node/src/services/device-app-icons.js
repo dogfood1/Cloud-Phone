@@ -25,7 +25,8 @@ export function setCachedAppIcon(serial, packageName, iconDataUrl) {
  * @param {string} packageName
  */
 export function hasCachedAppIcon(serial, packageName) {
-  return iconCache.has(iconCacheKey(serial, packageName));
+  const value = iconCache.get(iconCacheKey(serial, packageName));
+  return typeof value === "string" && value.length > 0;
 }
 
 /**

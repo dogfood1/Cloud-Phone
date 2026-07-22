@@ -4,6 +4,8 @@ import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import MultiAppWindow from "./MultiAppWindow.vue";
 import MultiAppWindowStream from "./MultiAppWindowStream.vue";
 import WindowsTaskbar from "./WindowsTaskbar.vue";
+import IconHelperGatePanel from "../IconHelperGatePanel.vue";
+import { useMultiAppIconWarm } from "../../composables/useMultiAppIconWarm.js";
 import { useMultiAppWindows } from "../../composables/useMultiAppWindows.js";
 
 const props = defineProps({
@@ -14,6 +16,15 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["switch-mirror"]);
+
+const {
+  consentDialogOpen,
+  phase,
+  progress,
+  progressPercent,
+  packageNamesOnly,
+  answerConsent,
+} = useMultiAppIconWarm(() => props.device?.serial || "");
 
 const desktopRef = ref(null);
 const canvasSize = ref({ width: 1280, height: 720 });
@@ -156,6 +167,17 @@ watch(
       :focused-id="focusedId"
       @launch="handleLaunch"
       @focus-window="handleFocus"
+    />
+
+    <IconHelperGatePanel
+      :consent-open="consentDialogOpen"
+      :busy="phase === 'ensuring' || phase === 'extracting' || progress.phase === 'running'"
+      :progress-percent="progressPercent"
+      :progress-label="phase === 'ensuring' ? '正在连接 Icon Helper…' : '正在提取应用图标…'"
+      :current-package="progress.current"
+      :denied-hint="packageNamesOnly"
+      @allow="answerConsent(true)"
+      @deny="answerConsent(false)"
     />
   </div>
 </template>
