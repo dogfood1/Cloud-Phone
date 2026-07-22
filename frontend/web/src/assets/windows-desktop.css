@@ -176,6 +176,17 @@
   color: #1f1f1f;
 }
 
+.win11-quick-settings__status {
+  margin: 0 0 0.65rem;
+  color: #666;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.win11-quick-settings__status.is-error {
+  color: #c42b1c;
+}
+
 .win11-quick-settings__tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -185,7 +196,7 @@
 .win11-quick-settings__tile {
   display: grid;
   gap: 0.18rem;
-  min-height: 72px;
+  min-height: 78px;
   padding: 0.55rem 0.45rem;
   border: 0;
   border-radius: 0.35rem;
@@ -196,7 +207,15 @@
 }
 
 .win11-quick-settings__tile.is-on {
-  background: rgba(0, 120, 212, 0.12);
+  background: rgba(0, 120, 212, 0.14);
+  color: #005a9e;
+}
+
+.win11-quick-settings__tile.is-disabled,
+.win11-quick-settings__slider-row.is-disabled {
+  opacity: 0.42;
+  filter: grayscale(1);
+  cursor: not-allowed;
 }
 
 .win11-quick-settings__tile span {
@@ -205,14 +224,16 @@
 }
 
 .win11-quick-settings__tile small {
+  overflow: hidden;
   font-size: 0.68rem;
   font-weight: 400;
   color: #666;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.win11-quick-settings__glyph {
-  font-size: 1rem;
-  line-height: 1;
+.win11-quick-settings__tile.is-on small {
+  color: #2b6ea8;
 }
 
 .win11-quick-settings__sliders {
@@ -223,7 +244,7 @@
 
 .win11-quick-settings__slider-row {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 24px 1fr auto;
   align-items: center;
   gap: 0.55rem;
 }
@@ -240,12 +261,23 @@
   cursor: pointer;
 }
 
+.win11-quick-settings__slider-value {
+  min-width: 1.75rem;
+  color: #666;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
 .win11-quick-settings__range {
   width: 100%;
   height: 4px;
   border-radius: 999px;
   appearance: none;
   background: linear-gradient(#0078d4, #0078d4) 0 / var(--pct, 50%) 100% no-repeat, #ddd;
+}
+
+.win11-quick-settings__range:disabled {
+  cursor: not-allowed;
 }
 
 .win11-quick-settings__range::-webkit-slider-thumb {
@@ -256,25 +288,6 @@
   appearance: none;
   background: #0078d4;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
-}
-
-.win11-quick-settings__footer {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-  margin-top: 0.75rem;
-  padding: 0.55rem 0.65rem;
-  border: 0;
-  border-radius: 0.35rem;
-  background: rgba(0, 0, 0, 0.04);
-  color: #1f1f1f;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.win11-quick-settings__footer:hover {
-  background: rgba(0, 0, 0, 0.07);
 }
 
 .win11-date-flyout {

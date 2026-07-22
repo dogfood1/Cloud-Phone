@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { Icon } from "@iconify/vue";
 
-import Win11TaskbarIcon from "./Win11TaskbarIcon.vue";
 import {
   buildCalendarGrid,
   formatGregorianHeader,
@@ -191,7 +191,7 @@ function initialsFor(item) {
           :disabled="notificationsLoading || !serial"
           @click="loadNotifications({ initial: true })"
         >
-          <Win11TaskbarIcon name="refresh" :size="12" />
+          <Icon icon="lucide:refresh-cw" :width="12" :height="12" />
         </button>
       </header>
 
@@ -237,7 +237,7 @@ function initialsFor(item) {
           @click="toggleCalendarExpanded"
         >
           <span class="win11-date-flyout__chevron" :class="{ 'is-collapsed': !calendarExpanded }">
-            <Win11TaskbarIcon name="chevron-down" :size="12" />
+            <Icon icon="lucide:chevron-down" :width="12" :height="12" />
           </span>
         </button>
       </div>

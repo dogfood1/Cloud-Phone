@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { NPopover } from "naive-ui";
+import { Icon } from "@iconify/vue";
 
 import Win11TaskbarIcon from "./Win11TaskbarIcon.vue";
 import WindowsClockPanel from "./WindowsClockPanel.vue";
@@ -19,6 +20,8 @@ const now = ref(new Date());
 const startOpen = ref(false);
 const quickSettingsOpen = ref(false);
 const clockOpen = ref(false);
+const trayWifiEnabled = ref(true);
+const trayVolumeMuted = ref(false);
 
 let clockTimer = null;
 
@@ -39,7 +42,19 @@ const dateText = computed(() =>
   }),
 );
 
-const volumeIcon = computed(() => "volume");
+const trayWifiIcon = computed(() => (trayWifiEnabled.value ? "lucide:wifi" : "lucide:wifi-off"));
+const trayVolumeIcon = computed(() =>
+  trayVolumeMuted.value ? "lucide:volume-x" : "lucide:volume-2",
+);
+
+function handleQuickStatus(status) {
+  if (typeof status?.wifiEnabled === "boolean") {
+    trayWifiEnabled.value = status.wifiEnabled;
+  }
+  if (typeof status?.volumeMuted === "boolean") {
+    trayVolumeMuted.value = status.volumeMuted;
+  }
+}
 
 function closeOtherPanels(except) {
   if (except !== "start") {
@@ -118,11 +133,15 @@ onBeforeUnmount(() => {
             :class="{ 'is-active': quickSettingsOpen }"
             aria-label="快速设置"
           >
-            <Win11TaskbarIcon name="wifi" :size="18" />
-            <Win11TaskbarIcon :name="volumeIcon" :size="18" />
+            <Icon :icon="trayWifiIcon" :width="18" :height="18" />
+            <Icon :icon="trayVolumeIcon" :width="18" :height="18" />
           </button>
         </template>
-        <WindowsQuickSettingsPanel />
+        <WindowsQuickSettingsPanel
+          :serial="serial"
+          :active="quickSettingsOpen"
+          @status="handleQuickStatus"
+        />
       </NPopover>
 
       <NPopover
