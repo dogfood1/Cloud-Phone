@@ -33,6 +33,8 @@ const feedback = useAppFeedback();
 
 const activeStep = computed(() => (props.showPasswordChangeModal ? 2 : 1));
 
+const showDefaultPasswordHints = computed(() => !props.state.passwordConfigured);
+
 const stepItems = computed(() => [
   { id: 1, label: t("auth.enterConsole") },
   { id: 2, label: t("auth.changeTitleVoluntary") },
@@ -76,7 +78,7 @@ watch(
           <p class="auth-page__aside-desc">{{ t("auth.loginIntro") }}</p>
         </div>
 
-        <ul class="auth-page__features">
+        <ul v-if="showDefaultPasswordHints" class="auth-page__features">
           <li class="auth-page__feature">{{ t("auth.defaultPasswordHint") }}</li>
           <li class="auth-page__feature">{{ t("auth.changeIntroVoluntary") }}</li>
         </ul>

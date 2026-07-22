@@ -1,11 +1,12 @@
 <script setup>
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { NForm, NFormItem, NInput } from "naive-ui";
 
 import HelpHint from "./ui/HelpHint.vue";
 import UiButton from "./ui/UiButton.vue";
 
-defineProps({
+const props = defineProps({
   state: {
     type: Object,
     required: true,
@@ -15,6 +16,12 @@ defineProps({
 const emit = defineEmits(["submit"]);
 
 const { t } = useI18n();
+
+const loginHelpContent = computed(() =>
+  props.state.passwordConfigured
+    ? t("auth.loginIntro")
+    : `${t("auth.loginIntro")}\n${t("auth.defaultPasswordHint")}`,
+);
 </script>
 
 <template>
@@ -24,7 +31,7 @@ const { t } = useI18n();
       <div class="auth-card__title-row">
         <h2 id="auth-login-title" class="auth-card__title">{{ t("auth.loginTitle") }}</h2>
         <HelpHint
-          :content="`${t('auth.loginIntro')}\n${t('auth.defaultPasswordHint')}`"
+          :content="loginHelpContent"
           :title="t('auth.loginTitle')"
           size="sm"
         />

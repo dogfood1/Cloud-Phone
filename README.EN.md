@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.0.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.0.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -63,7 +63,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **Multi-device concurrency**: per-device ADB locks so many phones can be controlled in parallel; same device allows concurrent WebSocket clients with serialized ADB ops
 - Toolbar: navigation keys (press/hold), clipboard, record (MP4/MP3), screenshot flash
 - Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
-- **Naive UI shell**: shared `UiButton`, segment tabs, forms, and toast feedback across login, settings, logs, group control, and device modals
+- **Naive UI shell**: shared `UiButton`, segment tabs, forms, and toast feedback across login, settings, logs, group control, and device modals; login page hides default-password hints after password is changed
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **Activity log**: sidebar **Logs** tab with Debug / Info / Warn / Error levels and auth / navigation / device / cast / stream / settings / UI categories; search, filters, expandable JSON details

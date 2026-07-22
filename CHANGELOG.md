@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 - 2026-07-22
+
+- **Web / 登录页**：密码已修改后不再显示「默认初始密码：admin」及「请输入当前密码并设置新的登录密码」提示
+
 ## 1.0.0 - 2026-07-22
 
 - **Web / UI 1.0**：全站 Naive UI 外壳统一 — 共享 `UiButton`、`ShellSegmentTabs`、`PageHeader`、`HelpHint`、`PanelAlert`

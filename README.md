@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.0.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.0.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -66,7 +66,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **不投屏也能干活** | 文件管理、应用管理、ADB 终端、画廊截屏——设备在线即可，不必先开 cast |
 | **多设备并发** | 后端 ADB 按设备分组锁，多台手机可同时控制；同设备多用户 WebSocket 并发，ADB 操作按设备排队 |
 | **投屏顶栏顺手** | 多任务/主屏/返回/电源/音量/旋转/剪贴板/录屏/截屏；导航键支持按住与手机同步 |
-| **交互更统一** | Naive UI 外壳统一（按钮、segment tabs、表单、Toast）；Lucide 线稿图标；焦点可见态与 hover 反馈 |
+| **交互更统一** | Naive UI 外壳统一（按钮、segment tabs、表单、Toast）；登录页按是否已改密隐藏默认密码提示；Lucide 线稿图标；焦点可见态与 hover 反馈 |
 | **操作日志** | 左侧 Tab「日志」：Debug / Info / Warn / Error 分级，认证/导航/设备/投屏/串流/设置/界面分类；可搜索、筛选、展开 JSON 详情 |
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
