@@ -8,6 +8,8 @@ export default {
       "有効なセッションがありません。パスワードを入力してください。ユーザー名は不要です。",
     loginPassword: "パスワード",
     loginPlaceholder: "パスワードを入力",
+    rememberPassword: "パスワードを記憶",
+    rememberedPasswordInvalid: "保存したパスワードは無効です。再入力してください。",
     defaultPasswordHint: "初期パスワード: admin",
     enterConsole: "コンソールへ",
     verifying: "確認中…",

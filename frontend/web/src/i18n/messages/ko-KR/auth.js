@@ -8,6 +8,8 @@ export default {
       "유효한 세션이 없습니다. 비밀번호를 입력하세요. 사용자 이름은 필요 없습니다.",
     loginPassword: "비밀번호",
     loginPlaceholder: "비밀번호 입력",
+    rememberPassword: "비밀번호 기억",
+    rememberedPasswordInvalid: "저장된 비밀번호가 유효하지 않습니다. 다시 입력하세요.",
     defaultPasswordHint: "초기 비밀번호: admin",
     enterConsole: "콘솔 들어가기",
     verifying: "확인 중…",

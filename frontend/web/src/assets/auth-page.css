@@ -242,6 +242,17 @@
   font-weight: 500;
 }
 
+.auth-form__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: -0.1rem 0 0.1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+}
+
 .auth-form__actions {
   display: flex;
   flex-wrap: wrap;

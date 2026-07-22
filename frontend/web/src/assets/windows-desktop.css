@@ -236,16 +236,6 @@
   color: #c42b1c;
 }
 
-.win11-start-menu__section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0.35rem 0.2rem 0.55rem;
-  color: #1f1f1f;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
 .win11-start-menu__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(5.4rem, 1fr));
@@ -369,30 +359,6 @@
 .win11-start-menu__search-text small {
   color: #888;
   font-size: 0.72rem;
-}
-
-.win11-start-menu__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0.55rem 0.85rem 0.75rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.win11-start-menu__exit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.7rem;
-  border: 0;
-  border-radius: 0.35rem;
-  background: transparent;
-  color: #444;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
-.win11-start-menu__exit:hover {
-  background: rgba(0, 0, 0, 0.05);
 }
 
 .win11-quick-settings {

@@ -16,8 +16,6 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["exit"]);
-
 const searchQuery = ref("");
 const apps = ref([]);
 const loading = ref(false);
@@ -170,9 +168,6 @@ function initialsFor(app) {
       </ul>
 
       <template v-else>
-        <div class="win11-start-menu__section-head">
-          <span>已固定</span>
-        </div>
         <div class="win11-start-menu__grid">
           <button
             v-for="app in filteredApps"
@@ -190,12 +185,5 @@ function initialsFor(app) {
         </div>
       </template>
     </div>
-
-    <footer class="win11-start-menu__footer">
-      <button type="button" class="win11-start-menu__exit" @click="emit('exit')">
-        <Icon icon="lucide:log-out" :width="14" :height="14" />
-        <span>返回镜像投屏设置</span>
-      </button>
-    </footer>
   </div>
 </template>

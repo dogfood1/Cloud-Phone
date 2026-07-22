@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.5.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.6.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -67,7 +67,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
 - **Activity log**: sidebar **Logs** tab with Debug / Info / Warn / Error levels and auth / navigation / device / cast / stream / settings / UI categories; search, filters, expandable JSON details
-- **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session; expired sessions redirect to login
+- **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session; expired sessions redirect to login; optional Remember password auto-retries on boot/expiry and prompts again if the password changed
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR / **direct connect** (IP + ADB port for ReDroid, emulators, etc.); **HarmonyOS USB/HDC**; **Apple WDA** — Windows USB wizard (sign/install/connect), or Mac `tools/ios-wda-bridge.mjs` for LAN discovery
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions

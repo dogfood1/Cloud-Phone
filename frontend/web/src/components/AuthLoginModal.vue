@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { NForm, NFormItem, NInput } from "naive-ui";
+import { NCheckbox, NForm, NFormItem, NInput } from "naive-ui";
 
 import HelpHint from "./ui/HelpHint.vue";
 import UiButton from "./ui/UiButton.vue";
@@ -49,6 +49,11 @@ const loginHelpContent = computed(() =>
           @keydown.enter="emit('submit')"
         />
       </NFormItem>
+
+      <label class="auth-form__remember">
+        <NCheckbox v-model:checked="state.rememberPassword" />
+        <span>{{ t("auth.rememberPassword") }}</span>
+      </label>
 
       <UiButton
         variant="primary"

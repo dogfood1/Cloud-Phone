@@ -8,6 +8,8 @@ export default {
       "当前浏览器没有有效会话，请输入密码继续。系统仅使用单密码登录，不需要用户名。",
     loginPassword: "登录密码",
     loginPlaceholder: "请输入密码",
+    rememberPassword: "记住密码",
+    rememberedPasswordInvalid: "记住的密码已失效，请重新输入。",
     defaultPasswordHint: "默认初始密码：admin",
     enterConsole: "进入控制台",
     verifying: "验证中...",

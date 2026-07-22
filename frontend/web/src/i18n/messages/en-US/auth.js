@@ -8,6 +8,8 @@ export default {
       "No valid session in this browser. Enter the password to continue. Single-password login only (no username).",
     loginPassword: "Password",
     loginPlaceholder: "Enter password",
+    rememberPassword: "Remember password",
+    rememberedPasswordInvalid: "Saved password is no longer valid. Please enter it again.",
     defaultPasswordHint: "Default initial password: admin",
     enterConsole: "Enter console",
     verifying: "Verifying…",

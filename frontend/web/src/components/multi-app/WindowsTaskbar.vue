@@ -8,8 +8,6 @@ import WindowsClockPanel from "./WindowsClockPanel.vue";
 import WindowsQuickSettingsPanel from "./WindowsQuickSettingsPanel.vue";
 import WindowsStartMenu from "./WindowsStartMenu.vue";
 
-const emit = defineEmits(["exit"]);
-
 defineProps({
   serial: {
     type: String,
@@ -69,11 +67,6 @@ function closeOtherPanels(except) {
   }
 }
 
-function handleExitMultiApp() {
-  startOpen.value = false;
-  emit("exit");
-}
-
 onMounted(() => {
   clockTimer = window.setInterval(() => {
     now.value = new Date();
@@ -108,11 +101,7 @@ onBeforeUnmount(() => {
             <Win11TaskbarIcon name="start" :size="26" />
           </button>
         </template>
-        <WindowsStartMenu
-          :serial="serial"
-          :active="startOpen"
-          @exit="handleExitMultiApp"
-        />
+        <WindowsStartMenu :serial="serial" :active="startOpen" />
       </NPopover>
     </div>
 

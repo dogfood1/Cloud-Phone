@@ -7,8 +7,6 @@ defineProps({
     required: true,
   },
 });
-
-defineEmits(["exit"]);
 </script>
 
 <template>
@@ -20,6 +18,6 @@ defineEmits(["exit"]);
         <span>任务栏已就绪；应用窗口与投屏画布将在后续步骤接入。</span>
       </div>
     </div>
-    <WindowsTaskbar :serial="device.serial" @exit="$emit('exit')" />
+    <WindowsTaskbar :serial="device.serial" />
   </div>
 </template>

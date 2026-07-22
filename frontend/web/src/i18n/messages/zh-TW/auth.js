@@ -7,6 +7,8 @@ export default {
     loginIntro: "目前瀏覽器沒有有效工作階段，請輸入密碼繼續。僅需單一密碼，無需使用者名稱。",
     loginPassword: "登入密碼",
     loginPlaceholder: "請輸入密碼",
+    rememberPassword: "記住密碼",
+    rememberedPasswordInvalid: "記住的密碼已失效，請重新輸入。",
     defaultPasswordHint: "預設初始密碼：admin",
     enterConsole: "進入控制台",
     verifying: "驗證中...",

@@ -14,6 +14,8 @@ import {
   resetSessionExpiredGate,
 } from "../utils/auth-session-bridge.js";
 import { logInfo, logWarn } from "../utils/app-event-logger.js";
+import { isRememberPasswordEnabled } from "../utils/remembered-password.js";
+import { createRememberLoginController } from "./auth-remember-login.js";
 
 function t(key, params) {
   return i18n.global.t(key, params);
@@ -29,6 +31,7 @@ export function useAuth() {
     sessionExpiresAt: null,
     sessionStateText: "",
     loginPassword: "",
+    rememberPassword: isRememberPasswordEnabled(),
     currentPassword: "",
     nextPassword: "",
     confirmPassword: "",
@@ -41,6 +44,10 @@ export function useAuth() {
   state.sessionStateText = t("auth.sessionChecking");
 
   const passwordChangeDialogOpen = ref(false);
+  const remember = createRememberLoginController({
+    state,
+    submitLogin: (options) => submitLogin(options),
+  });
 
   function expireSession() {
     clearSessionEncryptionKey();
@@ -56,6 +63,8 @@ export function useAuth() {
     state.changeFeedback = "";
     passwordChangeDialogOpen.value = false;
     logWarn("auth", "auth.session.expired", "会话失效，返回登录页");
+    remember.resetAutoLogin();
+    void remember.runRememberedLogin({ manageBooting: true });
   }
 
   registerSessionExpiredHandler(expireSession);
@@ -79,6 +88,7 @@ export function useAuth() {
 
   async function loadSession() {
     state.booting = true;
+    remember.resetAutoLogin();
 
     try {
       const result = await requestJson("/api/auth/session");
@@ -87,7 +97,7 @@ export function useAuth() {
         syncAuthState({ ...result, authenticated: false });
         clearSessionEncryptionKey();
         state.sessionStateText = t("auth.sessionMissing");
-        return false;
+        return await remember.runRememberedLogin();
       }
 
       if (!result.authenticated) {
@@ -106,19 +116,25 @@ export function useAuth() {
             sessionExpiresAt: result.sessionExpiresAt,
           },
         });
+        return true;
       }
 
-      return result.authenticated;
+      return await remember.runRememberedLogin();
     } catch (error) {
       state.sessionStateText = t("auth.sessionReadFailed");
       state.loginFeedback = getErrorMessage(error, t("auth.sessionCheckFailed"));
-      return false;
+      return await remember.runRememberedLogin();
     } finally {
       state.booting = false;
     }
   }
 
-  async function submitLogin() {
+  /**
+   * @param {{ fromRemember?: boolean }} [options]
+   */
+  async function submitLogin(options = {}) {
+    const fromRemember = Boolean(options.fromRemember);
+
     if (!state.loginPassword) {
       state.loginFeedback = t("auth.enterPassword");
       return false;
@@ -129,22 +145,35 @@ export function useAuth() {
 
     try {
       const result = await loginRequest(state.loginPassword);
-
       syncAuthState(result);
 
       if (result.requiresPasswordChange) {
         clearSessionEncryptionKey();
         state.currentPassword = state.loginPassword;
         state.sessionStateText = t("auth.defaultVerified");
+        remember.persistRememberedPassword(state.loginPassword);
         return false;
       }
 
+      remember.persistRememberedPassword(state.loginPassword);
       state.loginPassword = "";
       state.sessionStateText = t("auth.enteredConsole");
       resetSessionExpiredGate();
-      logInfo("auth", "auth.login.success", "登录成功");
+      logInfo(
+        "auth",
+        "auth.login.success",
+        fromRemember ? "记住密码自动登录成功" : "登录成功",
+      );
       return true;
     } catch (error) {
+      if (fromRemember) {
+        remember.clearOnInvalidRemembered();
+        state.loginFeedback = t("auth.rememberedPasswordInvalid");
+        state.sessionStateText = t("auth.sessionMissing");
+        logWarn("auth", "auth.login.remembered_failed", "记住的密码已失效，需重新登录");
+        return false;
+      }
+
       state.sessionStateText = t("auth.loginFailed");
       state.loginFeedback = getErrorMessage(error, t("auth.loginFailedDefault"));
       logWarn("auth", "auth.login.failed", "登录失败", {
@@ -186,6 +215,7 @@ export function useAuth() {
 
       syncAuthState(result);
       state.sessionStateText = t("auth.passwordChanged");
+      remember.syncAfterPasswordChange(state.nextPassword);
       state.loginPassword = "";
       state.currentPassword = "";
       state.nextPassword = "";
@@ -239,6 +269,8 @@ export function useAuth() {
       state.requiresPasswordChange = false;
       state.sessionExpiresAt = null;
       state.sessionStateText = t("auth.sessionLoggedOut");
+      remember.skipAutoLoginOnce();
+      remember.prefillRememberedPassword();
       logInfo("auth", "auth.logout.done", "已退出登录");
     }
   }
