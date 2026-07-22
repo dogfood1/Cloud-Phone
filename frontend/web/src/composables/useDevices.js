@@ -1,6 +1,6 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 
-import { getErrorMessage, requestJson } from "../utils/api.js";
+import { getErrorMessage, isSessionExpiredError, requestJson } from "../utils/api.js";
 import { sortDevices } from "../utils/device-format.js";
 
 export function useDevices(
@@ -34,7 +34,7 @@ export function useDevices(
       lastRefreshedAt.value = new Date().toISOString();
       error.value = "";
     } catch (requestError) {
-      if (devices.value.length === 0) {
+      if (devices.value.length === 0 && !isSessionExpiredError(requestError)) {
         error.value = getErrorMessage(requestError, "设备列表加载失败。");
       }
     } finally {

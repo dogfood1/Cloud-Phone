@@ -9,6 +9,10 @@ import {
   loginRequest,
   requestJson,
 } from "../utils/api.js";
+import {
+  registerSessionExpiredHandler,
+  resetSessionExpiredGate,
+} from "../utils/auth-session-bridge.js";
 import { logInfo, logWarn } from "../utils/app-event-logger.js";
 
 function t(key, params) {
@@ -37,6 +41,24 @@ export function useAuth() {
   state.sessionStateText = t("auth.sessionChecking");
 
   const passwordChangeDialogOpen = ref(false);
+
+  function expireSession() {
+    clearSessionEncryptionKey();
+    state.authenticated = false;
+    state.requiresPasswordChange = false;
+    state.sessionExpiresAt = null;
+    state.sessionStateText = t("auth.sessionMissing");
+    state.loginPassword = "";
+    state.currentPassword = "";
+    state.nextPassword = "";
+    state.confirmPassword = "";
+    state.loginFeedback = "";
+    state.changeFeedback = "";
+    passwordChangeDialogOpen.value = false;
+    logWarn("auth", "auth.session.expired", "会话失效，返回登录页");
+  }
+
+  registerSessionExpiredHandler(expireSession);
 
   const passwordStatusText = computed(() =>
     state.passwordConfigured ? t("auth.passwordUpdated") : t("auth.passwordDefault"),
@@ -78,6 +100,7 @@ export function useAuth() {
         : t("auth.sessionMissing");
 
       if (result.authenticated) {
+        resetSessionExpiredGate();
         logInfo("auth", "auth.session.restore", "恢复登录会话", {
           details: {
             sessionExpiresAt: result.sessionExpiresAt,
@@ -118,6 +141,7 @@ export function useAuth() {
 
       state.loginPassword = "";
       state.sessionStateText = t("auth.enteredConsole");
+      resetSessionExpiredGate();
       logInfo("auth", "auth.login.success", "登录成功");
       return true;
     } catch (error) {
@@ -167,6 +191,7 @@ export function useAuth() {
       state.nextPassword = "";
       state.confirmPassword = "";
       passwordChangeDialogOpen.value = false;
+      resetSessionExpiredGate();
       logInfo("auth", "auth.password.change", "修改密码成功");
       return true;
     } catch (error) {

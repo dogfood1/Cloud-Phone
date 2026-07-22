@@ -10,8 +10,53 @@ import {
   hasSessionEncryptionKey,
   saveSessionEncryptionKey,
 } from "./api-session.js";
+import { notifySessionExpired } from "./auth-session-bridge.js";
 
 export { clearSessionEncryptionKey, hasSessionEncryptionKey, saveSessionEncryptionKey };
+
+function isUnauthorizedResponse(response, result) {
+  if (response.status === 401) {
+    return true;
+  }
+
+  const message = String(result?.message ?? "");
+  const error = String(result?.error ?? "");
+
+  return (
+    error === "unauthorized" ||
+    /valid session required/i.test(message) ||
+    /sign in first/i.test(message)
+  );
+}
+
+function handleUnauthorizedResponse(response, result) {
+  if (!isUnauthorizedResponse(response, result)) {
+    return false;
+  }
+
+  notifySessionExpired();
+  throw new SessionExpiredError(result?.message ?? "Valid session required. Sign in first.");
+}
+
+export class SessionExpiredError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "SessionExpiredError";
+  }
+}
+
+export function isSessionExpiredError(error) {
+  if (error instanceof SessionExpiredError) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return (
+    /valid session required/i.test(message) ||
+    /sign in first/i.test(message) ||
+    /缺少会话加密密钥/i.test(message)
+  );
+}
 
 let preferredApiRoute = null; // "proxy" | "direct"
 
@@ -83,7 +128,8 @@ async function parseResponseBody(response) {
   const sessionKey = getSessionEncryptionKey();
 
   if (!sessionKey) {
-    throw new Error("缺少会话加密密钥，请重新登录。");
+    notifySessionExpired();
+    throw new SessionExpiredError("缺少会话加密密钥，请重新登录。");
   }
 
   return decryptPayload(envelope, base64ToKey(sessionKey));
@@ -101,7 +147,8 @@ async function buildRequestBody(body, options = {}) {
   const sessionKey = getSessionEncryptionKey();
 
   if (!sessionKey) {
-    throw new Error("缺少会话加密密钥，请重新登录。");
+    notifySessionExpired();
+    throw new SessionExpiredError("缺少会话加密密钥，请重新登录。");
   }
 
   const envelope = await encryptPayload(body, base64ToKey(sessionKey));
@@ -126,12 +173,26 @@ export async function requestJson(url, options = {}) {
 
   try {
     result = await parseResponseBody(response);
-  } catch {
-    throw new Error(
-      response.ok
-        ? "服务器返回了无效 JSON。"
-        : `服务器错误 (${response.status})，请确认后端已启动且无崩溃。`,
-    );
+  } catch (parseError) {
+    if (parseError instanceof SessionExpiredError) {
+      throw parseError;
+    }
+
+    if (response.status === 401) {
+      handleUnauthorizedResponse(response, { message: "Valid session required. Sign in first." });
+    }
+
+    throw parseError instanceof Error
+      ? parseError
+      : new Error(
+          response.ok
+            ? "服务器返回了无效 JSON。"
+            : `服务器错误 (${response.status})，请确认后端已启动且无崩溃。`,
+        );
+  }
+
+  if (isUnauthorizedResponse(response, result)) {
+    handleUnauthorizedResponse(response, result);
   }
 
   if (options.allowFailure) {
@@ -181,13 +242,18 @@ export async function parseEncryptedFetchResponse(response) {
   const envelope = await response.json();
 
   if (!envelope?.encrypted) {
+    if (isUnauthorizedResponse(response, envelope)) {
+      handleUnauthorizedResponse(response, envelope);
+    }
+
     return envelope;
   }
 
   const sessionKey = getSessionEncryptionKey();
 
   if (!sessionKey) {
-    throw new Error("缺少会话加密密钥，请重新登录。");
+    notifySessionExpired();
+    throw new SessionExpiredError("缺少会话加密密钥，请重新登录。");
   }
 
   return decryptPayload(envelope, base64ToKey(sessionKey));
@@ -256,6 +322,10 @@ export async function fetchEncryptedBinary(url, options = {}) {
 
   const result = await parseResponseBody(response);
 
+  if (isUnauthorizedResponse(response, result)) {
+    handleUnauthorizedResponse(response, result);
+  }
+
   if (!response.ok || result.success === false) {
     throw new Error(result.message ?? result.error ?? "Request failed.");
   }
@@ -270,6 +340,10 @@ export async function fetchEncryptedBinary(url, options = {}) {
 }
 
 export function getErrorMessage(error, fallback) {
+  if (isSessionExpiredError(error)) {
+    return "";
+  }
+
   if (error instanceof TypeError) {
     const detail = error.message?.trim();
 
