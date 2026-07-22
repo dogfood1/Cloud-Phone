@@ -2,13 +2,19 @@ import { computed, ref } from "vue";
 
 import { requestJson } from "../utils/api.js";
 import {
+  isIconHelperFirstSetupDone,
+  markIconHelperFirstSetupDone,
   recordSerialIconHelperDenial,
   resolveIconHelperConsent,
   setSerialIconHelperAllowed,
 } from "../utils/icon-helper-consent.js";
+import {
+  mergeIconHelperProgress,
+  pollIconHelperUntilDone,
+} from "../utils/icon-helper-progress.js";
 
 /**
- * Shared gate for Start menu / Apps manager: consent → install → extract → progress.
+ * Shared gate: consent → ensure/extract. Progress modal only on first setup.
  */
 export function useIconHelperGate() {
   const consentDialogOpen = ref(false);
@@ -25,8 +31,10 @@ export function useIconHelperGate() {
   });
   const errorMessage = ref("");
   const packageNamesOnly = ref(false);
-  /** Serials already warmed this session (skip repeat ensure when cache hit). */
   const warmedSerials = ref(new Set());
+  const progressUiVisible = ref(false);
+
+  const showProgressUi = computed(() => progressUiVisible.value);
 
   const progressText = computed(() => {
     const p = progress.value;
@@ -56,27 +64,18 @@ export function useIconHelperGate() {
     return Math.min(100, Math.round((p.done / p.total) * 100));
   });
 
-  /**
-   * @param {string} serial
-   * @returns {Promise<"allowed" | "denied">}
-   */
   function ensureConsent(serial) {
     const existing = resolveIconHelperConsent(serial);
     if (existing === "allowed" || existing === "denied") {
       return Promise.resolve(existing);
     }
-
     pendingSerial.value = serial;
     consentDialogOpen.value = true;
-
     return new Promise((resolve) => {
       consentResolver.value = resolve;
     });
   }
 
-  /**
-   * @param {boolean} allowed
-   */
   function answerConsent(allowed) {
     const serial = pendingSerial.value;
     if (serial) {
@@ -93,15 +92,35 @@ export function useIconHelperGate() {
     resolve?.(allowed ? "allowed" : "denied");
   }
 
+  function markReady(serial) {
+    markIconHelperFirstSetupDone(serial);
+    warmedSerials.value = new Set([...warmedSerials.value, serial]);
+  }
+
+  function applyProgress(next) {
+    progress.value = mergeIconHelperProgress(next, progress.value);
+  }
+
+  async function pollUntilDone(serial, options = {}) {
+    await pollIconHelperUntilDone(requestJson, serial, {
+      getProgress: () => progress.value,
+      setProgress: (value) => {
+        progress.value = value;
+      },
+      updateUi: options.updateUi,
+    });
+  }
+
   /**
    * @param {string} serial
    * @param {{ silent?: boolean }} [options]
-   * @returns {Promise<{ ok: boolean, packageNamesOnly: boolean, skipped?: boolean }>}
    */
   async function prepareIconHelper(serial, options = {}) {
-    const silent = Boolean(options.silent);
+    const firstDone = isIconHelperFirstSetupDone(serial);
+    const silent = Boolean(options.silent) || firstDone;
     errorMessage.value = "";
     packageNamesOnly.value = false;
+    progressUiVisible.value = false;
 
     if (!serial) {
       packageNamesOnly.value = true;
@@ -117,22 +136,23 @@ export function useIconHelperGate() {
 
     try {
       if (!silent) {
+        progressUiVisible.value = true;
         phase.value = "ensuring";
       }
 
-      // ensure now also starts extract immediately after helper is connected.
       const ensureResult = await requestJson(
         `/api/devices/${encodeURIComponent(serial)}/icon-helper/ensure`,
         { method: "POST" },
       );
-
       const extract = ensureResult?.extract || {};
-      applyProgress(extract.progress);
+      if (!silent) {
+        applyProgress(extract.progress);
+      }
 
       if (extract.skipped && extract.progress?.phase === "done") {
         phase.value = "ready";
         packageNamesOnly.value = false;
-        warmedSerials.value = new Set([...warmedSerials.value, serial]);
+        markReady(serial);
         return { ok: true, packageNamesOnly: false, skipped: true };
       }
 
@@ -146,7 +166,7 @@ export function useIconHelperGate() {
         });
       }
 
-      await pollUntilDone(serial);
+      await pollUntilDone(serial, { updateUi: !silent });
       phase.value = progress.value.phase === "error" ? "error" : "ready";
 
       if (progress.value.phase === "error") {
@@ -156,34 +176,33 @@ export function useIconHelperGate() {
       }
 
       packageNamesOnly.value = false;
-      warmedSerials.value = new Set([...warmedSerials.value, serial]);
+      markReady(serial);
       return { ok: true, packageNamesOnly: false, skipped: Boolean(extract.skipped) };
     } catch (error) {
       phase.value = "error";
       errorMessage.value = error instanceof Error ? error.message : String(error);
       packageNamesOnly.value = true;
       return { ok: false, packageNamesOnly: true };
+    } finally {
+      progressUiVisible.value = false;
     }
   }
 
-  /**
-   * Background warm used when entering multi-app mode.
-   * @param {string} serial
-   */
   async function warmIconHelper(serial) {
-    if (!serial || warmedSerials.value.has(serial)) {
-      return { ok: true, packageNamesOnly: false, skipped: true };
+    if (!serial) {
+      return { ok: false, packageNamesOnly: true };
     }
     if (resolveIconHelperConsent(serial) === "denied") {
       return { ok: false, packageNamesOnly: true };
     }
-    return prepareIconHelper(serial, { silent: true });
+    if (warmedSerials.value.has(serial) && isIconHelperFirstSetupDone(serial)) {
+      return { ok: true, packageNamesOnly: false, skipped: true };
+    }
+    return prepareIconHelper(serial, {
+      silent: isIconHelperFirstSetupDone(serial),
+    });
   }
 
-  /**
-   * Detect helper-side package list changes and refresh host cache if needed.
-   * @param {string} serial
-   */
   async function syncIconHelper(serial) {
     if (!serial || resolveIconHelperConsent(serial) !== "allowed") {
       return { changed: false };
@@ -193,9 +212,11 @@ export function useIconHelperGate() {
         `/api/devices/${encodeURIComponent(serial)}/icon-helper/sync`,
         { method: "POST" },
       );
-      applyProgress(result.progress);
       if (result.changed && result.started) {
-        await pollUntilDone(serial);
+        await pollUntilDone(serial, { updateUi: false });
+      }
+      if (result.apps?.length || result.progress?.phase === "done") {
+        markIconHelperFirstSetupDone(serial);
       }
       return result;
     } catch {
@@ -203,52 +224,11 @@ export function useIconHelperGate() {
     }
   }
 
-  /**
-   * @param {string} serial
-   */
-  async function pollUntilDone(serial) {
-    const deadline = Date.now() + 10 * 60_000;
-
-    while (Date.now() < deadline) {
-      const result = await requestJson(
-        `/api/devices/${encodeURIComponent(serial)}/icon-helper/progress`,
-      );
-      applyProgress(result.progress);
-
-      if (progress.value.phase === "done" || progress.value.phase === "error") {
-        return;
-      }
-
-      await sleep(600);
-    }
-
-    progress.value = {
-      ...progress.value,
-      phase: "error",
-      message: "timeout",
-    };
-  }
-
-  /**
-   * @param {Record<string, unknown> | null | undefined} next
-   */
-  function applyProgress(next) {
-    if (!next || typeof next !== "object") {
-      return;
-    }
-    progress.value = {
-      phase: String(next.phase || "running"),
-      total: Number(next.total) || 0,
-      done: Number(next.done) || 0,
-      current: String(next.current || ""),
-      message: String(next.message || ""),
-    };
-  }
-
   function resetGate() {
     phase.value = "idle";
     progress.value = { phase: "idle", total: 0, done: 0, current: "", message: "" };
     errorMessage.value = "";
+    progressUiVisible.value = false;
   }
 
   return {
@@ -257,6 +237,7 @@ export function useIconHelperGate() {
     progress,
     progressText,
     progressPercent,
+    showProgressUi,
     errorMessage,
     packageNamesOnly,
     ensureConsent,
@@ -266,8 +247,4 @@ export function useIconHelperGate() {
     syncIconHelper,
     resetGate,
   };
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

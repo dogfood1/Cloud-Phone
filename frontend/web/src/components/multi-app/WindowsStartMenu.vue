@@ -27,6 +27,7 @@ const {
   phase,
   progress,
   progressPercent,
+  showProgressUi,
   packageNamesOnly,
   answerConsent,
   prepareIconHelper,
@@ -222,7 +223,7 @@ function launchApp(app) {
   <div class="win11-start-menu">
     <IconHelperGatePanel
       :consent-open="consentDialogOpen"
-      :busy="gateBusy"
+      :busy="showProgressUi"
       :progress-percent="progressPercent"
       :progress-label="progressLabel"
       :current-package="progress.current"

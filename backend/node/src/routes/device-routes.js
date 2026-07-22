@@ -1,4 +1,5 @@
 import { handleDeviceAppsRoute } from "./device-apps-routes.js";
+import { handleDeviceAppRunningRoute } from "./device-app-running-routes.js";
 import { handleDeviceFilesRoute } from "./device-files-routes.js";
 import { handleDeviceNotificationsRoute } from "./device-notifications-routes.js";
 import { handleDeviceQuickSettingsRoute } from "./device-quick-settings-routes.js";
@@ -12,6 +13,10 @@ import { listDeviceEncoders } from "../services/device-video-encoders.js";
 import { sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname, url) {
+  if (await handleDeviceAppRunningRoute(req, res, method, pathname)) {
+    return true;
+  }
+
   if (await handleDeviceAppsRoute(req, res, method, pathname, url)) {
     return true;
   }

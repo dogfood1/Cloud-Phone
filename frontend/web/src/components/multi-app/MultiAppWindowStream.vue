@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, toRef, unref, watch } from "vue";
 
 import MultiAppVdErrorDialog from "./MultiAppVdErrorDialog.vue";
+import { useAppExitWatch } from "../../composables/useAppExitWatch.js";
 import { useDeviceCast } from "../../composables/useDeviceCast.js";
 import { startDeviceCast, stopDeviceCast } from "../../utils/cast-api.js";
 import {
@@ -197,6 +198,13 @@ watch(
     }
   },
 );
+
+useAppExitWatch({
+  getSerial: () => String(props.device?.serial || ""),
+  getPackageName: () => String(props.window?.packageName || ""),
+  enabled: () => Boolean(ready.value && started && !showVdError.value),
+  onExit: () => emit("close-window"),
+});
 
 onBeforeUnmount(() => {
   void stopWindowCast();

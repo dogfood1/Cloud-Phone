@@ -1,5 +1,6 @@
 const CONSENT_PREFIX = "cloud-phone.icon-helper.consent.";
 const DENY_COUNT_PREFIX = "cloud-phone.icon-helper.deny-count.";
+const FIRST_SETUP_PREFIX = "cloud-phone.icon-helper.first-setup.";
 const PREFERENCE_KEY = "cloud-phone.icon-helper.preference";
 
 const MAX_DENY_PROMPTS = 2;
@@ -16,6 +17,13 @@ function consentKey(serial) {
  */
 function denyCountKey(serial) {
   return `${DENY_COUNT_PREFIX}${serial}`;
+}
+
+/**
+ * @param {string} serial
+ */
+function firstSetupKey(serial) {
+  return `${FIRST_SETUP_PREFIX}${serial}`;
 }
 
 /**
@@ -120,6 +128,27 @@ export function getSerialDenyCount(serial) {
   return Number.isFinite(raw) && raw > 0 ? raw : 0;
 }
 
+/**
+ * First successful extract completed for this device (progress modal only once).
+ * @param {string} serial
+ */
+export function isIconHelperFirstSetupDone(serial) {
+  if (!serial) {
+    return false;
+  }
+  return localStorage.getItem(firstSetupKey(serial)) === "1";
+}
+
+/**
+ * @param {string} serial
+ */
+export function markIconHelperFirstSetupDone(serial) {
+  if (!serial) {
+    return;
+  }
+  localStorage.setItem(firstSetupKey(serial), "1");
+}
+
 function clearAllSerialDenials() {
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i += 1) {
@@ -127,7 +156,11 @@ function clearAllSerialDenials() {
     if (!key) {
       continue;
     }
-    if (key.startsWith(CONSENT_PREFIX) || key.startsWith(DENY_COUNT_PREFIX)) {
+    if (
+      key.startsWith(CONSENT_PREFIX)
+      || key.startsWith(DENY_COUNT_PREFIX)
+      || key.startsWith(FIRST_SETUP_PREFIX)
+    ) {
       keysToRemove.push(key);
     }
   }

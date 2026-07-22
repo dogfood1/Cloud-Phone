@@ -22,7 +22,7 @@ const {
   phase,
   progress,
   progressPercent,
-  packageNamesOnly,
+  showProgressUi,
   answerConsent,
 } = useMultiAppIconWarm(() => props.device?.serial || "");
 
@@ -171,11 +171,11 @@ watch(
 
     <IconHelperGatePanel
       :consent-open="consentDialogOpen"
-      :busy="phase === 'ensuring' || phase === 'extracting' || progress.phase === 'running'"
+      :busy="showProgressUi"
       :progress-percent="progressPercent"
       :progress-label="phase === 'ensuring' ? '正在连接 Icon Helper…' : '正在提取应用图标…'"
       :current-package="progress.current"
-      :denied-hint="packageNamesOnly"
+      :denied-hint="false"
       @allow="answerConsent(true)"
       @deny="answerConsent(false)"
     />
