@@ -54,10 +54,6 @@ defineProps({
       <path d="M6.2 3 7.2 4.5H14v1.5H2V4.5z" fill="#3b9cff" />
     </template>
 
-    <template v-else-if="name === 'chevron-up'">
-      <path d="M4 10 8 6l4 4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-    </template>
-
     <template v-else-if="name === 'mic'">
       <rect x="6.5" y="3" width="3" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.1" />
       <path d="M4.5 8a3.5 3.5 0 0 0 7 0M8 11.5V13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
@@ -155,6 +151,28 @@ defineProps({
         stroke-width="0.9"
         stroke-linecap="round"
       />
+    </template>
+
+    <template v-else-if="name === 'chevron-up'">
+      <path d="M4 10 8 6l4 4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+    </template>
+
+    <template v-else-if="name === 'chevron-down'">
+      <path d="M4 6 8 10l4-4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+    </template>
+
+    <template v-else-if="name === 'focus-assist'">
+      <path
+        d="M8 2.5a4.2 4.2 0 0 1 4.2 4.2c0 2.3-1.9 3.6-3.4 4.8-.8.6-1.3 1.2-1.6 1.8-.2.4-.4.9-.4 1.4V14"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        stroke-linecap="round"
+      />
+      <path d="M6.8 13.2h2.4M7.2 14.8h1.6" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" />
+      <path d="M11.2 3.2h1.2M12.2 4.2v1.2" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" />
+      <text x="10.8" y="5.8" fill="currentColor" font-size="3.2" font-family="Segoe UI, sans-serif">z</text>
+      <text x="12.2" y="5.8" fill="currentColor" font-size="3.2" font-family="Segoe UI, sans-serif">z</text>
     </template>
   </svg>
 </template>

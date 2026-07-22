@@ -277,81 +277,173 @@
   background: rgba(0, 0, 0, 0.07);
 }
 
-.win11-notification-center {
-  width: 380px;
-  padding: 0.85rem;
+.win11-date-flyout {
+  display: grid;
+  gap: 0.45rem;
+  width: 360px;
+  padding: 0;
   color: #1f1f1f;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
 }
 
-.win11-notification-center__empty {
-  padding: 1.4rem 0.75rem;
-  color: #666;
-  font-size: 0.84rem;
-  text-align: center;
+.win11-date-flyout__panel {
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.55rem;
+  background: #f9f9f9;
 }
 
-.win11-notification-center__calendar {
-  padding-top: 0.35rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.win11-notification-center__calendar-head {
+.win11-date-flyout__panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.55rem;
+  padding: 0.65rem 0.75rem 0.5rem;
 }
 
-.win11-notification-center__calendar-head strong {
-  font-size: 0.88rem;
+.win11-date-flyout__panel-title {
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
-.win11-notification-center__calendar-head button {
+.win11-date-flyout__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
-  border: 0;
-  border-radius: 0.25rem;
-  background: transparent;
+  border: 1px solid #e8e8e8;
+  border-radius: 0.3rem;
+  background: #fff;
   color: #1f1f1f;
-  font-size: 1.1rem;
   cursor: pointer;
 }
 
-.win11-notification-center__calendar-head button:hover {
-  background: rgba(0, 0, 0, 0.05);
+.win11-date-flyout__icon-btn:hover {
+  background: #f3f3f3;
 }
 
-.win11-notification-center__weekdays,
-.win11-notification-center__grid {
+.win11-date-flyout__notifications-body {
+  min-height: 4.5rem;
+}
+
+.win11-date-flyout__calendar-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.75rem 0.7rem;
+}
+
+.win11-date-flyout__calendar-date {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.win11-date-flyout__calendar-date strong {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.win11-date-flyout__calendar-date span {
+  color: #666;
+  font-size: 0.78rem;
+}
+
+.win11-date-flyout__calendar-body {
+  padding: 0 0.75rem 0.75rem;
+  border-top: 1px solid #ececec;
+}
+
+.win11-date-flyout__month-row {
+  display: flex;
+  align-items: center;
+  padding: 0.65rem 0 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.win11-date-flyout__weekdays,
+.win11-date-flyout__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.15rem;
 }
 
-.win11-notification-center__weekdays {
-  margin-bottom: 0.25rem;
+.win11-date-flyout__weekdays {
+  margin-bottom: 0.2rem;
   color: #666;
   font-size: 0.72rem;
   text-align: center;
 }
 
-.win11-notification-center__day {
+.win11-date-flyout__weekdays span {
+  padding: 0.15rem 0;
+}
+
+.win11-date-flyout__day {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  min-height: 44px;
+  padding: 0.18rem 0;
+  text-align: center;
+}
+
+.win11-date-flyout__day-num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
+  line-height: 1;
 }
 
-.win11-notification-center__day.is-muted {
-  visibility: hidden;
+.win11-date-flyout__day-sub {
+  max-width: 100%;
+  overflow: hidden;
+  color: #666;
+  font-size: 0.62rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.win11-notification-center__day.is-today {
-  background: #0078d4;
+.win11-date-flyout__day.is-outside .win11-date-flyout__day-num,
+.win11-date-flyout__day.is-outside .win11-date-flyout__day-sub {
+  color: #b8b8b8;
+}
+
+.win11-date-flyout__day.is-today {
+  align-content: center;
+  padding: 0.12rem 0.2rem;
+  border-radius: 999px;
+  background: #0067c0;
   color: #fff;
+}
+
+.win11-date-flyout__day.is-today .win11-date-flyout__day-num {
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+.win11-date-flyout__day.is-today .win11-date-flyout__day-sub {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.win11-taskbar-popover.win11-taskbar-popover--clock,
+.win11-taskbar-popover--clock.n-popover,
+.win11-taskbar-popover--clock .n-popover,
+.win11-taskbar-popover--clock .n-popover-shared {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .device-workspace__split--multi-app {

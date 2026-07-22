@@ -1,5 +1,13 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+
+import Win11TaskbarIcon from "./Win11TaskbarIcon.vue";
+import {
+  buildCalendarGrid,
+  formatGregorianHeader,
+  formatLunarHeader,
+  formatMonthPickerLabel,
+} from "../../utils/win11-calendar-lunar.js";
 
 const props = defineProps({
   now: {
@@ -9,69 +17,96 @@ const props = defineProps({
 });
 
 const viewDate = ref(new Date(props.now));
-
-const monthLabel = computed(() =>
-  viewDate.value.toLocaleDateString("zh-CN", { year: "numeric", month: "long" }),
-);
+const calendarExpanded = ref(true);
 
 const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
 
-const calendarCells = computed(() => {
-  const year = viewDate.value.getFullYear();
-  const month = viewDate.value.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startOffset = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
+const gregorianHeader = computed(() => formatGregorianHeader(props.now));
+const lunarHeader = computed(() => formatLunarHeader(props.now));
+const monthPickerLabel = computed(() => formatMonthPickerLabel(viewDate.value));
+const calendarCells = computed(() => buildCalendarGrid(viewDate.value, props.now));
 
-  for (let i = 0; i < startOffset; i += 1) {
-    cells.push({ day: "", muted: true, today: false });
-  }
+watch(
+  () => props.now,
+  (nextNow) => {
+    if (
+      viewDate.value.getFullYear() === nextNow.getFullYear() &&
+      viewDate.value.getMonth() === nextNow.getMonth()
+    ) {
+      return;
+    }
 
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const isToday =
-      day === props.now.getDate() &&
-      month === props.now.getMonth() &&
-      year === props.now.getFullYear();
-    cells.push({ day, muted: false, today: isToday });
-  }
+    viewDate.value = new Date(nextNow.getFullYear(), nextNow.getMonth(), 1);
+  },
+);
 
-  return cells;
-});
-
-function shiftMonth(delta) {
-  viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + delta, 1);
+function toggleCalendarExpanded() {
+  calendarExpanded.value = !calendarExpanded.value;
 }
 </script>
 
 <template>
-  <div class="win11-notification-center">
-    <div class="win11-notification-center__empty">没有新通知</div>
+  <div class="win11-date-flyout">
+    <section class="win11-date-flyout__panel win11-date-flyout__panel--notifications">
+      <header class="win11-date-flyout__panel-head">
+        <span class="win11-date-flyout__panel-title">通知</span>
+      </header>
+      <div class="win11-date-flyout__notifications-body" aria-hidden="true" />
+    </section>
 
-    <div class="win11-notification-center__calendar">
-      <div class="win11-notification-center__calendar-head">
-        <button type="button" aria-label="上个月" @click="shiftMonth(-1)">‹</button>
-        <strong>{{ monthLabel }}</strong>
-        <button type="button" aria-label="下个月" @click="shiftMonth(1)">›</button>
-      </div>
-
-      <div class="win11-notification-center__weekdays">
-        <span v-for="label in weekdayLabels" :key="label">{{ label }}</span>
-      </div>
-
-      <div class="win11-notification-center__grid">
-        <span
-          v-for="(cell, index) in calendarCells"
-          :key="`${cell.day}-${index}`"
-          class="win11-notification-center__day"
-          :class="{
-            'is-muted': cell.muted,
-            'is-today': cell.today,
-          }"
+    <section class="win11-date-flyout__panel win11-date-flyout__panel--calendar">
+      <div class="win11-date-flyout__calendar-summary">
+        <div class="win11-date-flyout__calendar-date">
+          <strong>{{ gregorianHeader }}</strong>
+          <span>{{ lunarHeader }}</span>
+        </div>
+        <button
+          type="button"
+          class="win11-date-flyout__icon-btn"
+          :aria-label="calendarExpanded ? '收起日历' : '展开日历'"
+          @click="toggleCalendarExpanded"
         >
-          {{ cell.day }}
-        </span>
+          <span class="win11-date-flyout__chevron" :class="{ 'is-collapsed': !calendarExpanded }">
+            <Win11TaskbarIcon name="chevron-down" :size="12" />
+          </span>
+        </button>
       </div>
-    </div>
+
+      <div v-show="calendarExpanded" class="win11-date-flyout__calendar-body">
+        <div class="win11-date-flyout__month-row">
+          <span>{{ monthPickerLabel }}</span>
+        </div>
+
+        <div class="win11-date-flyout__weekdays">
+          <span v-for="label in weekdayLabels" :key="label">{{ label }}</span>
+        </div>
+
+        <div class="win11-date-flyout__grid">
+          <div
+            v-for="cell in calendarCells"
+            :key="cell.key"
+            class="win11-date-flyout__day"
+            :class="{
+              'is-outside': cell.outside,
+              'is-today': cell.isToday,
+            }"
+          >
+            <span class="win11-date-flyout__day-num">{{ cell.day }}</span>
+            <span class="win11-date-flyout__day-sub">{{ cell.subLabel }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
+
+<style scoped>
+.win11-date-flyout__chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+
+.win11-date-flyout__chevron.is-collapsed {
+  transform: rotate(-90deg);
+}
+</style>

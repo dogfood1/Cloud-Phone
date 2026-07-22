@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
         trigger="click"
         placement="top-end"
         :show-arrow="false"
-        class="win11-taskbar-popover"
+        class="win11-taskbar-popover win11-taskbar-popover--clock"
         @update:show="(open) => open && closeOtherPanels('clock')"
       >
         <template #trigger>
