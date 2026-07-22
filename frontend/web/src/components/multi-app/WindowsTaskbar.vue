@@ -6,6 +6,7 @@ import { Icon } from "@iconify/vue";
 import Win11TaskbarIcon from "./Win11TaskbarIcon.vue";
 import WindowsClockPanel from "./WindowsClockPanel.vue";
 import WindowsQuickSettingsPanel from "./WindowsQuickSettingsPanel.vue";
+import WindowsStartMenu from "./WindowsStartMenu.vue";
 
 const emit = defineEmits(["exit"]);
 
@@ -94,7 +95,7 @@ onBeforeUnmount(() => {
         trigger="click"
         placement="top"
         :show-arrow="false"
-        class="win11-taskbar-popover"
+        class="win11-taskbar-popover win11-taskbar-popover--start"
         @update:show="(open) => open && closeOtherPanels('start')"
       >
         <template #trigger>
@@ -107,13 +108,11 @@ onBeforeUnmount(() => {
             <Win11TaskbarIcon name="start" :size="26" />
           </button>
         </template>
-        <div class="win11-flyout win11-flyout--start">
-          <header class="win11-flyout__title">开始</header>
-          <p class="win11-flyout__desc">Cloud Phone 多应用桌面</p>
-          <button type="button" class="win11-flyout__action" @click="handleExitMultiApp">
-            返回镜像投屏设置
-          </button>
-        </div>
+        <WindowsStartMenu
+          :serial="serial"
+          :active="startOpen"
+          @exit="handleExitMultiApp"
+        />
       </NPopover>
     </div>
 
