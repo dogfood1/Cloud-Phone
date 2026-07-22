@@ -174,5 +174,16 @@ defineProps({
       <text x="10.8" y="5.8" fill="currentColor" font-size="3.2" font-family="Segoe UI, sans-serif">z</text>
       <text x="12.2" y="5.8" fill="currentColor" font-size="3.2" font-family="Segoe UI, sans-serif">z</text>
     </template>
+
+    <template v-else-if="name === 'refresh'">
+      <path
+        d="M13.2 8A5.2 5.2 0 1 1 11.4 3.6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.2"
+        stroke-linecap="round"
+      />
+      <path d="M11 2.4h2.4V4.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+    </template>
   </svg>
 </template>

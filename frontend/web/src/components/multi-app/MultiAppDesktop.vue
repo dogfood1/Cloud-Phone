@@ -1,6 +1,13 @@
 <script setup>
 import WindowsTaskbar from "./WindowsTaskbar.vue";
 
+defineProps({
+  device: {
+    type: Object,
+    required: true,
+  },
+});
+
 defineEmits(["exit"]);
 </script>
 
@@ -13,6 +20,6 @@ defineEmits(["exit"]);
         <span>任务栏已就绪；应用窗口与投屏画布将在后续步骤接入。</span>
       </div>
     </div>
-    <WindowsTaskbar @exit="$emit('exit')" />
+    <WindowsTaskbar :serial="device.serial" @exit="$emit('exit')" />
   </div>
 </template>

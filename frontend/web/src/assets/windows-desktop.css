@@ -323,7 +323,110 @@
 }
 
 .win11-date-flyout__notifications-body {
+  max-height: 240px;
   min-height: 4.5rem;
+  overflow: auto;
+  padding: 0 0.55rem 0.65rem;
+}
+
+.win11-date-flyout__notifications-status {
+  margin: 0;
+  padding: 1.2rem 0.5rem;
+  color: #666;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.win11-date-flyout__notifications-status.is-error {
+  color: #c42b1c;
+}
+
+.win11-date-flyout__notification-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.win11-date-flyout__notification {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.55rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.win11-date-flyout__notification-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 0.45rem;
+  background: #e8e8e8;
+  color: #444;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.win11-date-flyout__notification-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.win11-date-flyout__notification-main {
+  min-width: 0;
+}
+
+.win11-date-flyout__notification-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.win11-date-flyout__notification-top strong {
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.win11-date-flyout__notification-top time {
+  flex-shrink: 0;
+  color: #777;
+  font-size: 0.7rem;
+}
+
+.win11-date-flyout__notification-main p {
+  margin: 0.18rem 0 0;
+  overflow: hidden;
+  color: #444;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.win11-date-flyout__notification-app {
+  display: block;
+  margin-top: 0.18rem;
+  overflow: hidden;
+  color: #888;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.win11-date-flyout__icon-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .win11-date-flyout__calendar-summary {

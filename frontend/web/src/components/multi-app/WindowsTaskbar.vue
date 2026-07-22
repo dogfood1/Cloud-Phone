@@ -8,6 +8,13 @@ import WindowsQuickSettingsPanel from "./WindowsQuickSettingsPanel.vue";
 
 const emit = defineEmits(["exit"]);
 
+defineProps({
+  serial: {
+    type: String,
+    default: "",
+  },
+});
+
 const now = ref(new Date());
 const startOpen = ref(false);
 const quickSettingsOpen = ref(false);
@@ -137,7 +144,7 @@ onBeforeUnmount(() => {
             <span class="win11-taskbar__clock-date">{{ dateText }}</span>
           </button>
         </template>
-        <WindowsClockPanel :now="now" />
+        <WindowsClockPanel :now="now" :serial="serial" :active="clockOpen" />
       </NPopover>
     </div>
   </footer>
