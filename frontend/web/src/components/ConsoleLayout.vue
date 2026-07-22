@@ -1,12 +1,14 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed } from "vue";
 
 import AppSidebar from "./AppSidebar.vue";
 import DeviceWorkspace from "./DeviceWorkspace.vue";
 import DevicesPanel from "./DevicesPanel.vue";
 import GroupControlPanel from "./GroupControlPanel.vue";
 import LogsPanel from "./LogsPanel.vue";
+import MobileBottomNav from "./MobileBottomNav.vue";
 import SettingsPanel from "./SettingsPanel.vue";
+import { useMobileLayout } from "../composables/useMobileLayout.js";
 import { logInfo } from "../utils/app-event-logger.js";
 
 const props = defineProps({
@@ -50,7 +52,7 @@ const props = defineProps({
 
 const activeTab = defineModel("activeTab", { type: String, required: true });
 const selectedDevice = defineModel("selectedDevice", { type: Object, default: null });
-const mobileSidebarOpen = ref(false);
+const { isMobileLayout } = useMobileLayout();
 
 const workspaceDevice = computed(() => {
   const selected = selectedDevice.value;
@@ -93,7 +95,6 @@ function handleCloseWorkspace() {
 function handleTabChange(tabId) {
   const previousTab = activeTab.value;
   activeTab.value = tabId;
-  mobileSidebarOpen.value = false;
 
   logInfo("navigation", "tab.change", `切换页面：${previousTab} → ${tabId}`, {
     details: {
@@ -114,43 +115,15 @@ function handleTabChange(tabId) {
     selectedDevice.value = null;
   }
 }
-
-function openMobileSidebar() {
-  mobileSidebarOpen.value = true;
-}
-
-function closeMobileSidebar() {
-  mobileSidebarOpen.value = false;
-}
 </script>
 
 <template>
-  <div class="console-layout">
-    <button
-      v-if="!workspaceDevice"
-      type="button"
-      class="mobile-sidebar-toggle"
-      @click="openMobileSidebar"
-    >
-      菜单
-    </button>
-    <button
-      v-if="mobileSidebarOpen"
-      type="button"
-      class="mobile-sidebar-backdrop"
-      aria-label="关闭菜单"
-      @click="closeMobileSidebar"
-    />
+  <div class="console-layout" :class="{ 'console-layout--mobile': isMobileLayout }">
     <AppSidebar
+      v-if="!isMobileLayout"
       :active-tab="activeTab"
-      :mobile-open="mobileSidebarOpen"
       @update:active-tab="handleTabChange"
-      @logout="
-        () => {
-          closeMobileSidebar();
-          emit('logout');
-        }
-      "
+      @logout="emit('logout')"
     />
     <main
       class="main-panel"
@@ -192,9 +165,16 @@ function closeMobileSidebar() {
         :settings-form="settingsForm"
         :password-status-text="passwordStatusText"
         :session-expires-at="sessionExpiresAt"
+        :show-logout="isMobileLayout"
         @save="emit('save-settings')"
         @change-password="emit('change-password')"
+        @logout="emit('logout')"
       />
     </main>
+    <MobileBottomNav
+      v-if="isMobileLayout && !workspaceDevice"
+      :active-tab="activeTab"
+      @update:active-tab="handleTabChange"
+    />
   </div>
 </template>

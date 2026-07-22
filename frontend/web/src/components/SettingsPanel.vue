@@ -22,9 +22,13 @@ defineProps({
     type: String,
     default: null,
   },
+  showLogout: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["save", "change-password"]);
+const emit = defineEmits(["save", "change-password", "logout"]);
 
 const { t } = useI18n();
 const activeSection = ref("account");
@@ -48,7 +52,9 @@ const activeSectionHelp = computed(() => t(`settings.sections.${activeSection.va
         <SettingsAccountSection
           :password-status-text="passwordStatusText"
           :session-expires-at="sessionExpiresAt"
+          :show-logout="showLogout"
           @change-password="emit('change-password')"
+          @logout="emit('logout')"
         />
       </NTabPane>
       <NTabPane name="appearance" :tab="t('settings.nav.appearance')">

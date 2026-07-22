@@ -14,9 +14,13 @@ defineProps({
     type: String,
     default: null,
   },
+  showLogout: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["change-password"]);
+const emit = defineEmits(["change-password", "logout"]);
 const { t } = useI18n();
 </script>
 
@@ -33,9 +37,12 @@ const { t } = useI18n();
       </div>
     </dl>
 
-    <div class="shell-form-actions">
+    <div class="shell-form-actions shell-form-actions--stack">
       <UiButton variant="primary" @click="emit('change-password')">
         {{ t("settings.sections.account.changePassword") }}
+      </UiButton>
+      <UiButton v-if="showLogout" variant="ghost" @click="emit('logout')">
+        {{ t("sidebar.logout") }}
       </UiButton>
     </div>
   </div>
