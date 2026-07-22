@@ -6,6 +6,7 @@ import { useI18n } from "vue-i18n";
 
 import "../assets/add-device-modal.css";
 import AddDeviceApplePanel from "./AddDeviceApplePanel.vue";
+import AddDeviceAndroidDirectPanel from "./AddDeviceAndroidDirectPanel.vue";
 import UiButton from "./ui/UiButton.vue";
 import { getErrorMessage, requestJson } from "../utils/api.js";
 
@@ -20,7 +21,7 @@ const emit = defineEmits(["close"]);
 
 const { t } = useI18n();
 
-const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | harmony-usb | apple-connect
+const step = ref("platforms"); // platforms | android-usb | android-pair-code | android-qr | android-direct | harmony-usb | apple-connect
 const baselineSerials = ref(new Set());
 const pairForm = ref({
   host: "",
@@ -37,7 +38,7 @@ const platforms = [
   {
     id: "android",
     icon: "mdi:android",
-    modes: ["usb", "qr", "pairCode"],
+    modes: ["usb", "qr", "pairCode", "direct"],
   },
   { id: "harmony", icon: "simple-icons:huawei", modes: ["usb"] },
   { id: "apple", icon: "mdi:apple", modes: ["connect"] },
@@ -235,6 +236,11 @@ async function submitQrPairing() {
   }
 }
 
+function enterDirectConnectStep() {
+  step.value = "android-direct";
+  pairResult.value = null;
+}
+
 function enterPairCodeStep() {
   step.value = "android-pair-code";
   pairResult.value = null;
@@ -275,6 +281,8 @@ function backToPlatforms() {
                 ? t("devices.addDeviceModal.usb.title")
                 : step === "android-pair-code"
                   ? t("devices.addDeviceModal.pairCode.title")
+                  : step === "android-direct"
+                    ? t("devices.addDeviceModal.directConnect.title")
                   : step === "apple-connect"
                     ? t("devices.addDeviceModal.apple.title")
                 : t("devices.addDeviceModal.title")
@@ -286,6 +294,8 @@ function backToPlatforms() {
                 ? t("devices.addDeviceModal.usb.desc")
                 : step === "android-pair-code"
                   ? t("devices.addDeviceModal.pairCode.desc")
+                  : step === "android-direct"
+                    ? t("devices.addDeviceModal.directConnect.desc")
                   : step === "apple-connect"
                     ? t("devices.addDeviceModal.apple.desc")
                 : t("devices.addDeviceModal.desc")
@@ -349,6 +359,17 @@ function backToPlatforms() {
                 <span>{{ t("devices.addDeviceModal.appleModes.connect") }}</span>
                 <span class="add-device-modal__mode-badge">
                   {{ t("devices.addDeviceModal.apple.action") }}
+                </span>
+              </button>
+              <button
+                v-else-if="item.id === 'android' && mode === 'direct'"
+                type="button"
+                class="add-device-modal__mode-btn"
+                @click="enterDirectConnectStep"
+              >
+                <span>{{ t(`devices.addDeviceModal.androidModes.${mode}`) }}</span>
+                <span class="add-device-modal__mode-badge">
+                  {{ t("devices.addDeviceModal.directConnect.action") }}
                 </span>
               </button>
               <button
@@ -489,6 +510,12 @@ function backToPlatforms() {
           </UiButton>
         </div>
       </div>
+
+      <AddDeviceAndroidDirectPanel
+        v-else-if="step === 'android-direct'"
+        :on-back="backToPlatforms"
+        :on-connected="() => emit('close')"
+      />
 
       <div v-else-if="step === 'android-pair-code'" class="add-device-modal__pair-code">
         <div class="add-device-modal__pair-hint">

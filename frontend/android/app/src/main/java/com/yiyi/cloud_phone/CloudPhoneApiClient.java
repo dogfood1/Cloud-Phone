@@ -68,6 +68,19 @@ final class CloudPhoneApiClient {
         return postProtectedJson(context, host, port, "/api/devices/pair-qr", body);
     }
 
+    static JSONObject connectDevice(
+            Context context,
+            String host,
+            int port,
+            String deviceHost,
+            int devicePort
+    ) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("host", deviceHost);
+        body.put("port", devicePort);
+        return postProtectedJson(context, host, port, "/api/devices/connect", body);
+    }
+
     static byte[] fetchScreenshot(
             Context context,
             String host,

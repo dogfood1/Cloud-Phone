@@ -38,6 +38,7 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
     private static final int STEP_USB = 1;
     private static final int STEP_PAIR = 2;
     private static final int STEP_QR = 3;
+    private static final int STEP_DIRECT = 4;
 
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -53,6 +54,7 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
     private View stepUsb;
     private View stepPairCode;
     private View stepQr;
+    private View stepDirect;
     private LinearLayout usbDeviceList;
     private TextView textUsbSummary;
     private TextView textUsbEmpty;
@@ -66,6 +68,10 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
     private TextView textQrResult;
     private MaterialButton buttonPairSubmit;
     private MaterialButton buttonQrConfirm;
+    private TextInputEditText editDirectHost;
+    private TextInputEditText editDirectPort;
+    private TextView textDirectResult;
+    private MaterialButton buttonDirectSubmit;
 
     private final Runnable usbRefreshRunnable = new Runnable() {
         @Override
@@ -112,6 +118,7 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         stepUsb = view.findViewById(R.id.stepUsb);
         stepPairCode = view.findViewById(R.id.stepPairCode);
         stepQr = view.findViewById(R.id.stepQr);
+        stepDirect = view.findViewById(R.id.stepDirect);
         usbDeviceList = view.findViewById(R.id.usbDeviceList);
         textUsbSummary = view.findViewById(R.id.textUsbSummary);
         textUsbEmpty = view.findViewById(R.id.textUsbEmpty);
@@ -125,6 +132,10 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         textQrResult = view.findViewById(R.id.textQrResult);
         buttonPairSubmit = view.findViewById(R.id.buttonPairSubmit);
         buttonQrConfirm = view.findViewById(R.id.buttonQrConfirm);
+        editDirectHost = view.findViewById(R.id.editDirectHost);
+        editDirectPort = view.findViewById(R.id.editDirectPort);
+        textDirectResult = view.findViewById(R.id.textDirectResult);
+        buttonDirectSubmit = view.findViewById(R.id.buttonDirectSubmit);
 
         ImageButton buttonClose = view.findViewById(R.id.buttonClose);
         buttonClose.setImageDrawable(AppIcons.close(requireContext()));
@@ -136,22 +147,27 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         MaterialButton buttonModeUsb = view.findViewById(R.id.buttonModeUsb);
         MaterialButton buttonModePairCode = view.findViewById(R.id.buttonModePairCode);
         MaterialButton buttonModeQr = view.findViewById(R.id.buttonModeQr);
+        MaterialButton buttonModeDirect = view.findViewById(R.id.buttonModeDirect);
         buttonModeUsb.setIcon(AppIcons.modeUsb(requireContext()));
         buttonModePairCode.setIcon(AppIcons.modePairCode(requireContext()));
         buttonModeQr.setIcon(AppIcons.modeQr(requireContext()));
+        buttonModeDirect.setIcon(AppIcons.modeDirect(requireContext()));
 
         buttonModeUsb.setOnClickListener(v -> enterUsbStep());
         view.findViewById(R.id.buttonModePairCode).setOnClickListener(v -> showStep(STEP_PAIR));
         view.findViewById(R.id.buttonModeQr).setOnClickListener(v -> enterQrStep());
+        buttonModeDirect.setOnClickListener(v -> showStep(STEP_DIRECT));
 
         view.findViewById(R.id.buttonUsbBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
         view.findViewById(R.id.buttonUsbDone).setOnClickListener(v -> dismiss());
         view.findViewById(R.id.buttonPairBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
         view.findViewById(R.id.buttonQrBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
+        view.findViewById(R.id.buttonDirectBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
 
         buttonPairSubmit.setOnClickListener(v -> submitPairCode());
         view.findViewById(R.id.buttonQrRefresh).setOnClickListener(v -> loadQrSession());
         buttonQrConfirm.setOnClickListener(v -> submitQrPairing());
+        buttonDirectSubmit.setOnClickListener(v -> submitDirectConnect());
     }
 
     private void enterUsbStep() {
@@ -182,6 +198,7 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         stepUsb.setVisibility(nextStep == STEP_USB ? View.VISIBLE : View.GONE);
         stepPairCode.setVisibility(nextStep == STEP_PAIR ? View.VISIBLE : View.GONE);
         stepQr.setVisibility(nextStep == STEP_QR ? View.VISIBLE : View.GONE);
+        stepDirect.setVisibility(nextStep == STEP_DIRECT ? View.VISIBLE : View.GONE);
 
         if (nextStep == STEP_PLATFORMS) {
             textSheetTitle.setText(R.string.add_device_title);
@@ -193,6 +210,10 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
             textSheetTitle.setText(R.string.add_device_pair_title);
             textSheetDesc.setText(R.string.add_device_pair_desc);
             textPairResult.setVisibility(View.GONE);
+        } else if (nextStep == STEP_DIRECT) {
+            textSheetTitle.setText(R.string.add_device_direct_title);
+            textSheetDesc.setText(R.string.add_device_direct_desc);
+            textDirectResult.setVisibility(View.GONE);
         } else {
             textSheetTitle.setText(R.string.add_device_qr_title);
             textSheetDesc.setText(R.string.add_device_pair_desc);
@@ -250,6 +271,83 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
             }
             usbDeviceList.addView(row);
         }
+    }
+
+    private void submitDirectConnect() {
+        ServerEndpoint endpoint = readServerEndpoint();
+        if (endpoint == null) {
+            return;
+        }
+        String host = valueOf(editDirectHost);
+        String portText = valueOf(editDirectPort);
+        if (host.isEmpty() || portText.isEmpty()) {
+            textDirectResult.setVisibility(View.VISIBLE);
+            textDirectResult.setText(R.string.add_device_direct_invalid);
+            return;
+        }
+        int devicePort;
+        try {
+            devicePort = Integer.parseInt(portText);
+        } catch (NumberFormatException error) {
+            textDirectResult.setVisibility(View.VISIBLE);
+            textDirectResult.setText(R.string.add_device_direct_invalid);
+            return;
+        }
+        buttonDirectSubmit.setEnabled(false);
+        Context appContext = requireContext().getApplicationContext();
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject result = CloudPhoneApiClient.connectDevice(
+                        appContext,
+                        endpoint.host,
+                        endpoint.port,
+                        host,
+                        devicePort
+                );
+                String message = formatDirectConnectMessage(result);
+                boolean success = result.optBoolean("success", false);
+                mainHandler.post(() -> {
+                    buttonDirectSubmit.setEnabled(true);
+                    textDirectResult.setVisibility(View.VISIBLE);
+                    textDirectResult.setText(message);
+                    if (success) {
+                        requestDevicesRefresh();
+                        dismiss();
+                    }
+                });
+            } catch (Exception error) {
+                mainHandler.post(() -> {
+                    buttonDirectSubmit.setEnabled(true);
+                    textDirectResult.setVisibility(View.VISIBLE);
+                    textDirectResult.setText(error.getMessage());
+                });
+            }
+        });
+    }
+
+    private String formatDirectConnectMessage(JSONObject result) {
+        boolean success = result.optBoolean("success", false);
+        JSONObject connect = result.optJSONObject("connect");
+        String connectText = connect != null
+                ? connect.optString("connectedEndpoint", connect.optString("message", ""))
+                : result.optString("message", "");
+        if (connect != null) {
+            org.json.JSONArray attempts = connect.optJSONArray("attempts");
+            if (attempts != null) {
+                for (int index = 0; index < attempts.length(); index += 1) {
+                    JSONObject attempt = attempts.optJSONObject(index);
+                    if (attempt != null && attempt.optBoolean("ok", false)) {
+                        String output = attempt.optString("output", "");
+                        if (!output.isEmpty()) {
+                            connectText = output;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        int label = success ? R.string.add_device_connect_success : R.string.add_device_connect_failed;
+        return getString(label) + "：" + connectText;
     }
 
     private void submitPairCode() {

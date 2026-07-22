@@ -113,8 +113,9 @@ export async function pairDeviceWithCode(host, port, pairingCode) {
   });
 }
 
-export async function connectDeviceByHost(host, preferredPort) {
-  return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort), {
+export async function connectDeviceByHost(host, preferredPort, options = {}) {
+  const scanPorts = options.scanPorts !== false;
+  return runWithAdbLock(async () => connectDeviceByHostUnsafe(host, preferredPort, { scanPorts }), {
     lockKey: host,
   });
 }
@@ -217,8 +218,9 @@ async function pairDeviceWithCodeUnsafe(host, port, pairingCode) {
   }
 }
 
-async function connectDeviceByHostUnsafe(host, preferredPort) {
-  const candidates = buildConnectPortCandidates(preferredPort);
+async function connectDeviceByHostUnsafe(host, preferredPort, options = {}) {
+  const scanPorts = options.scanPorts !== false;
+  const candidates = buildConnectPortCandidates(preferredPort, { scanPorts });
   const attempts = [];
   let connectedEndpoint = null;
 
@@ -227,7 +229,7 @@ async function connectDeviceByHostUnsafe(host, preferredPort) {
 
     try {
       const { stdout = "", stderr = "" } = await runAdb(["connect", endpoint], {
-        timeout: 4_000,
+        timeout: scanPorts ? 4_000 : 8_000,
       });
       const output = `${stdout}\n${stderr}`.trim();
       const ok = /connected to|already connected to/i.test(output);
@@ -235,7 +237,15 @@ async function connectDeviceByHostUnsafe(host, preferredPort) {
 
       if (ok) {
         connectedEndpoint = endpoint;
-        break;
+        if (!scanPorts) {
+          break;
+        }
+
+        const listed = await listDevicesUnsafe();
+        const matchedNow = listed.devices.find((item) => item.serial === endpoint);
+        if (matchedNow?.connected) {
+          break;
+        }
       }
     } catch (error) {
       attempts.push({
@@ -249,11 +259,11 @@ async function connectDeviceByHostUnsafe(host, preferredPort) {
   const listed = await listDevicesUnsafe();
   const matched =
     listed.devices.find((item) => item.serial === connectedEndpoint) ||
-    listed.devices.find((item) => item.serial?.startsWith(`${host}:`)) ||
+    listed.devices.find((item) => item.serial?.startsWith(`${host}:`) && item.connected) ||
     null;
 
   return {
-    success: Boolean(matched && matched.connected),
+    success: Boolean(matched?.connected),
     connectedEndpoint: matched?.serial ?? connectedEndpoint,
     device: matched,
     attempts,
@@ -317,9 +327,18 @@ async function pairDeviceByQrServiceUnsafe(serviceName, pairingCode) {
   };
 }
 
-function buildConnectPortCandidates(preferredPort) {
-  const ports = new Set([5555]);
+function buildConnectPortCandidates(preferredPort, options = {}) {
   const base = Number(preferredPort);
+
+  if (options.scanPorts === false) {
+    if (Number.isFinite(base) && base >= 1024 && base <= 65535) {
+      return [base];
+    }
+
+    return [5555];
+  }
+
+  const ports = new Set([5555]);
 
   if (Number.isFinite(base) && base > 0) {
     for (let delta = -20; delta <= 20; delta += 1) {

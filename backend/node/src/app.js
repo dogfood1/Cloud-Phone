@@ -308,6 +308,44 @@ export function createApp() {
       return;
     }
 
+    if (method === "POST" && pathname === "/api/devices/connect") {
+      try {
+        const body = await readProtectedJsonBody(req, res);
+        const host = String(body.host ?? "").trim();
+        const port = Number(body.port);
+
+        if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) {
+          sendProtectedJson(res, 400, {
+            success: false,
+            version: APP_VERSION,
+            error: "invalid_connect_payload",
+            message: "host and port are required.",
+          });
+          return;
+        }
+
+        const connectResult = await connectDeviceByHost(host, port, { scanPorts: false });
+
+        sendProtectedJson(res, connectResult.success ? 200 : 400, {
+          success: connectResult.success,
+          version: APP_VERSION,
+          connect: connectResult,
+          message: connectResult.success
+            ? undefined
+            : connectResult.attempts?.find((item) => !item.ok)?.output ||
+              "adb connect failed.",
+        });
+      } catch (error) {
+        sendProtectedJson(res, 500, {
+          success: false,
+          version: APP_VERSION,
+          error: "connect_failed",
+          message: error instanceof Error ? error.message : "Unknown error.",
+        });
+      }
+      return;
+    }
+
     if (method === "POST" && pathname === "/api/devices/pair-code") {
       try {
         const body = await readProtectedJsonBody(req, res);

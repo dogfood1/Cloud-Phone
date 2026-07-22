@@ -173,15 +173,17 @@ async function handleDisconnectDevice() {
       <span>{{ t("devices.connectHint") }}</span>
     </div>
 
-    <div v-else-if="devices.length" class="device-gallery">
-      <DeviceCard
-        v-for="device in devices"
-        :key="device.serial"
-        :device="device"
-        :screenshot-url="screenshotUrl(device.serial)"
-        @open="emit('open-device', $event)"
-        @contextmenu="openContextMenu"
-      />
+    <div v-else-if="devices.length" class="devices-view__gallery-wrap">
+      <div class="device-gallery">
+        <DeviceCard
+          v-for="device in devices"
+          :key="device.serial"
+          :device="device"
+          :screenshot-url="screenshotUrl(device.serial)"
+          @open="emit('open-device', $event)"
+          @contextmenu="openContextMenu"
+        />
+      </div>
     </div>
 
     <DeviceGalleryContextMenu

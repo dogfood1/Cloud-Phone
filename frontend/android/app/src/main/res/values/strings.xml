@@ -76,6 +76,16 @@
     <string name="add_device_mode_usb">USB 连接</string>
     <string name="add_device_mode_pair_code">配对码连接</string>
     <string name="add_device_mode_qr">二维码连接</string>
+    <string name="add_device_mode_direct">直接连接</string>
+    <string name="add_device_direct_title">安卓 · 直接连接</string>
+    <string name="add_device_direct_desc">输入 IP 与 ADB 端口，通过 adb connect 连接（适用于 ReDroid、模拟器等）</string>
+    <string name="add_device_direct_steps_title">连接步骤</string>
+    <string name="add_device_direct_steps">1. 确认目标已暴露 ADB TCP 端口（ReDroid 默认 5555）\n2. 输入 IP 与端口\n3. 点击连接，成功后设备会出现在画廊</string>
+    <string name="add_device_direct_ip">设备 IP</string>
+    <string name="add_device_direct_port">ADB 端口</string>
+    <string name="add_device_direct_port_default">5555</string>
+    <string name="add_device_direct_submit">连接</string>
+    <string name="add_device_direct_invalid">请填写完整的 IP 和端口</string>
     <string name="add_device_usb_title">安卓 · USB 连接</string>
     <string name="add_device_usb_desc">请用数据线连接手机并允许 USB 调试授权</string>
     <string name="add_device_usb_summary">检测到 %1$d 台设备：%2$d 已连接，%3$d 待认证</string>

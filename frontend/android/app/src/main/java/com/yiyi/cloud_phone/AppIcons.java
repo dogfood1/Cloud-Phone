@@ -82,6 +82,10 @@ final class AppIcons {
         return drawable(context, "cmd_qrcode", R.color.auth_text_primary, 20);
     }
 
+    static IconicsDrawable modeDirect(Context context) {
+        return drawable(context, "cmd_lan_connect", R.color.auth_text_primary, 20);
+    }
+
     static IconicsDrawable back(Context context) {
         return drawable(context, "cmd_arrow_left", R.color.auth_text_primary, 24);
     }
