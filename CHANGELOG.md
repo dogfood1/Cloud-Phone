@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 - 2026-07-22
+
+- **Web / 应用图标服务**：开始菜单与应用管理首次询问是否安装极小 Icon Helper；拒绝两次后不再弹窗；设置 → 账号可改为「询问 / 始终允许 / 不安装」
+- **Android**：新增 `backend/source/android` Icon Helper（`com.cloudphone.iconhelper`），提取名称/图标到 `Android/data`；预编译 APK 位于 `backend/bin/android/`
+- **后端**：`/api/devices/:serial/icon-helper/{status,ensure,extract,progress}`；图标改为从 helper 拉取并缓存，拒绝安装时仅返回包名
+
 ## 1.6.0 - 2026-07-22
 
 - **Web / 登录**：新增「记住密码」；启动与会话失效时自动尝试记住的密码；密码变更或验证失败则清除记忆并回到登录页

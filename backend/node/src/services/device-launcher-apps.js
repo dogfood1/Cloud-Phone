@@ -1,11 +1,11 @@
 import { runAdb } from "./adb-command.js";
 import { runWithAdbLock } from "./adb-lock.js";
-import { fetchScrcpyAppLabels } from "./device-apps-scrcpy-labels.js";
 import {
   getCachedAppIcon,
   loadMissingAppIcons,
   warmupMissingAppIcons,
 } from "./device-app-icons.js";
+import { getCachedHelperApps } from "./icon-helper-extract.js";
 
 /** @type {Map<string, { expires: number, apps: Array<{ packageName: string, activity: string, label: string }> }>} */
 const launcherCache = new Map();
@@ -13,7 +13,7 @@ const CACHE_TTL_MS = 60_000;
 
 /**
  * @param {string} serial
- * @param {{ light?: boolean }} [options]
+ * @param {{ light?: boolean, packageNamesOnly?: boolean }} [options]
  * @returns {Promise<Array<{
  *   packageName: string,
  *   activity: string,
@@ -23,34 +23,60 @@ const CACHE_TTL_MS = 60_000;
  */
 export async function listLauncherApps(serial, options = {}) {
   const light = Boolean(options.light);
-  const apps = await resolveLauncherApps(serial);
+  const packageNamesOnly = Boolean(options.packageNamesOnly);
+  const apps = await resolveLauncherApps(serial, { packageNamesOnly });
   const packages = apps.map((item) => item.packageName);
 
-  if (light) {
-    warmupMissingAppIcons(serial, packages, 6);
-  } else {
-    await loadMissingAppIcons(serial, packages);
+  if (!packageNamesOnly) {
+    if (light) {
+      warmupMissingAppIcons(serial, packages, 6);
+    } else {
+      await loadMissingAppIcons(serial, packages);
+    }
   }
 
   return apps.map((item) => ({
     ...item,
-    iconDataUrl: getCachedAppIcon(serial, item.packageName),
+    iconDataUrl: packageNamesOnly ? null : getCachedAppIcon(serial, item.packageName),
   }));
 }
 
 /**
  * @param {string} serial
+ * @param {{ packageNamesOnly?: boolean }} [options]
  */
-async function resolveLauncherApps(serial) {
-  const cached = launcherCache.get(serial);
+async function resolveLauncherApps(serial, options = {}) {
+  const packageNamesOnly = Boolean(options.packageNamesOnly);
+  const cacheKey = `${serial}::${packageNamesOnly ? "pkg" : "full"}`;
+  const cached = launcherCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.apps;
   }
 
-  const [entries, labels] = await Promise.all([
-    runWithAdbLock(() => queryLauncherActivities(serial), { lockKey: serial }),
-    fetchScrcpyAppLabels(serial).catch(() => new Map()),
-  ]);
+  const helperApps = !packageNamesOnly ? getCachedHelperApps(serial) : null;
+  if (helperApps?.length) {
+    const apps = helperApps
+      .map((item) => ({
+        packageName: item.packageName,
+        activity: item.activity,
+        label: item.label || item.packageName,
+      }))
+      .sort(
+        (a, b) =>
+          a.label.localeCompare(b.label, "zh-CN") ||
+          a.packageName.localeCompare(b.packageName),
+      );
+
+    launcherCache.set(cacheKey, {
+      expires: Date.now() + CACHE_TTL_MS,
+      apps,
+    });
+    return apps;
+  }
+
+  const entries = await runWithAdbLock(() => queryLauncherActivities(serial), {
+    lockKey: serial,
+  });
 
   const byPackage = new Map();
   for (const entry of entries) {
@@ -61,15 +87,15 @@ async function resolveLauncherApps(serial) {
     byPackage.set(entry.packageName, {
       packageName: entry.packageName,
       activity: entry.activity,
-      label: labels.get(entry.packageName)?.label ?? entry.packageName,
+      label: entry.packageName,
     });
   }
 
   const apps = [...byPackage.values()].sort((a, b) =>
-    a.label.localeCompare(b.label, "zh-CN") || a.packageName.localeCompare(b.packageName),
+    a.packageName.localeCompare(b.packageName),
   );
 
-  launcherCache.set(serial, {
+  launcherCache.set(cacheKey, {
     expires: Date.now() + CACHE_TTL_MS,
     apps,
   });

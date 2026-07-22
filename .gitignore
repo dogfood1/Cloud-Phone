@@ -16,6 +16,10 @@ coverage/
 backend/node/data/
 backend/source/scrcpy/build/
 backend/source/scrcpy/.gradle/
+backend/source/android/.gradle/
+backend/source/android/build/
+backend/source/android/app/build/
+backend/source/android/local.properties
 backend/bin/scrcpy/**/*
 !backend/bin/scrcpy/**/
 !backend/bin/scrcpy/**/.gitkeep

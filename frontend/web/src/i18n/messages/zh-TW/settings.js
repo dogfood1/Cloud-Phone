@@ -12,7 +12,7 @@ export default {
     sections: {
       account: {
         title: "帳號",
-        desc: "檢視目前工作階段狀態，或修改登入密碼。",
+        desc: "檢視目前工作階段狀態、修改登入密碼，或設定應用圖示服務安裝偏好。",
         changePassword: "修改密碼",
       },
       appearance: {
@@ -34,5 +34,11 @@ export default {
     savedFeedback: "裝置列表每 {device} 秒、截圖每 {screenshot} 秒更新。",
     passwordStatus: "密碼狀態",
     sessionExpiry: "工作階段到期",
+    iconHelper: "應用圖示服務",
+    iconHelperHint:
+      "開始功能表與應用管理需要安裝極小服務應用以取得圖示與名稱。選擇「詢問」時拒絕兩次後不再彈窗；可隨時在此變更。",
+    iconHelperAsk: "詢問（預設）",
+    iconHelperAllow: "一律允許安裝",
+    iconHelperNever: "不安裝（僅套件名稱）",
   },
 };

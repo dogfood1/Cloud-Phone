@@ -18,9 +18,10 @@ export async function handleDeviceLauncherAppsRoute(req, res, method, pathname, 
 
   const serial = decodeURIComponent(match[1]);
   const light = url?.searchParams?.get("light") === "1";
+  const packageNamesOnly = url?.searchParams?.get("packageNamesOnly") === "1";
 
   try {
-    const apps = await listLauncherApps(serial, { light });
+    const apps = await listLauncherApps(serial, { light, packageNamesOnly });
     sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,

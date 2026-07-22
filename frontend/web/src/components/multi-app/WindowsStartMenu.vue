@@ -1,7 +1,10 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Icon } from "@iconify/vue";
 
+import IconHelperGatePanel from "../IconHelperGatePanel.vue";
+import { useIconHelperGate } from "../../composables/useIconHelperGate.js";
 import { fetchDeviceLauncherApps } from "../../utils/device-launcher-apps-api.js";
 import { getErrorMessage } from "../../utils/api.js";
 
@@ -16,17 +19,44 @@ const props = defineProps({
   },
 });
 
+const { t } = useI18n();
+const {
+  consentDialogOpen,
+  phase,
+  progress,
+  progressPercent,
+  packageNamesOnly,
+  answerConsent,
+  prepareIconHelper,
+} = useIconHelperGate();
+
 const searchQuery = ref("");
 const apps = ref([]);
 const loading = ref(false);
 const errorMessage = ref("");
 const hasLoadedOnce = ref(false);
+const gateBusy = ref(false);
 
 let inFlight = false;
 let loadGeneration = 0;
 
 const normalizedQuery = computed(() => searchQuery.value.trim().toLowerCase());
 const isSearching = computed(() => normalizedQuery.value.length > 0);
+const showDeniedHint = computed(
+  () => packageNamesOnly.value && hasLoadedOnce.value && !gateBusy.value,
+);
+const progressLabel = computed(() => {
+  if (phase.value === "ensuring") {
+    return t("iconHelper.installing");
+  }
+  if (progress.value.phase === "running") {
+    return t("iconHelper.extractingProgress", {
+      done: progress.value.done,
+      total: progress.value.total || "?",
+    });
+  }
+  return t("iconHelper.extracting");
+});
 
 const filteredApps = computed(() => {
   if (!isSearching.value) {
@@ -45,7 +75,7 @@ watch(
   () => [props.active, props.serial],
   ([isActive]) => {
     if (isActive && props.serial) {
-      void loadApps({ initial: !hasLoadedOnce.value });
+      void bootstrapAndLoad();
       return;
     }
 
@@ -60,7 +90,27 @@ onBeforeUnmount(() => {
   loadGeneration += 1;
 });
 
-async function loadApps({ initial = false } = {}) {
+async function bootstrapAndLoad() {
+  if (!props.serial || gateBusy.value) {
+    return;
+  }
+
+  gateBusy.value = true;
+  loading.value = !hasLoadedOnce.value;
+
+  try {
+    const result = await prepareIconHelper(props.serial);
+    await loadApps({
+      initial: !hasLoadedOnce.value,
+      packageNamesOnly: result.packageNamesOnly,
+    });
+  } finally {
+    gateBusy.value = false;
+    loading.value = false;
+  }
+}
+
+async function loadApps({ initial = false, packageNamesOnly: namesOnly = false } = {}) {
   if (!props.serial || inFlight) {
     return;
   }
@@ -74,7 +124,8 @@ async function loadApps({ initial = false } = {}) {
 
   try {
     const rows = await fetchDeviceLauncherApps(props.serial, {
-      light: hasLoadedOnce.value && !initial,
+      light: hasLoadedOnce.value && !initial && !namesOnly,
+      packageNamesOnly: namesOnly,
     });
 
     if (generation !== loadGeneration) {
@@ -84,14 +135,6 @@ async function loadApps({ initial = false } = {}) {
     apps.value = mergeAppIcons(apps.value, rows);
     errorMessage.value = "";
     hasLoadedOnce.value = true;
-
-    if (rows.some((item) => !item.iconDataUrl)) {
-      window.setTimeout(() => {
-        if (props.active) {
-          void loadApps({ initial: false });
-        }
-      }, 1200);
-    }
   } catch (error) {
     if (generation !== loadGeneration) {
       return;
@@ -100,7 +143,7 @@ async function loadApps({ initial = false } = {}) {
     if (!hasLoadedOnce.value) {
       apps.value = [];
     }
-    errorMessage.value = getErrorMessage(error) || "无法加载应用列表";
+    errorMessage.value = getErrorMessage(error) || t("iconHelper.loadFailed");
   } finally {
     if (generation === loadGeneration) {
       loading.value = false;
@@ -126,61 +169,80 @@ function initialsFor(app) {
   const source = app.label || app.packageName || "?";
   return String(source).trim().slice(0, 1).toUpperCase();
 }
+
+function displayName(app) {
+  return packageNamesOnly.value ? app.packageName : app.label || app.packageName;
+}
 </script>
 
 <template>
   <div class="win11-start-menu">
+    <IconHelperGatePanel
+      :consent-open="consentDialogOpen"
+      :busy="gateBusy"
+      :progress-percent="progressPercent"
+      :progress-label="progressLabel"
+      :current-package="progress.current"
+      :denied-hint="showDeniedHint"
+      @allow="answerConsent(true)"
+      @deny="answerConsent(false)"
+    />
+
     <div class="win11-start-menu__search">
       <Icon icon="lucide:search" class="win11-start-menu__search-icon" :width="16" :height="16" />
       <input
         v-model="searchQuery"
         class="win11-start-menu__search-input"
         type="search"
-        placeholder="搜索应用"
+        :placeholder="t('iconHelper.searchApps')"
         autocomplete="off"
         spellcheck="false"
       />
     </div>
 
     <div class="win11-start-menu__body">
-      <p v-if="loading && !hasLoadedOnce" class="win11-start-menu__status">正在加载应用…</p>
+      <p v-if="loading && !hasLoadedOnce && !gateBusy" class="win11-start-menu__status">
+        {{ t("iconHelper.loadingApps") }}
+      </p>
       <p v-else-if="errorMessage && !apps.length" class="win11-start-menu__status is-error">
         {{ errorMessage }}
       </p>
       <p v-else-if="isSearching && !filteredApps.length" class="win11-start-menu__status">
-        未找到匹配的应用
+        {{ t("iconHelper.noMatch") }}
       </p>
-      <p v-else-if="!filteredApps.length" class="win11-start-menu__status">暂无可用应用</p>
+      <p v-else-if="!filteredApps.length && !gateBusy && !loading" class="win11-start-menu__status">
+        {{ t("iconHelper.emptyApps") }}
+      </p>
 
-      <ul v-else-if="isSearching" class="win11-start-menu__search-list">
+      <ul v-else-if="isSearching && filteredApps.length" class="win11-start-menu__search-list">
         <li v-for="app in filteredApps" :key="`${app.packageName}:${app.activity}`">
           <button type="button" class="win11-start-menu__search-item">
             <span class="win11-start-menu__search-icon-wrap" aria-hidden="true">
-              <img v-if="app.iconDataUrl" :src="app.iconDataUrl" alt="" />
+              <img v-if="app.iconDataUrl && !packageNamesOnly" :src="app.iconDataUrl" alt="" />
               <span v-else>{{ initialsFor(app) }}</span>
             </span>
             <span class="win11-start-menu__search-text">
-              <strong>{{ app.label }}</strong>
-              <small>应用</small>
+              <strong>{{ displayName(app) }}</strong>
+              <small>{{ t("iconHelper.appKind") }}</small>
             </span>
           </button>
         </li>
       </ul>
 
-      <template v-else>
+      <template v-else-if="filteredApps.length">
         <div class="win11-start-menu__grid">
           <button
             v-for="app in filteredApps"
             :key="`${app.packageName}:${app.activity}`"
             type="button"
             class="win11-start-menu__app"
-            :title="app.label"
+            :title="displayName(app)"
           >
             <span class="win11-start-menu__app-icon" aria-hidden="true">
-              <img v-if="app.iconDataUrl" :src="app.iconDataUrl" alt="" />
+              <img v-if="app.iconDataUrl && !packageNamesOnly" :src="app.iconDataUrl" alt="" />
               <span v-else>{{ initialsFor(app) }}</span>
             </span>
-            <span class="win11-start-menu__app-name">{{ app.label }}</span>
+            <span class="win11-start-menu__app-name">{{ displayName(app) }}</span>
           </button>
         </div>
       </template>

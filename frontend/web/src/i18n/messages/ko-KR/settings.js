@@ -12,7 +12,7 @@ export default {
     sections: {
       account: {
         title: "계정",
-        desc: "세션 상태를 확인하거나 로그인 비밀번호를 변경합니다.",
+        desc: "세션 상태 확인, 로그인 비밀번호 변경, 앱 아이콘 도우미 설치 설정을 관리합니다.",
         changePassword: "비밀번호 변경",
       },
       appearance: {
@@ -35,5 +35,11 @@ export default {
     savedFeedback: "목록 {device}초, 스크린샷 {screenshot}초마다 새로고침합니다.",
     passwordStatus: "비밀번호 상태",
     sessionExpiry: "세션 만료",
+    iconHelper: "앱 아이콘 도우미",
+    iconHelperHint:
+      "시작 메뉴와 앱 관리에서 아이콘·이름을 가져오려면 작은 서비스 앱이 필요합니다. 「묻기」에서 두 번 거절하면 더 이상 표시되지 않으며, 여기서 언제든 변경할 수 있습니다.",
+    iconHelperAsk: "묻기(기본)",
+    iconHelperAllow: "항상 설치 허용",
+    iconHelperNever: "설치 안 함(패키지 이름만)",
   },
 };

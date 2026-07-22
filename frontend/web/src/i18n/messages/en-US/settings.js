@@ -12,7 +12,7 @@ export default {
     sections: {
       account: {
         title: "Account",
-        desc: "View session status or change your login password.",
+        desc: "View session status, change your login password, or configure the app-icon helper install preference.",
         changePassword: "Change password",
       },
       appearance: {
@@ -35,5 +35,11 @@ export default {
     savedFeedback: "Device list every {device}s, screenshots every {screenshot}s.",
     passwordStatus: "Password status",
     sessionExpiry: "Session expires",
+    iconHelper: "App icon helper",
+    iconHelperHint:
+      "Start menu and Apps manager need a tiny helper app for icons and names. With Ask, two refusals stop the prompt; change anytime here.",
+    iconHelperAsk: "Ask (default)",
+    iconHelperAllow: "Always allow install",
+    iconHelperNever: "Do not install (package names only)",
   },
 };

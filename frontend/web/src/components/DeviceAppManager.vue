@@ -1,10 +1,14 @@
 <script setup>
-import { watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import AppIcon from "./AppIcon.vue";
+import DeviceAppManagerDialogs from "./DeviceAppManagerDialogs.vue";
+import IconHelperGatePanel from "./IconHelperGatePanel.vue";
 import PanelAlert from "./ui/PanelAlert.vue";
 import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { useDeviceAppManager } from "../composables/useDeviceAppManager.js";
+import { useIconHelperGate } from "../composables/useIconHelperGate.js";
 
 const props = defineProps({
   device: {
@@ -18,6 +22,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "open-files"]);
+const { t } = useI18n();
 
 const {
   listLoading,
@@ -36,7 +41,6 @@ const {
   filteredApps,
   selectedPackage,
   loadList,
-  selectApp,
   openDetail,
   closeDetail,
   handleClose,
@@ -50,7 +54,35 @@ const {
   onInstallFile,
 } = useDeviceAppManager(props, emit);
 
+const {
+  consentDialogOpen,
+  phase,
+  progress,
+  progressPercent,
+  packageNamesOnly,
+  answerConsent,
+  prepareIconHelper,
+} = useIconHelperGate();
+
+const gateBusy = ref(false);
 const feedback = useAppFeedback();
+
+const progressLabel = computed(() => {
+  if (phase.value === "ensuring") {
+    return t("iconHelper.installing");
+  }
+  if (progress.value.phase === "running") {
+    return t("iconHelper.extractingProgress", {
+      done: progress.value.done,
+      total: progress.value.total || "?",
+    });
+  }
+  return t("iconHelper.extracting");
+});
+
+const showDeniedHint = computed(
+  () => props.open && packageNamesOnly.value && !gateBusy.value && !listLoading.value,
+);
 
 watch(actionHint, (message) => {
   if (message) {
@@ -63,6 +95,23 @@ watch(listError, (message) => {
     feedback.error(message);
   }
 });
+
+watch(
+  () => [props.open, props.device?.serial],
+  async ([isOpen]) => {
+    if (!isOpen || !props.device?.serial) {
+      return;
+    }
+
+    gateBusy.value = true;
+    try {
+      const result = await prepareIconHelper(props.device.serial);
+      await loadList({ packageNamesOnly: result.packageNamesOnly });
+    } finally {
+      gateBusy.value = false;
+    }
+  },
+);
 </script>
 
 <template>
@@ -109,8 +158,8 @@ watch(listError, (message) => {
               type="button"
               class="device-apps__nav-btn"
               title="刷新列表"
-              :disabled="listLoading"
-              @click="loadList"
+              :disabled="listLoading || gateBusy"
+              @click="loadList({ packageNamesOnly })"
             >
               <AppIcon name="refresh" />
             </button>
@@ -119,6 +168,17 @@ watch(listError, (message) => {
             </button>
           </div>
         </header>
+
+        <IconHelperGatePanel
+          :consent-open="consentDialogOpen"
+          :busy="gateBusy"
+          :progress-percent="progressPercent"
+          :progress-label="progressLabel"
+          :current-package="progress.current"
+          :denied-hint="showDeniedHint"
+          @allow="answerConsent(true)"
+          @deny="answerConsent(false)"
+        />
 
         <div class="device-apps__search">
           <label class="visually-hidden" for="device-apps-q">搜索包名</label>
@@ -161,8 +221,12 @@ watch(listError, (message) => {
                   @click="openDetail(row)"
                 >
                   <span class="device-apps__row-text">
-                    <span class="device-apps__name">{{ row.label || "—" }}</span>
-                    <span class="device-apps__pkg">{{ row.packageName }}</span>
+                    <span class="device-apps__name">{{
+                      packageNamesOnly ? row.packageName : row.label || "—"
+                    }}</span>
+                    <span v-if="!packageNamesOnly" class="device-apps__pkg">{{
+                      row.packageName
+                    }}</span>
                     <span class="device-apps__badges">
                       <span v-if="row.system" class="device-apps__badge">系统</span>
                       <span v-if="!row.enabled" class="device-apps__badge device-apps__badge--warn"
@@ -176,141 +240,24 @@ watch(listError, (message) => {
           </div>
         </div>
 
-        <div
-          v-if="detailOpen"
-          class="device-apps__detail-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label="应用详情"
-          @click="closeDetail"
-        >
-          <div class="device-apps__detail-card" @click.stop>
-            <header class="device-apps__detail-header">
-              <div class="device-apps__detail-headings">
-                <h4 class="device-apps__detail-title">{{ detail?.label ?? selectedPackage }}</h4>
-                <p class="device-apps__detail-sub">{{ selectedPackage }}</p>
-              </div>
-              <button type="button" class="device-files__close" title="关闭" @click="closeDetail">
-                ×
-              </button>
-            </header>
-
-            <div class="device-apps__detail-body" aria-live="polite">
-              <p v-if="detailLoading" class="device-files__status">正在读取详情…</p>
-              <p
-                v-else-if="detailError"
-                class="device-files__status device-files__status--error"
-              >
-                {{ detailError }}
-              </p>
-              <div v-else-if="detail" class="device-apps__detail-inner">
-                <dl class="device-apps__dl">
-                  <div>
-                    <dt>包名</dt>
-                    <dd>{{ detail.packageName }}</dd>
-                  </div>
-                  <div v-if="detail.versionName || detail.versionCode">
-                    <dt>版本</dt>
-                    <dd>
-                      {{ detail.versionName || "—" }}
-                      <span v-if="detail.versionCode" class="device-apps__muted"
-                        >({{ detail.versionCode }})</span
-                      >
-                    </dd>
-                  </div>
-                  <div v-if="detail.targetSdkVersion || detail.minSdkVersion">
-                    <dt>SDK</dt>
-                    <dd>
-                      target {{ detail.targetSdkVersion || "—" }} / min
-                      {{ detail.minSdkVersion || "—" }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>状态</dt>
-                    <dd>{{ detail.enabled ? "已启用" : "已冻结（用户）" }}</dd>
-                  </div>
-                  <div v-if="detail.dataDir">
-                    <dt>数据目录</dt>
-                    <dd class="device-apps__mono">{{ detail.dataDir }}</dd>
-                  </div>
-                  <div v-if="detail.codePath">
-                    <dt>安装路径</dt>
-                    <dd class="device-apps__mono">{{ detail.codePath }}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div class="device-apps__detail-btns">
-                <button
-                  type="button"
-                  class="device-apps__btn"
-                  :disabled="actionBusy || detail?.system"
-                  :title="detail?.system ? '不建议卸载系统应用' : ''"
-                  @click="requestUninstall"
-                >
-                  卸载…
-                </button>
-                <button
-                  type="button"
-                  class="device-apps__btn"
-                  :disabled="actionBusy"
-                  @click="handleFreezeToggle"
-                >
-                  {{ detail?.enabled ? "冻结" : "解冻" }}
-                </button>
-                <button
-                  type="button"
-                  class="device-apps__btn"
-                  :disabled="actionBusy"
-                  @click="handleExtractApk"
-                >
-                  提取 APK
-                </button>
-                <button
-                  type="button"
-                  class="device-apps__btn"
-                  :disabled="!detail?.dataDir"
-                  @click="handleOpenDataDir"
-                >
-                  打开 data 目录
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-if="uninstallTarget"
-          class="device-apps__confirm"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="apps-uninstall-title"
-        >
-          <div class="device-apps__confirm-card" @click.stop>
-            <h4 id="apps-uninstall-title">确认卸载</h4>
-            <p>
-              将卸载「{{ uninstallTarget.label }}」（{{ uninstallTarget.packageName }}），此操作不可撤销。
-            </p>
-            <div class="device-apps__confirm-actions">
-              <button
-                type="button"
-                class="device-apps__btn"
-                :disabled="actionBusy"
-                @click="uninstallTarget = null"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                class="device-apps__btn device-apps__btn--danger"
-                :disabled="actionBusy"
-                @click="confirmUninstall"
-              >
-                确认卸载
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeviceAppManagerDialogs
+          :detail-open="detailOpen"
+          :detail="detail"
+          :detail-loading="detailLoading"
+          :detail-error="detailError"
+          :selected-package="selectedPackage"
+          :selected="selected"
+          :action-busy="actionBusy"
+          :package-names-only="packageNamesOnly"
+          :uninstall-target="uninstallTarget"
+          @close-detail="closeDetail"
+          @request-uninstall="requestUninstall"
+          @freeze-toggle="handleFreezeToggle"
+          @extract-apk="handleExtractApk"
+          @open-data-dir="handleOpenDataDir"
+          @cancel-uninstall="uninstallTarget = null"
+          @confirm-uninstall="confirmUninstall"
+        />
       </section>
     </div>
   </Teleport>

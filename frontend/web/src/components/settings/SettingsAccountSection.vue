@@ -1,9 +1,15 @@
 <script setup>
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { NTag } from "naive-ui";
+import { NSelect, NTag } from "naive-ui";
 
+import HelpHint from "../ui/HelpHint.vue";
 import UiButton from "../ui/UiButton.vue";
 import { formatDate } from "../../utils/format-date.js";
+import {
+  getIconHelperPreference,
+  setIconHelperPreference,
+} from "../../utils/icon-helper-consent.js";
 
 defineProps({
   passwordStatusText: {
@@ -22,6 +28,18 @@ defineProps({
 
 const emit = defineEmits(["change-password", "logout"]);
 const { t } = useI18n();
+
+const iconHelperPreference = ref(getIconHelperPreference());
+
+const iconHelperOptions = computed(() => [
+  { label: t("settings.iconHelperAsk"), value: "ask" },
+  { label: t("settings.iconHelperAllow"), value: "allow" },
+  { label: t("settings.iconHelperNever"), value: "never" },
+]);
+
+watch(iconHelperPreference, (value) => {
+  setIconHelperPreference(value);
+});
 </script>
 
 <template>
@@ -34,6 +52,25 @@ const { t } = useI18n();
       <div class="shell-form-row">
         <dt class="shell-form-row__label">{{ t("settings.sessionExpiry") }}</dt>
         <dd><NTag round size="small">{{ formatDate(sessionExpiresAt) }}</NTag></dd>
+      </div>
+      <div class="shell-form-row">
+        <dt class="shell-form-row__label">
+          <span class="form-label-row">
+            {{ t("settings.iconHelper") }}
+            <HelpHint
+              :content="t('settings.iconHelperHint')"
+              :title="t('settings.iconHelper')"
+              size="sm"
+            />
+          </span>
+        </dt>
+        <dd class="shell-form-row__control">
+          <NSelect
+            v-model:value="iconHelperPreference"
+            :options="iconHelperOptions"
+            size="small"
+          />
+        </dd>
       </div>
     </dl>
 

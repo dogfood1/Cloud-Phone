@@ -12,7 +12,7 @@ export default {
     sections: {
       account: {
         title: "アカウント",
-        desc: "セッション状態の確認、またはログインパスワードの変更。",
+        desc: "セッション状態の確認、ログインパスワードの変更、アイコン取得アプリのインストール設定。",
         changePassword: "パスワードを変更",
       },
       appearance: {
@@ -35,5 +35,11 @@ export default {
     savedFeedback: "一覧 {device} 秒、スクリーンショット {screenshot} 秒ごとに更新します。",
     passwordStatus: "パスワード状態",
     sessionExpiry: "セッション期限",
+    iconHelper: "アプリアイコンサービス",
+    iconHelperHint:
+      "スタートメニューとアプリ管理では、アイコンと名前取得のため極小サービスアプリが必要です。「確認する」では 2 回拒否すると再表示しません。ここからいつでも変更できます。",
+    iconHelperAsk: "確認する（既定）",
+    iconHelperAllow: "常にインストールを許可",
+    iconHelperNever: "インストールしない（パッケージ名のみ）",
   },
 };

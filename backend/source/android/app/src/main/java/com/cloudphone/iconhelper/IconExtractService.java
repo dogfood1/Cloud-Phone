@@ -1,0 +1,281 @@
+package com.cloudphone.iconhelper;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.Service;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.os.IBinder;
+import android.os.Handler;
+import android.os.HandlerThread;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Extracts launcher app labels/icons into the app's Android/data files directory.
+ *
+ * Writes:
+ * - progress.json
+ * - apps.json
+ * - icons/&lt;packageName&gt;.png
+ */
+public final class IconExtractService extends Service {
+  public static final String ACTION_EXTRACT = "com.cloudphone.iconhelper.EXTRACT";
+
+  private static final String CHANNEL_ID = "icon_extract";
+  private static final int NOTIFICATION_ID = 1001;
+  private static final int ICON_SIZE_PX = 96;
+
+  private HandlerThread workerThread;
+  private Handler workerHandler;
+  private boolean running;
+
+  @Override
+  public void onCreate() {
+    super.onCreate();
+    ensureChannel();
+    workerThread = new HandlerThread("icon-extract");
+    workerThread.start();
+    workerHandler = new Handler(workerThread.getLooper());
+  }
+
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
+    startForeground(NOTIFICATION_ID, buildNotification("Starting…"));
+    if (!running) {
+      running = true;
+      workerHandler.post(this::runExtract);
+    }
+    return START_NOT_STICKY;
+  }
+
+  @Override
+  public IBinder onBind(Intent intent) {
+    return null;
+  }
+
+  @Override
+  public void onDestroy() {
+    if (workerThread != null) {
+      workerThread.quitSafely();
+      workerThread = null;
+    }
+    super.onDestroy();
+  }
+
+  private void runExtract() {
+    File root = getExternalFilesDir(null);
+    if (root == null) {
+      writeProgress(null, "error", 0, 0, "", "external files dir unavailable");
+      stopSelfSafely();
+      return;
+    }
+
+    File iconsDir = new File(root, "icons");
+    //noinspection ResultOfMethodCallIgnored
+    iconsDir.mkdirs();
+
+    try {
+      List<LauncherApp> apps = queryLauncherApps();
+      writeProgress(root, "running", apps.size(), 0, "", "extracting");
+
+      JSONArray appsJson = new JSONArray();
+      int done = 0;
+
+      for (LauncherApp app : apps) {
+        updateNotification("Extracting " + app.label + " (" + (done + 1) + "/" + apps.size() + ")");
+        writeProgress(root, "running", apps.size(), done, app.packageName, app.label);
+
+        String iconRel = "icons/" + app.packageName + ".png";
+        File iconFile = new File(root, iconRel);
+        boolean wroteIcon = writeIconPng(app.icon, iconFile);
+
+        JSONObject row = new JSONObject();
+        row.put("packageName", app.packageName);
+        row.put("activity", app.activity);
+        row.put("label", app.label);
+        row.put("iconFile", wroteIcon ? iconRel : JSONObject.NULL);
+        appsJson.put(row);
+
+        done += 1;
+        writeProgress(root, "running", apps.size(), done, app.packageName, app.label);
+      }
+
+      writeText(new File(root, "apps.json"), appsJson.toString());
+      writeProgress(root, "done", apps.size(), done, "", "complete");
+      updateNotification("Done (" + done + ")");
+    } catch (Exception error) {
+      writeProgress(root, "error", 0, 0, "", String.valueOf(error.getMessage()));
+    } finally {
+      stopSelfSafely();
+    }
+  }
+
+  private List<LauncherApp> queryLauncherApps() {
+    PackageManager pm = getPackageManager();
+    Intent intent = new Intent(Intent.ACTION_MAIN);
+    intent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+    List<ResolveInfo> resolved = pm.queryIntentActivities(intent, 0);
+    Map<String, LauncherApp> byPackage = new LinkedHashMap<>();
+
+    for (ResolveInfo info : resolved) {
+      if (info.activityInfo == null || info.activityInfo.packageName == null) {
+        continue;
+      }
+
+      String packageName = info.activityInfo.packageName;
+      if (byPackage.containsKey(packageName)) {
+        continue;
+      }
+
+      String activity = info.activityInfo.name;
+      CharSequence labelCs = info.loadLabel(pm);
+      String label = labelCs != null ? labelCs.toString() : packageName;
+      Drawable icon = info.loadIcon(pm);
+      if (icon == null) {
+        try {
+          ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+          icon = pm.getApplicationIcon(appInfo);
+        } catch (PackageManager.NameNotFoundException ignored) {
+          icon = null;
+        }
+      }
+
+      byPackage.put(packageName, new LauncherApp(packageName, activity, label, icon));
+    }
+
+    return new ArrayList<>(byPackage.values());
+  }
+
+  private boolean writeIconPng(Drawable drawable, File outFile) {
+    if (drawable == null) {
+      return false;
+    }
+
+    try {
+      Bitmap bitmap = Bitmap.createBitmap(ICON_SIZE_PX, ICON_SIZE_PX, Bitmap.Config.ARGB_8888);
+      Canvas canvas = new Canvas(bitmap);
+      drawable.setBounds(0, 0, ICON_SIZE_PX, ICON_SIZE_PX);
+      drawable.draw(canvas);
+
+      try (FileOutputStream fos = new FileOutputStream(outFile)) {
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+      }
+      bitmap.recycle();
+      return true;
+    } catch (Exception ignored) {
+      return false;
+    }
+  }
+
+  private void writeProgress(
+      File root,
+      String phase,
+      int total,
+      int done,
+      String current,
+      String message
+  ) {
+    if (root == null) {
+      return;
+    }
+
+    try {
+      JSONObject json = new JSONObject();
+      json.put("phase", phase);
+      json.put("total", total);
+      json.put("done", done);
+      json.put("current", current == null ? "" : current);
+      json.put("message", message == null ? "" : message);
+      writeText(new File(root, "progress.json"), json.toString());
+    } catch (Exception ignored) {
+      // ignore write failures
+    }
+  }
+
+  private static void writeText(File file, String text) throws Exception {
+    File parent = file.getParentFile();
+    if (parent != null) {
+      //noinspection ResultOfMethodCallIgnored
+      parent.mkdirs();
+    }
+    try (FileOutputStream fos = new FileOutputStream(file)) {
+      fos.write(text.getBytes(StandardCharsets.UTF_8));
+    }
+  }
+
+  private void ensureChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+      return;
+    }
+    NotificationManager nm = getSystemService(NotificationManager.class);
+    if (nm == null) {
+      return;
+    }
+    NotificationChannel channel = new NotificationChannel(
+        CHANNEL_ID,
+        getString(R.string.notification_channel),
+        NotificationManager.IMPORTANCE_LOW
+    );
+    nm.createNotificationChannel(channel);
+  }
+
+  private Notification buildNotification(String content) {
+    Notification.Builder builder;
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      builder = new Notification.Builder(this, CHANNEL_ID);
+    } else {
+      builder = new Notification.Builder(this);
+    }
+    return builder
+        .setContentTitle(getString(R.string.notification_title))
+        .setContentText(content)
+        .setSmallIcon(android.R.drawable.stat_sys_download)
+        .setOngoing(true)
+        .build();
+  }
+
+  private void updateNotification(String content) {
+    NotificationManager nm = getSystemService(NotificationManager.class);
+    if (nm != null) {
+      nm.notify(NOTIFICATION_ID, buildNotification(content));
+    }
+  }
+
+  private void stopSelfSafely() {
+    running = false;
+    stopForeground(true);
+    stopSelf();
+  }
+
+  private static final class LauncherApp {
+    final String packageName;
+    final String activity;
+    final String label;
+    final Drawable icon;
+
+    LauncherApp(String packageName, String activity, String label, Drawable icon) {
+      this.packageName = packageName;
+      this.activity = activity;
+      this.label = label;
+      this.icon = icon;
+    }
+  }
+}

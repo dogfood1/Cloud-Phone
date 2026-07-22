@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.6.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.7.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -72,7 +72,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
-- **Multi-app cast**: new cast mode hides the left settings pane and fills the workspace with a Windows-style desktop; Win11 taskbar and Start menu (search + app grid from device launchers); Quick Settings controls Wi-Fi / Bluetooth / Airplane mode and volume / brightness; notification center polls device notifications every second while open
+- **Multi-app cast**: new cast mode hides the left settings pane and fills the workspace with a Windows-style desktop; Win11 taskbar and Start menu (search + app grid from device launchers); Quick Settings controls Wi-Fi / Bluetooth / Airplane mode and volume / brightness; notification center polls device notifications every second while open; app icons/names come from an optional Icon Helper APK (prompt on first use; change anytime in Settings)
 - **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; place `wda.ipa` in `backend/bin/wda/` for the Windows sign/install wizard, or use Mac `iproxy` + `ios-wda-bridge.mjs` for LAN bridge; browser cast with nav keys
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing

@@ -50,8 +50,9 @@ export function useDeviceAppManager(props, emit) {
 
   const selectedPackage = computed(() => selected.value?.packageName ?? null);
 
-  async function loadList() {
+  async function loadList(options = {}) {
     const serial = deviceRef.value?.serial;
+    const namesOnly = Boolean(options.packageNamesOnly);
 
     if (!serial) {
       listError.value = "设备序列号无效";
@@ -62,7 +63,10 @@ export function useDeviceAppManager(props, emit) {
     listError.value = "";
 
     try {
-      apps.value = await fetchDeviceApps(serial);
+      const rows = await fetchDeviceApps(serial);
+      apps.value = namesOnly
+        ? rows.map((row) => ({ ...row, label: row.packageName }))
+        : rows;
     } catch (error) {
       listError.value = getErrorMessage(error, "读取应用列表失败");
       apps.value = [];
@@ -264,7 +268,6 @@ export function useDeviceAppManager(props, emit) {
       detailError.value = "";
       actionHint.value = "";
       uninstallTarget.value = null;
-      void loadList();
     }
   });
 

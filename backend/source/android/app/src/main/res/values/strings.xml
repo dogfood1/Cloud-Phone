@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cloud Phone Icon Helper</string>
+    <string name="notification_channel">icon_extract</string>
+    <string name="notification_title">Extracting app icons</string>
+</resources>
