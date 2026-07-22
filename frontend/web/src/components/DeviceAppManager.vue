@@ -1,5 +1,9 @@
 <script setup>
+import { watch } from "vue";
+
 import AppIcon from "./AppIcon.vue";
+import PanelAlert from "./ui/PanelAlert.vue";
+import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { useDeviceAppManager } from "../composables/useDeviceAppManager.js";
 
 const props = defineProps({
@@ -45,6 +49,20 @@ const {
   triggerInstallPick,
   onInstallFile,
 } = useDeviceAppManager(props, emit);
+
+const feedback = useAppFeedback();
+
+watch(actionHint, (message) => {
+  if (message) {
+    feedback.info(message);
+  }
+});
+
+watch(listError, (message) => {
+  if (message) {
+    feedback.error(message);
+  }
+});
 </script>
 
 <template>
@@ -114,7 +132,7 @@ const {
           />
         </div>
 
-        <p v-if="actionHint" class="device-apps__hint">{{ actionHint }}</p>
+        <PanelAlert v-if="listError" type="error" :message="listError" />
 
         <div v-if="listLoading" class="device-apps__progress" role="status">
           <div class="device-apps__progress-row">
@@ -133,9 +151,6 @@ const {
         <div class="device-apps__body">
           <div class="device-apps__list-wrap">
             <p v-if="listLoading" class="device-files__status">正在加载应用…</p>
-            <p v-else-if="listError" class="device-files__status device-files__status--error">
-              {{ listError }}
-            </p>
             <p v-else-if="!filteredApps.length" class="device-files__status">无匹配应用</p>
             <ul v-else class="device-apps__list" role="list">
               <li v-for="row in filteredApps" :key="row.packageName">

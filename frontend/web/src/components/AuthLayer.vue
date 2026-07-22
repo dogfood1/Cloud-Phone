@@ -1,8 +1,12 @@
 <script setup>
+import { computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
+
+import AppIcon from "./AppIcon.vue";
 import AuthLoginModal from "./AuthLoginModal.vue";
 import AuthPasswordModal from "./AuthPasswordModal.vue";
-import { computed } from "vue";
-import { useI18n } from "vue-i18n";
+import ThemeToggle from "./ThemeToggle.vue";
+import { useAppFeedback } from "../composables/useAppFeedback.js";
 
 const props = defineProps({
   showLoginModal: {
@@ -25,76 +29,100 @@ const props = defineProps({
 
 const emit = defineEmits(["login", "change-password"]);
 const { t } = useI18n();
+const feedback = useAppFeedback();
 
-const securityStepState = computed(() => {
-  if (props.state.passwordConfigured) {
-    return t("auth.passwordUpdated");
-  }
+const activeStep = computed(() => (props.showPasswordChangeModal ? 2 : 1));
 
-  if (props.showPasswordChangeModal) {
-    return t("auth.defaultVerified");
-  }
+const stepItems = computed(() => [
+  { id: 1, label: t("auth.enterConsole") },
+  { id: 2, label: t("auth.changeTitleVoluntary") },
+]);
 
-  return t("auth.passwordDefault");
-});
+watch(
+  () => props.state.loginFeedback,
+  (message) => {
+    if (message) {
+      feedback.error(message);
+    }
+  },
+);
 
-const loginStepState = computed(() => {
-  if (props.state.authenticated) {
-    return t("auth.enteredConsole");
-  }
-
-  if (props.showPasswordChangeModal) {
-    return t("auth.defaultVerified");
-  }
-
-  return props.state.sessionStateText || t("auth.sessionChecking");
-});
+watch(
+  () => props.state.changeFeedback,
+  (message) => {
+    if (message) {
+      feedback.error(message);
+    }
+  },
+);
 </script>
 
 <template>
-  <div class="modal-layer modal-layer--auth">
-    <div class="auth-stage">
-      <aside class="auth-stage__aside">
-        <p class="eyebrow">{{ t("auth.loginEyebrow") }}</p>
-        <h1 class="auth-stage__title">{{ t("auth.loginTitle") }}</h1>
-        <p class="auth-stage__desc">{{ t("auth.loginIntro") }}</p>
-
-        <div class="auth-stage__cards">
-          <article class="auth-stage__card">
-            <h3>{{ t("auth.changeTitle") }}</h3>
-            <p>{{ t("auth.changeIntro") }}</p>
-          </article>
-          <article class="auth-stage__card auth-stage__card--hint">
-            <h3>{{ t("auth.defaultPasswordHint") }}</h3>
-            <p>{{ state.sessionStateText || t("auth.sessionChecking") }}</p>
-          </article>
+  <div class="auth-page">
+    <div class="auth-page__layout">
+      <aside class="auth-page__aside">
+        <div class="auth-page__brand">
+          <div class="auth-page__brand-icon">
+            <AppIcon name="phone" />
+          </div>
+          <div class="auth-page__brand-text">
+            <strong>Cloud Phone</strong>
+            <span>{{ t("sidebar.brandTitle") }}</span>
+          </div>
         </div>
 
-        <ol class="auth-stage__steps" aria-label="auth workflow">
-          <li class="auth-stage__step">
-            <strong>{{ t("auth.enterConsole") }}</strong>
-            <span>{{ loginStepState }}</span>
-          </li>
-          <li class="auth-stage__step">
-            <strong>{{ t("auth.changeTitleVoluntary") }}</strong>
-            <span>{{ securityStepState }}</span>
-          </li>
-        </ol>
+        <div>
+          <h1 class="auth-page__aside-title">{{ t("auth.loginTitle") }}</h1>
+          <p class="auth-page__aside-desc">{{ t("auth.loginIntro") }}</p>
+        </div>
+
+        <ul class="auth-page__features">
+          <li class="auth-page__feature">{{ t("auth.defaultPasswordHint") }}</li>
+          <li class="auth-page__feature">{{ t("auth.changeIntroVoluntary") }}</li>
+        </ul>
       </aside>
 
-      <div class="auth-stage__panel">
-        <AuthLoginModal
-          v-if="showLoginModal"
-          :state="state"
-          @submit="emit('login')"
-        />
-        <AuthPasswordModal
-          v-else-if="showPasswordChangeModal"
-          :state="state"
-          :mode="passwordChangeMode"
-          @submit="emit('change-password')"
-        />
-      </div>
+      <section class="auth-card-shell">
+        <header class="auth-card-shell__bar">
+          <div class="auth-card-shell__brand-mobile">
+            <div class="auth-page__brand-icon">
+              <AppIcon name="phone" />
+            </div>
+            <div>
+              <strong>Cloud Phone</strong>
+              <span>{{ t("sidebar.brandTitle") }}</span>
+            </div>
+          </div>
+          <div class="auth-card-shell__theme">
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <div class="auth-card-shell__steps" :aria-label="t('auth.loginEyebrow')">
+          <div
+            v-for="step in stepItems"
+            :key="step.id"
+            class="auth-card-shell__step"
+            :class="{
+              'auth-card-shell__step--active': activeStep === step.id,
+              'auth-card-shell__step--done': activeStep > step.id,
+            }"
+          >
+            <span class="auth-card-shell__step-track" />
+            <span class="auth-card-shell__step-label">{{ step.label }}</span>
+          </div>
+        </div>
+
+        <div class="auth-card-shell__body">
+          <AuthLoginModal v-if="showLoginModal" :state="state" @submit="emit('login')" />
+          <AuthPasswordModal
+            v-else-if="showPasswordChangeModal"
+            :state="state"
+            :mode="passwordChangeMode"
+            @submit="emit('change-password')"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </template>

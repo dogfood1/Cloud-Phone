@@ -19,6 +19,7 @@ import { buildGroupControlCastOptions } from "../utils/group-control-cast-option
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 
 import GroupControlDevicePreview from "./GroupControlDevicePreview.vue";
+import UiButton from "./ui/UiButton.vue";
 
 
 
@@ -620,11 +621,9 @@ onBeforeUnmount(() => {
 
             <p>{{ displayError }}</p>
 
-            <button type="button" class="ghost-button" @click.stop="startGroupCast">
-
+            <UiButton variant="ghost" size="small" @click.stop="startGroupCast">
               {{ t("common.retry") }}
-
-            </button>
+            </UiButton>
 
           </div>
 

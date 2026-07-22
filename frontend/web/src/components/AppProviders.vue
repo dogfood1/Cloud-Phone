@@ -8,11 +8,13 @@ import { naiveThemeOverrides } from "../utils/naive-theme.js";
 const { theme } = useTheme();
 
 const naiveTheme = computed(() => (theme.value === "dark" ? darkTheme : lightTheme));
+
+const messagePlacement = "top";
 </script>
 
 <template>
   <NConfigProvider :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
-    <NMessageProvider>
+    <NMessageProvider :placement="messagePlacement" :max="4" keep-alive-on-hover>
       <slot />
     </NMessageProvider>
   </NConfigProvider>

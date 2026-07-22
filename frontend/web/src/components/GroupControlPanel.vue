@@ -11,6 +11,9 @@ import "../assets/group-control.css";
 import { useGroupControlBatch } from "../composables/useGroupControlBatch.js";
 
 import AppIcon from "./AppIcon.vue";
+import PageHeader from "./ui/PageHeader.vue";
+import PanelAlert from "./ui/PanelAlert.vue";
+import UiButton from "./ui/UiButton.vue";
 
 import GroupControlActionBar from "./GroupControlActionBar.vue";
 
@@ -640,63 +643,34 @@ watch(activeSerials, (serials) => {
 
   <section class="group-control-view">
 
-    <header class="panel-header">
-
-      <div>
-
-        <p class="eyebrow">{{ t("groupControl.eyebrow") }}</p>
-
-        <h2>{{ t("groupControl.title") }}</h2>
-
-        <p class="panel-header__desc">{{ t("groupControl.desc") }}</p>
-
-      </div>
-
-      <div class="panel-header__actions panel-header__actions--row group-control-toolbar">
-
+    <PageHeader
+      :eyebrow="t('groupControl.eyebrow')"
+      :title="t('groupControl.title')"
+      :help="t('groupControl.desc')"
+    >
+      <template #actions>
         <span v-if="gridDevices.length" class="status-pill">
-
           {{ t("groupControl.deviceCount", { count: activeSerials.length }) }}
-
         </span>
-
         <template v-if="gridDevices.length">
-
-          <button type="button" class="ghost-button" @click="selectAllActive">
-
+          <UiButton variant="ghost" size="small" @click="selectAllActive">
             {{ t("groupControl.selectAll") }}
-
-          </button>
-
-          <button type="button" class="ghost-button" @click="deselectAllActive">
-
+          </UiButton>
+          <UiButton variant="ghost" size="small" @click="deselectAllActive">
             {{ t("groupControl.deselectAll") }}
-
-          </button>
-
+          </UiButton>
         </template>
-
         <button
-
           type="button"
-
           class="panel-header__add-device"
-
           :aria-label="t('groupControl.addDevice')"
-
           :title="t('groupControl.addDevice')"
-
           @click="showPicker = true"
-
         >
-
           <AppIcon name="plus" />
-
         </button>
-
-      </div>
-
-    </header>
+      </template>
+    </PageHeader>
 
 
 
@@ -720,17 +694,13 @@ watch(activeSerials, (serials) => {
 
 
 
-    <p v-if="error" class="feedback panel-feedback">
-
-      {{ error }}
-
-      <button type="button" class="feedback__retry" @click="emit('refresh')">
-
-        {{ t("common.retry") }}
-
-      </button>
-
-    </p>
+    <PanelAlert
+      v-if="error"
+      type="error"
+      :message="error"
+      :action-label="t('common.retry')"
+      @action="emit('refresh')"
+    />
 
 
 

@@ -1,11 +1,14 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AddDeviceModal from "./AddDeviceModal.vue";
 import AppIcon from "./AppIcon.vue";
 import DeviceCard from "./DeviceCard.vue";
 import DeviceGalleryContextMenu from "./DeviceGalleryContextMenu.vue";
+import PageHeader from "./ui/PageHeader.vue";
+import PanelAlert from "./ui/PanelAlert.vue";
+import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { getErrorMessage } from "../utils/api.js";
 import { disconnectWirelessDevice } from "../utils/devices-api.js";
 import { formatRefreshTime, summarizeDevices } from "../utils/device-format.js";
@@ -41,6 +44,7 @@ const props = defineProps({
 const emit = defineEmits(["refresh", "open-device"]);
 
 const { t } = useI18n();
+const feedback = useAppFeedback();
 const showAddDeviceModal = ref(false);
 const contextMenu = ref(null);
 const actionFeedback = ref("");
@@ -63,6 +67,12 @@ const statusText = computed(() => {
     online: summary.value.online,
     total: summary.value.total,
   });
+});
+
+watch(actionFeedback, (message) => {
+  if (message) {
+    feedback.info(message);
+  }
 });
 
 function openContextMenu(payload) {
@@ -124,16 +134,13 @@ async function handleDisconnectDevice() {
 
 <template>
   <section class="devices-view">
-    <header class="panel-header">
-      <div>
-        <p class="eyebrow">{{ t("devices.eyebrow") }}</p>
-        <h2>{{ t("devices.title") }}</h2>
-        <p class="panel-header__desc">{{ t("devices.desc") }}</p>
-      </div>
-      <div class="panel-header__actions panel-header__actions--row">
-        <span class="panel-header__refresh-time">
-          {{ t("devices.lastUpdate", { time: refreshLabel }) }}
-        </span>
+    <PageHeader
+      :eyebrow="t('devices.eyebrow')"
+      :title="t('devices.title')"
+      :help="t('devices.desc')"
+      :meta="t('devices.lastUpdate', { time: refreshLabel })"
+    >
+      <template #actions>
         <span class="status-pill">{{ statusText }}</span>
         <button
           type="button"
@@ -144,25 +151,22 @@ async function handleDisconnectDevice() {
         >
           <AppIcon name="plus" />
         </button>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <div v-if="summary.offline > 0" class="devices-toolbar">
-      <p v-if="summary.offline > 0" class="devices-toolbar__hint">
-        {{ t("devices.offlineHint", { count: summary.offline }) }}
-      </p>
-    </div>
+    <PanelAlert
+      v-if="error"
+      type="error"
+      :message="error"
+      :action-label="t('common.retry')"
+      @action="handleRefreshDevices"
+    />
 
-    <p v-if="error" class="feedback panel-feedback">
-      {{ error }}
-      <button type="button" class="feedback__retry" @click="handleRefreshDevices">
-        {{ t("common.retry") }}
-      </button>
-    </p>
-
-    <p v-if="actionFeedback" class="feedback panel-feedback panel-feedback--info">
-      {{ actionFeedback }}
-    </p>
+    <PanelAlert
+      v-if="summary.offline > 0"
+      type="warning"
+      :message="t('devices.offlineHint', { count: summary.offline })"
+    />
 
     <div v-if="showEmptyState" class="empty-state">
       <p>{{ t("devices.notFound") }}</p>

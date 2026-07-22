@@ -4,6 +4,8 @@ import { useI18n } from "vue-i18n";
 import { NButton, NInput, NPopconfirm } from "naive-ui";
 
 import "../assets/logs-page.css";
+import PageHeader from "./ui/PageHeader.vue";
+import ShellSegmentTabs from "./ui/ShellSegmentTabs.vue";
 import { useAppEventLog } from "../composables/useAppEventLog.js";
 
 const { t } = useI18n();
@@ -22,19 +24,19 @@ const {
   formatDetails,
 } = useAppEventLog();
 
-const levelOptions = computed(() => [
-  { id: "all", label: t("logs.levelAll"), count: levelCounts.value.all },
+const levelTabs = computed(() => [
+  { name: "all", label: t("logs.levelAll"), count: levelCounts.value.all },
   ...logLevels.map((level) => ({
-    id: level,
+    name: level,
     label: t(`logs.level${level.charAt(0).toUpperCase()}${level.slice(1)}`),
     count: levelCounts.value[level],
   })),
 ]);
 
-const categoryOptions = computed(() => [
-  { id: "all", label: t("logs.categoryAll") },
+const categoryTabs = computed(() => [
+  { name: "all", label: t("logs.categoryAll") },
   ...logCategories.map((category) => ({
-    id: category,
+    name: category,
     label: t(`logs.categories.${category}`),
   })),
 ]);
@@ -48,22 +50,19 @@ const emptyMessage = computed(() =>
 
 <template>
   <section class="logs-page">
-    <header class="panel-header">
-      <div>
-        <p class="eyebrow">{{ t("logs.eyebrow") }}</p>
-        <h2>{{ t("logs.title") }}</h2>
-        <p class="panel-header__desc">{{ t("logs.desc") }}</p>
-      </div>
-      <div class="panel-header__actions">
-        <span class="panel-header__meta">{{ t("logs.count", { count: filteredEntries.length }) }}</span>
-      </div>
-    </header>
+    <PageHeader
+      :eyebrow="t('logs.eyebrow')"
+      :title="t('logs.title')"
+      :help="t('logs.desc')"
+      :meta="t('logs.count', { count: filteredEntries.length })"
+    />
 
     <div class="logs-page__toolbar">
       <NInput
         v-model:value="searchQuery"
         class="logs-page__search"
         clearable
+        size="small"
         :placeholder="t('logs.searchPlaceholder')"
       />
       <NPopconfirm @positive-click="clearLog">
@@ -74,33 +73,8 @@ const emptyMessage = computed(() =>
       </NPopconfirm>
     </div>
 
-    <div class="logs-page__filters">
-      <div class="logs-page__filter-group" role="group" :aria-label="t('logs.title')">
-        <button
-          v-for="option in levelOptions"
-          :key="option.id"
-          type="button"
-          class="logs-page__filter-btn"
-          :class="{ 'logs-page__filter-btn--active': activeLevel === option.id }"
-          @click="activeLevel = option.id"
-        >
-          <span>{{ option.label }}</span>
-          <span class="logs-page__filter-count">{{ option.count }}</span>
-        </button>
-      </div>
-      <div class="logs-page__filter-group">
-        <button
-          v-for="option in categoryOptions"
-          :key="option.id"
-          type="button"
-          class="logs-page__filter-btn"
-          :class="{ 'logs-page__filter-btn--active': activeCategory === option.id }"
-          @click="activeCategory = option.id"
-        >
-          {{ option.label }}
-        </button>
-      </div>
-    </div>
+    <ShellSegmentTabs v-model="activeLevel" :tabs="levelTabs" :aria-label="t('logs.title')" />
+    <ShellSegmentTabs v-model="activeCategory" :tabs="categoryTabs" class="shell-segment-tabs--compact" />
 
     <div v-if="filteredEntries.length" class="logs-page__list">
       <article

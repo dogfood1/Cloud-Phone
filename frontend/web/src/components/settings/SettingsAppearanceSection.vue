@@ -1,45 +1,40 @@
 <script setup>
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { NSelect } from "naive-ui";
 
+import HelpHint from "../ui/HelpHint.vue";
 import ThemeToggle from "../ThemeToggle.vue";
 import { useLocale } from "../../composables/useLocale.js";
 
 const { t } = useI18n();
 const { locale, localeOptions } = useLocale();
+
+const languageOptions = computed(() =>
+  localeOptions.map((item) => ({ label: item.label, value: item.code })),
+);
 </script>
 
 <template>
-  <div class="settings-section">
-    <h3 class="settings-section__title">{{ t("settings.sections.appearance.title") }}</h3>
-    <p class="settings-section__desc">{{ t("settings.sections.appearance.desc") }}</p>
-
-    <dl class="settings-rows">
-      <div class="settings-row">
-        <dt class="settings-row__label">{{ t("settings.language") }}</dt>
-        <dd class="settings-row__control">
-          <label class="field field--compact">
-            <span class="sr-only">{{ t("settings.language") }}</span>
-            <div class="field__control">
-              <select
-                v-model="locale"
-                class="field__select"
-                :aria-label="t('settings.language')"
-              >
-                <option v-for="item in localeOptions" :key="item.code" :value="item.code">
-                  {{ item.label }}
-                </option>
-              </select>
-            </div>
-          </label>
+  <div class="settings-section shell-panel-content">
+    <dl class="shell-form-rows">
+      <div class="shell-form-row">
+        <dt class="shell-form-row__label">
+          <span class="form-label-row">
+            {{ t("settings.language") }}
+            <HelpHint :content="t('settings.languageHint')" :title="t('settings.language')" size="sm" />
+          </span>
+        </dt>
+        <dd class="shell-form-row__control">
+          <NSelect v-model:value="locale" :options="languageOptions" size="small" />
         </dd>
       </div>
-      <div class="settings-row settings-row--stack">
-        <dt class="settings-row__label">{{ t("settings.sections.appearance.theme") }}</dt>
-        <dd class="settings-row__control">
+      <div class="shell-form-row shell-form-row--stack">
+        <dt class="shell-form-row__label">{{ t("settings.sections.appearance.theme") }}</dt>
+        <dd class="shell-form-row__control">
           <ThemeToggle />
         </dd>
       </div>
     </dl>
-    <p class="settings-form__hint">{{ t("settings.languageHint") }}</p>
   </div>
 </template>

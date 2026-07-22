@@ -1,6 +1,8 @@
 <script setup>
-import { NAlert, NFormItem, NSpace } from "naive-ui";
+import { watch } from "vue";
+import { NFormItem, NSpace } from "naive-ui";
 
+import HelpHint from "../ui/HelpHint.vue";
 import MirrorSettingHelp from "./MirrorSettingHelp.vue";
 
 defineProps({
@@ -25,18 +27,10 @@ defineProps({
 </script>
 
 <template>
-  <NAlert
-    v-if="variant === 'banner'"
-    type="info"
-    :bordered="false"
-    :show-icon="false"
-    style="margin: 0 0 0.35rem"
-  >
-    <NSpace justify="space-between" align="flex-start" :size="8">
-      <span>{{ label }}</span>
-      <MirrorSettingHelp v-if="help" :text="help" />
-    </NSpace>
-  </NAlert>
+  <div v-if="variant === 'banner'" class="mirror-setting-banner">
+    <span>{{ label }}</span>
+    <HelpHint v-if="help" :content="help" :title="label" size="sm" />
+  </div>
 
   <NFormItem
     v-else-if="variant === 'checkbox'"

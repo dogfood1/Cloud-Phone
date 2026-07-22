@@ -1,27 +1,18 @@
 <script setup>
-import { NButton, NTooltip } from "naive-ui";
+import HelpHint from "../ui/HelpHint.vue";
 
 defineProps({
   text: {
     type: String,
     required: true,
   },
+  title: {
+    type: String,
+    default: "",
+  },
 });
 </script>
 
 <template>
-  <NTooltip trigger="hover" :style="{ maxWidth: '18rem' }">
-    <template #trigger>
-      <NButton
-        circle
-        quaternary
-        size="tiny"
-        :aria-label="`说明：${text}`"
-        style="flex-shrink: 0"
-      >
-        ?
-      </NButton>
-    </template>
-    {{ text }}
-  </NTooltip>
+  <HelpHint :content="text" :title="title || text" size="sm" />
 </template>

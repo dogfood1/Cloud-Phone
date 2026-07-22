@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.16.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.0.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -66,11 +66,11 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **不投屏也能干活** | 文件管理、应用管理、ADB 终端、画廊截屏——设备在线即可，不必先开 cast |
 | **多设备并发** | 后端 ADB 按设备分组锁，多台手机可同时控制；同设备多用户 WebSocket 并发，ADB 操作按设备排队 |
 | **投屏顶栏顺手** | 多任务/主屏/返回/电源/音量/旋转/剪贴板/录屏/截屏；导航键支持按住与手机同步 |
-| **交互更统一** | 常用图标迁移 Lucide 图标库，统一线稿风格；补充焦点可见态与 hover 反馈 |
+| **交互更统一** | Naive UI 外壳统一（按钮、segment tabs、表单、Toast）；Lucide 线稿图标；焦点可见态与 hover 反馈 |
+| **操作日志** | 左侧 Tab「日志」：Debug / Info / Warn / Error 分级，认证/导航/设备/投屏/串流/设置/界面分类；可搜索、筛选、展开 JSON 详情 |
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
-| **操作日志** | 左侧 Tab「日志」：Debug / Info / Warn / Error 分级，认证/导航/设备/投屏/串流/设置/界面分类；可搜索、筛选、展开 JSON 详情 |
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**；**苹果 WDA**：Windows USB 向导（签名/安装/连接），或 Mac 运行 `tools/ios-wda-bridge.mjs` 后局域网发现 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |

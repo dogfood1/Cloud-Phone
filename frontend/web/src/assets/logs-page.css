@@ -11,56 +11,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
   flex-shrink: 0;
 }
 
 .logs-page__search {
   flex: 1 1 14rem;
   min-width: 10rem;
-}
-
-.logs-page__filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
-  flex-shrink: 0;
-}
-
-.logs-page__filter-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.logs-page__filter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.logs-page__filter-btn--active {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-elevated));
-  color: var(--accent);
-}
-
-.logs-page__filter-count {
-  min-width: 1.1rem;
-  padding: 0.05rem 0.35rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 12%, transparent);
-  font-size: 0.72rem;
-  text-align: center;
 }
 
 .logs-page__list {

@@ -38,10 +38,6 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  settingsFeedback: {
-    type: String,
-    required: true,
-  },
   passwordStatusText: {
     type: String,
     required: true,
@@ -194,7 +190,6 @@ function closeMobileSidebar() {
       <SettingsPanel
         v-else-if="activeTab === 'settings'"
         :settings-form="settingsForm"
-        :settings-feedback="settingsFeedback"
         :password-status-text="passwordStatusText"
         :session-expires-at="sessionExpiresAt"
         @save="emit('save-settings')"

@@ -1809,6 +1809,10 @@ h2 {
   color: var(--text);
 }
 
+.field__control--readonly {
+  opacity: 0.85;
+}
+
 .field__toggle,
 .primary-button {
   border: 0;

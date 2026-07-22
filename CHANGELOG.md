@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 - 2026-07-22
+
+- **Web / UI 1.0**：全站 Naive UI 外壳统一 — 共享 `UiButton`、`ShellSegmentTabs`、`PageHeader`、`HelpHint`、`PanelAlert`
+- 登录/改密页重构：`NForm` + `NInput`，移动端友好布局；`AppShell` / `AppProviders` 拆分，修复 `useMessage` 无 Provider 白屏
+- 设置页统一：segment tabs + `NSelect` / `NInputNumber` / `NTag`；日志页 segment 筛选与 `NInput` 搜索
+- 群控、添加设备等弹窗按钮统一为 `UiButton`；全局 Toast 反馈（`useAppFeedback`）
+- Naive 主题扩展：Form、Input、Tabs、Tag 与 Cloud Phone CSS 变量对齐
+
 ## 0.16.0 - 2026-07-22
 
 - **Web / 操作日志**：左侧 Tab 新增「日志」页，按 Debug / Info / Warn / Error 分级，按认证、导航、设备、投屏、串流、设置、界面分类；支持搜索、筛选与展开详情

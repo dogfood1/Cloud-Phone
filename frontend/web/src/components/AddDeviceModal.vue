@@ -6,6 +6,7 @@ import { useI18n } from "vue-i18n";
 
 import "../assets/add-device-modal.css";
 import AddDeviceApplePanel from "./AddDeviceApplePanel.vue";
+import UiButton from "./ui/UiButton.vue";
 import { getErrorMessage, requestJson } from "../utils/api.js";
 
 const props = defineProps({
@@ -421,12 +422,12 @@ function backToPlatforms() {
           </div>
         </div>
         <div class="add-device-modal__usb-actions">
-          <button type="button" class="ghost-button" @click="backToPlatforms">
+          <UiButton variant="ghost" @click="backToPlatforms">
             {{ t("common.back") }}
-          </button>
-          <button type="button" class="primary-button" @click="emit('close')">
+          </UiButton>
+          <UiButton variant="primary" @click="emit('close')">
             {{ t("devices.addDeviceModal.usb.done") }}
-          </button>
+          </UiButton>
         </div>
       </div>
 
@@ -480,12 +481,12 @@ function backToPlatforms() {
         </div>
 
         <div class="add-device-modal__usb-actions">
-          <button type="button" class="ghost-button" @click="backToPlatforms">
+          <UiButton variant="ghost" @click="backToPlatforms">
             {{ t("common.back") }}
-          </button>
-          <button type="button" class="primary-button" @click="emit('close')">
+          </UiButton>
+          <UiButton variant="primary" @click="emit('close')">
             {{ t("devices.addDeviceModal.usb.done") }}
-          </button>
+          </UiButton>
         </div>
       </div>
 
@@ -530,16 +531,16 @@ function backToPlatforms() {
           </label>
 
           <div class="add-device-modal__pair-actions">
-            <button type="button" class="ghost-button" @click="backToPlatforms">
+            <UiButton variant="ghost" @click="backToPlatforms">
               {{ t("common.back") }}
-            </button>
-            <button type="submit" class="primary-button" :disabled="pairPending">
+            </UiButton>
+            <UiButton variant="primary" attr-type="submit" :disabled="pairPending">
               {{
                 pairPending
                   ? t("devices.addDeviceModal.pairCode.pairing")
                   : t("devices.addDeviceModal.pairCode.submit")
               }}
-            </button>
+            </UiButton>
           </div>
         </form>
 
@@ -590,19 +591,19 @@ function backToPlatforms() {
         </form>
 
         <div class="add-device-modal__pair-actions add-device-modal__pair-actions--full">
-          <button type="button" class="ghost-button" @click="backToPlatforms">
+          <UiButton variant="ghost" @click="backToPlatforms">
             {{ t("common.back") }}
-          </button>
-          <button type="button" class="ghost-button" :disabled="qrLoading || pairPending" @click="createQrSession">
+          </UiButton>
+          <UiButton variant="ghost" :disabled="qrLoading || pairPending" @click="createQrSession">
             {{ t("devices.addDeviceModal.qr.refresh") }}
-          </button>
-          <button type="button" class="primary-button" :disabled="pairPending" @click="submitQrPairing">
+          </UiButton>
+          <UiButton variant="primary" :disabled="pairPending" @click="submitQrPairing">
             {{
               pairPending
                 ? t("devices.addDeviceModal.pairCode.pairing")
                 : t("devices.addDeviceModal.qr.confirmScanned")
             }}
-          </button>
+          </UiButton>
         </div>
 
         <div v-if="pairResult" class="add-device-modal__pair-result">

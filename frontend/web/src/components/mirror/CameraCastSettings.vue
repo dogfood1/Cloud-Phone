@@ -1,8 +1,10 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
-import { NAlert, NButton, NCollapse, NCollapseItem, NForm, NInputNumber, NSpin, NSwitch, NText } from "naive-ui";
+import { NButton, NCollapse, NCollapseItem, NForm, NInputNumber, NSpin, NSwitch, NText } from "naive-ui";
 
+import { useAppFeedback } from "../../composables/useAppFeedback.js";
 import { useCameraCastOptions } from "../../composables/useCameraCastOptions.js";
+import PanelAlert from "../ui/PanelAlert.vue";
 import {
   CAMERA_AR_OPTIONS,
   CAMERA_FACING_OPTIONS,
@@ -49,6 +51,19 @@ const {
   videoEncoders,
   audioCodeOptions,
 } = useCameraCastOptions(() => props.serial);
+const feedback = useAppFeedback();
+
+watch(error, (message) => {
+  if (message) {
+    feedback.error(message);
+  }
+});
+
+watch(encodersError, (message) => {
+  if (message) {
+    feedback.warning(message);
+  }
+});
 
 const sdkNumber = computed(() => Number(props.deviceSdk) || 0);
 const sdkSupported = computed(() => sdkNumber.value >= CAMERA_MIN_SDK);
@@ -141,14 +156,13 @@ defineExpose({ getSettings });
 <template>
   <div class="mirror-settings">
     <NSpin :show="loading">
-      <NAlert v-if="!sdkSupported" type="warning" :bordered="false" style="margin-bottom: 8px">
-        摄像头投屏需要 Android 12（API 31）及以上，当前设备 SDK {{ sdkNumber || "未知" }}。
-      </NAlert>
-      <NAlert v-else-if="error" type="error" :bordered="false" style="margin-bottom: 8px">
-        {{ error }}
-      </NAlert>
+      <PanelAlert
+        v-if="!sdkSupported"
+        type="warning"
+        :message="`摄像头投屏需要 Android 12（API 31）及以上，当前设备 SDK ${sdkNumber || '未知'}。`"
+      />
 
-      <NCollapse v-model:expanded-names="expandedPanels">
+      <NCollapse v-else-if="!error" v-model:expanded-names="expandedPanels">
         <NCollapseItem title="摄像头" name="camera">
           <NForm size="small" :show-label="true" label-placement="left">
             <MirrorSettingRow

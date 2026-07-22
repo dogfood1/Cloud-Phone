@@ -1,11 +1,13 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { NAlert, NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
+import { NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
 import CameraCastSettings from "./mirror/CameraCastSettings.vue";
 import HarmonyCastSettings from "./mirror/HarmonyCastSettings.vue";
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
 import MirrorSearchableSelect from "./mirror/MirrorSearchableSelect.vue";
+import HelpHint from "./ui/HelpHint.vue";
+import PanelAlert from "./ui/PanelAlert.vue";
 import {
   buildCastPayloadFromCameraSettings,
   buildCastPayloadFromMirrorSettings,
@@ -29,10 +31,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  castHint: {
-    type: String,
-    default: "",
-  },
 });
 
 const emit = defineEmits(["start-cast", "stop-cast", "cast-options-change", "camera-control"]);
@@ -55,6 +53,22 @@ const canStartCast = computed(() => {
 });
 
 const startButtonLabel = computed(() => (props.castBusy ? "正在处理…" : "开始投屏"));
+
+const castHelpText = computed(() => {
+  if (!props.device.connected) {
+    return "设备未在线，无法投屏。";
+  }
+
+  if (isHarmonyDevice.value) {
+    return "请确认设备已通过 HDC 在线。";
+  }
+
+  if (isIosDevice.value) {
+    return "通过 Mac 上的 WebDriverAgent 推送 MJPEG 画面；支持触控与主屏幕/电源/音量键。";
+  }
+
+  return "网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。";
+});
 
 const modeOptions = computed(() =>
   DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
@@ -134,18 +148,21 @@ defineExpose({ stepPreviewRotationDeg });
 <template>
   <aside class="workspace-left" aria-label="投屏设置">
     <div class="workspace-left__section workspace-left__top">
-      <NForm v-if="!isJpegCastDevice" size="small" :show-feedback="false">
-        <NFormItem label="投屏模式" label-placement="top">
-          <MirrorSearchableSelect
-            v-model:value="castMode"
-            :options="modeOptions"
-            :disabled="casting || castBusy"
-          />
-        </NFormItem>
-      </NForm>
-      <NText v-else depth="2" style="font-weight: 600">
-        {{ isIosDevice ? "iOS MJPEG 投屏" : "鸿蒙 JPEG 投屏" }}
-      </NText>
+      <div class="workspace-left__top-row">
+        <NForm v-if="!isJpegCastDevice" size="small" :show-feedback="false" style="flex: 1">
+          <NFormItem label="投屏模式" label-placement="top">
+            <MirrorSearchableSelect
+              v-model:value="castMode"
+              :options="modeOptions"
+              :disabled="casting || castBusy"
+            />
+          </NFormItem>
+        </NForm>
+        <NText v-else depth="2" style="font-weight: 600">
+          {{ isIosDevice ? "iOS MJPEG 投屏" : "鸿蒙 JPEG 投屏" }}
+        </NText>
+        <HelpHint :content="castHelpText" title="投屏说明" size="sm" />
+      </div>
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
@@ -157,7 +174,7 @@ defineExpose({ stepPreviewRotationDeg });
         @settings-change="handleSettingsChange"
       />
       <div v-else-if="isIosDevice" class="workspace-left__placeholder">
-        通过 Mac 上的 WebDriverAgent 推送 MJPEG 画面；支持触控与主屏幕/电源/音量键。
+        iOS 设备通过 WDA 推送 MJPEG 画面。
       </div>
       <MirrorCastSettings
         v-else-if="castMode === 'mirror'"
@@ -181,19 +198,11 @@ defineExpose({ stepPreviewRotationDeg });
 
     <div class="workspace-left__section workspace-left__bottom">
       <NSpace vertical :size="10">
-        <NAlert v-if="castHint" type="error" :bordered="false">
-          {{ castHint }}
-        </NAlert>
-        <NAlert v-else-if="!device.connected" type="warning" :bordered="false">
-          设备未在线，无法投屏。
-        </NAlert>
-        <NText v-else depth="3" style="font-size: 0.8rem">
-          {{
-            isHarmonyDevice
-              ? "请确认设备已通过 HDC 在线。"
-              : "网页投屏只需 adb + scrcpy-server，无需双击 scrcpy.exe。"
-          }}
-        </NText>
+        <PanelAlert
+          v-if="!device.connected"
+          type="warning"
+          :message="'设备未在线，无法投屏。'"
+        />
 
         <NButton block :disabled="!casting || castBusy" @click="handleStopClick">
           取消投屏

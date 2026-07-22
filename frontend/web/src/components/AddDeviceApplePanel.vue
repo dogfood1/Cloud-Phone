@@ -4,6 +4,7 @@ import { Icon } from "@iconify/vue";
 import { useI18n } from "vue-i18n";
 
 import { getErrorMessage, requestJson } from "../utils/api.js";
+import UiButton from "./ui/UiButton.vue";
 
 const props = defineProps({
   onBack: {
@@ -340,25 +341,24 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="apple-wizard__actions">
-            <button type="button" class="ghost-button" :disabled="running" @click="props.onBack?.()">
+            <UiButton variant="ghost" :disabled="running" @click="props.onBack?.()">
               {{ t("common.back") }}
-            </button>
+            </UiButton>
             <div class="apple-wizard__actions-right">
-              <button
-                type="button"
-                class="ghost-button"
+              <UiButton
+                variant="ghost"
                 :disabled="running || loadingPrepare"
                 @click="startSkipInstallPipeline"
               >
                 {{ t("devices.addDeviceModal.apple.pipeline.skipInstallButton") }}
-              </button>
-              <button type="submit" class="primary-button" :disabled="running || loadingPrepare">
+              </UiButton>
+              <UiButton variant="primary" attr-type="submit" :disabled="running || loadingPrepare">
                 {{
                   running
                     ? t("devices.addDeviceModal.apple.pipeline.running")
                     : t("devices.addDeviceModal.apple.pipeline.start")
                 }}
-              </button>
+              </UiButton>
             </div>
           </div>
         </form>

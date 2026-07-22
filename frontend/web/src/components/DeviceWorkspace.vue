@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import AppIcon from "./AppIcon.vue";
 import DeviceAppManager from "./DeviceAppManager.vue";
@@ -19,6 +19,7 @@ import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
 import { logDebug, logError, logInfo, logWarn } from "../utils/app-event-logger.js";
+import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
 
@@ -30,6 +31,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close"]);
+
+const feedback = useAppFeedback();
 
 const isCasting = ref(false);
 const castBusy = ref(false);
@@ -82,7 +85,9 @@ const {
   castOptions,
   mirrorSettingsRef: leftPanelRef,
   onHint: (message) => {
-    castHint.value = message;
+    if (message) {
+      feedback.info(message);
+    }
   },
   onOpenFiles: () => {
     filesExplorerPath.value = null;
@@ -106,6 +111,14 @@ const {
       deviceName: props.device.displayName ?? props.device.serial,
     });
   },
+});
+
+watch(castHint, (message) => {
+  if (!message) {
+    return;
+  }
+
+  feedback.error(message);
 });
 
 const stateLabel = computed(() => getDeviceStateLabel(props.device.state));
@@ -531,7 +544,6 @@ async function handleViewportFullscreenChange(isFullscreen) {
         :device="device"
         :casting="isCasting"
         :cast-busy="castBusy"
-        :cast-hint="castHint"
         @start-cast="startCast"
         @stop-cast="stopCast"
         @cast-options-change="updateCastOptions"

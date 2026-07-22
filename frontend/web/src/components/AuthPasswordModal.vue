@@ -1,8 +1,10 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { NForm, NFormItem, NInput, NSpace } from "naive-ui";
 
-import AppIcon from "./AppIcon.vue";
+import HelpHint from "./ui/HelpHint.vue";
+import UiButton from "./ui/UiButton.vue";
 
 const props = defineProps({
   state: {
@@ -18,13 +20,9 @@ const props = defineProps({
 
 const emit = defineEmits(["submit", "cancel"]);
 
-const newPasswordVisible = ref(false);
-const confirmPasswordVisible = ref(false);
-const currentPasswordVisible = ref(false);
 const { t } = useI18n();
 
 const isVoluntary = computed(() => props.mode === "voluntary");
-const showCurrentPassword = computed(() => isVoluntary.value);
 const title = computed(() =>
   isVoluntary.value ? t("auth.changeTitleVoluntary") : t("auth.changeTitle"),
 );
@@ -41,88 +39,58 @@ const submitLabel = computed(() => {
 </script>
 
 <template>
-  <section class="auth-modal" role="dialog" aria-modal="true">
-    <div class="auth-modal__brand" aria-hidden="true">
-      <AppIcon name="shield" />
-    </div>
-    <div class="auth-modal__header auth-modal__header--plain">
-      <p class="eyebrow">{{ t("auth.changeEyebrow") }}</p>
-      <h2>{{ title }}</h2>
-    </div>
-    <p class="auth-modal__intro">{{ intro }}</p>
-    <form class="auth-form" @submit.prevent="emit('submit')">
-      <label v-if="showCurrentPassword" class="field">
-        <span>{{ t("auth.currentPassword") }}</span>
-        <div class="field__control">
-          <input
-            v-model.trim="state.currentPassword"
-            :type="currentPasswordVisible ? 'text' : 'password'"
-            :placeholder="t('auth.currentPasswordPlaceholder')"
-            autocomplete="current-password"
-            required
-          />
-          <button
-            type="button"
-            class="field__toggle"
-            @click="currentPasswordVisible = !currentPasswordVisible"
-          >
-            {{ currentPasswordVisible ? t("common.hide") : t("common.show") }}
-          </button>
-        </div>
-      </label>
-      <label class="field">
-        <span>{{ t("auth.newPassword") }}</span>
-        <div class="field__control">
-          <input
-            v-model.trim="state.nextPassword"
-            :type="newPasswordVisible ? 'text' : 'password'"
-            :placeholder="t('auth.newPasswordPlaceholder')"
-            autocomplete="new-password"
-            required
-          />
-          <button
-            type="button"
-            class="field__toggle"
-            @click="newPasswordVisible = !newPasswordVisible"
-          >
-            {{ newPasswordVisible ? t("common.hide") : t("common.show") }}
-          </button>
-        </div>
-      </label>
-      <label class="field">
-        <span>{{ t("auth.confirmPassword") }}</span>
-        <div class="field__control">
-          <input
-            v-model.trim="state.confirmPassword"
-            :type="confirmPasswordVisible ? 'text' : 'password'"
-            :placeholder="t('auth.confirmPasswordPlaceholder')"
-            autocomplete="new-password"
-            required
-          />
-          <button
-            type="button"
-            class="field__toggle"
-            @click="confirmPasswordVisible = !confirmPasswordVisible"
-          >
-            {{ confirmPasswordVisible ? t("common.hide") : t("common.show") }}
-          </button>
-        </div>
-      </label>
-      <p class="feedback">{{ state.changeFeedback }}</p>
-      <div class="auth-modal__actions">
-        <button
-          v-if="isVoluntary"
-          type="button"
-          class="ghost-button"
-          :disabled="state.changePending"
-          @click="emit('cancel')"
-        >
-          {{ t("auth.cancel") }}
-        </button>
-        <button class="primary-button" type="submit" :disabled="state.changePending">
-          {{ submitLabel }}
-        </button>
+  <section role="dialog" aria-modal="true" aria-labelledby="auth-password-title">
+    <div class="auth-card__head">
+      <p class="auth-card__eyebrow">{{ t("auth.changeEyebrow") }}</p>
+      <div class="auth-card__title-row">
+        <h2 id="auth-password-title" class="auth-card__title">{{ title }}</h2>
+        <HelpHint :content="intro" :title="title" size="sm" />
       </div>
-    </form>
+    </div>
+
+    <NForm class="auth-form" @submit.prevent="emit('submit')">
+      <NFormItem v-if="isVoluntary" :label="t('auth.currentPassword')" :show-feedback="false">
+        <NInput
+          v-model:value="state.currentPassword"
+          type="password"
+          show-password-on="click"
+          :placeholder="t('auth.currentPasswordPlaceholder')"
+          autocomplete="current-password"
+        />
+      </NFormItem>
+
+      <NFormItem :label="t('auth.newPassword')" :show-feedback="false">
+        <NInput
+          v-model:value="state.nextPassword"
+          type="password"
+          show-password-on="click"
+          :placeholder="t('auth.newPasswordPlaceholder')"
+          autocomplete="new-password"
+        />
+      </NFormItem>
+
+      <NFormItem :label="t('auth.confirmPassword')" :show-feedback="false">
+        <NInput
+          v-model:value="state.confirmPassword"
+          type="password"
+          show-password-on="click"
+          :placeholder="t('auth.confirmPasswordPlaceholder')"
+          autocomplete="new-password"
+        />
+      </NFormItem>
+
+      <NSpace :size="10" :vertical="false" justify="end" class="auth-form__actions">
+        <UiButton v-if="isVoluntary" variant="ghost" :disabled="state.changePending" @click="emit('cancel')">
+          {{ t("auth.cancel") }}
+        </UiButton>
+        <UiButton
+          variant="primary"
+          :loading="state.changePending"
+          attr-type="submit"
+        >
+          {{ submitLabel }}
+        </UiButton>
+      </NSpace>
+    </NForm>
   </section>
 </template>

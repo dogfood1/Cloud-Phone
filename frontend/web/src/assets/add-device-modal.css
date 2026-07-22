@@ -300,8 +300,7 @@
   margin-top: 0.25rem;
 }
 
-.add-device-modal__usb-actions .ghost-button,
-.add-device-modal__usb-actions .primary-button {
+.add-device-modal__usb-actions .ui-button {
   min-width: 5.5rem;
   white-space: nowrap;
 }
@@ -383,8 +382,7 @@
   margin-top: 0.35rem;
 }
 
-.add-device-modal__pair-actions--full .ghost-button,
-.add-device-modal__pair-actions--full .primary-button {
+.add-device-modal__pair-actions--full .ui-button {
   flex: 1;
   min-width: 0;
 }

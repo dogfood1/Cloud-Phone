@@ -110,7 +110,7 @@
   flex-wrap: wrap;
 }
 
-.group-control-toolbar .ghost-button {
+.group-control-toolbar .ui-button {
   min-height: 2rem;
   padding: 0.35rem 0.75rem;
   font-size: 0.82rem;
@@ -249,7 +249,7 @@
   word-break: break-word;
 }
 
-.group-control-cast__overlay .ghost-button {
+.group-control-cast__overlay .ui-button {
   min-height: 2rem;
   padding: 0.35rem 0.75rem;
   font-size: 0.82rem;

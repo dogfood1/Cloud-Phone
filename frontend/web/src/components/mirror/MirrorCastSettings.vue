@@ -1,7 +1,8 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
-import { NAlert, NCollapse, NSpin, NText } from "naive-ui";
+import { NCollapse, NSpin, NText } from "naive-ui";
 
+import { useAppFeedback } from "../../composables/useAppFeedback.js";
 import { useMirrorCastOptions } from "../../composables/useMirrorCastOptions.js";
 import { createDefaultMirrorSettings } from "../../utils/mirror-cast-defaults.js";
 import { nextPreviewRotationDeg } from "../../utils/canvas-rotation.js";
@@ -51,6 +52,19 @@ const {
   displays,
   apps,
 } = useMirrorCastOptions(() => props.serial);
+const feedback = useAppFeedback();
+
+watch(error, (message) => {
+  if (message) {
+    feedback.error(message);
+  }
+});
+
+watch(encodersError, (message) => {
+  if (message) {
+    feedback.warning(message);
+  }
+});
 
 watch(
   displays,
@@ -147,11 +161,7 @@ defineExpose({ getSettings, stepPreviewRotationDeg });
 <template>
   <div class="mirror-settings">
     <NSpin :show="loading">
-      <NAlert v-if="error" type="error" :bordered="false" style="margin-bottom: 0.5rem">
-        {{ error }}
-      </NAlert>
-
-      <template v-else>
+      <template v-if="!error">
         <div class="mirror-settings__body">
           <NCollapse v-model:expanded-names="expandedPanels">
             <MirrorCastVideoSection

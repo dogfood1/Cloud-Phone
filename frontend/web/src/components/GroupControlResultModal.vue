@@ -1,6 +1,8 @@
 <script setup>
 import { useI18n } from "vue-i18n";
 
+import UiButton from "./ui/UiButton.vue";
+
 const props = defineProps({
   title: {
     type: String,
@@ -53,9 +55,9 @@ const { t } = useI18n();
       </ul>
 
       <footer class="group-control-picker__footer">
-        <button type="button" class="primary-button" @click="emit('close')">
+        <UiButton variant="primary" @click="emit('close')">
           {{ t("groupControl.resultModal.close") }}
-        </button>
+        </UiButton>
       </footer>
     </section>
   </div>

@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import GroupControlDevicePreview from "./GroupControlDevicePreview.vue";
+import UiButton from "./ui/UiButton.vue";
 
 const props = defineProps({
   devices: {
@@ -73,12 +74,12 @@ function handleConfirm() {
       </ul>
 
       <footer class="group-control-picker__footer">
-        <button type="button" class="ghost-button" @click="emit('close')">
+        <UiButton variant="ghost" @click="emit('close')">
           {{ t("groupControl.picker.cancel") }}
-        </button>
-        <button type="button" class="primary-button" :disabled="!canConfirm" @click="handleConfirm">
+        </UiButton>
+        <UiButton variant="primary" :disabled="!canConfirm" @click="handleConfirm">
           {{ t("groupControl.masterModal.confirm") }}
-        </button>
+        </UiButton>
       </footer>
     </section>
   </div>
