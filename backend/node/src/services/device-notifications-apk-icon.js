@@ -45,7 +45,7 @@ export function listZipEntries(buffer) {
 
 /**
  * @param {Buffer} zipBuffer
- * @param {{ name: string, compressedSize: number, uncompressedSize: number, compression: number, localHeaderOffset: number }} entry
+ * @param {{ compressedSize: number, compression: number, localHeaderOffset: number }} entry
  * @returns {Buffer}
  */
 export function extractZipEntry(zipBuffer, entry) {
@@ -70,7 +70,9 @@ export function extractZipEntry(zipBuffer, entry) {
   throw new Error(`unsupported_zip_compression_${entry.compression}`);
 }
 
-const LAUNCHER_NAME_RE = /(^|\/)(ic_launcher|ic_launcher_foreground|ic_launcher_round|icon)\.(png|webp)$/i;
+const ICON_FILE_RE = /\.(png|webp)$/i;
+const ICON_NAME_RE =
+  /(ic_launcher|ic_launcher_foreground|ic_launcher_round|ic_launcher_app|icon|app_icon|ic_notification|notify_panel_notification)/i;
 
 /**
  * @param {Buffer} apkBuffer
@@ -79,13 +81,22 @@ const LAUNCHER_NAME_RE = /(^|\/)(ic_launcher|ic_launcher_foreground|ic_launcher_
 export function extractLauncherIconFromApk(apkBuffer) {
   const entries = listZipEntries(apkBuffer);
   const candidates = entries
-    .filter((entry) => LAUNCHER_NAME_RE.test(entry.name) && entry.uncompressedSize > 0)
-    .sort((a, b) => scoreLauncherName(b.name) - scoreLauncherName(a.name) || b.uncompressedSize - a.uncompressedSize);
+    .filter(
+      (entry) =>
+        entry.uncompressedSize > 64 &&
+        ICON_FILE_RE.test(entry.name) &&
+        /\/(mipmap|drawable)/i.test(entry.name) &&
+        ICON_NAME_RE.test(entry.name),
+    )
+    .sort(
+      (a, b) =>
+        scoreIconName(b.name) - scoreIconName(a.name) || b.uncompressedSize - a.uncompressedSize,
+    );
 
   for (const entry of candidates) {
     try {
       const bytes = extractZipEntry(apkBuffer, entry);
-      if (bytes.length > 32) {
+      if (looksLikeImage(bytes)) {
         return bytes;
       }
     } catch {
@@ -96,16 +107,44 @@ export function extractLauncherIconFromApk(apkBuffer) {
   return null;
 }
 
-function scoreLauncherName(name) {
+function scoreIconName(name) {
   let value = 0;
   if (/xxxhdpi/i.test(name)) value += 40;
   else if (/xxhdpi/i.test(name)) value += 30;
   else if (/xhdpi/i.test(name)) value += 20;
   else if (/hdpi/i.test(name)) value += 10;
-  if (/ic_launcher_foreground/i.test(name)) value += 5;
-  if (/ic_launcher_round/i.test(name)) value += 3;
+  if (/ic_launcher_foreground/i.test(name)) value += 8;
+  if (/ic_launcher_round/i.test(name)) value += 6;
+  if (/ic_launcher(?!_)/i.test(name)) value += 10;
+  if (/app_icon|\/icon\./i.test(name)) value += 4;
   if (/\.png$/i.test(name)) value += 2;
+  if (/anydpi/i.test(name)) value -= 20;
   return value;
+}
+
+function looksLikeImage(bytes) {
+  if (!bytes || bytes.length < 8) {
+    return false;
+  }
+
+  // PNG
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return true;
+  }
+
+  // WEBP: RIFF....WEBP
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 function findEocdOffset(buffer) {

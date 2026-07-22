@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import Win11TaskbarIcon from "./Win11TaskbarIcon.vue";
 import {
@@ -31,6 +31,7 @@ const calendarExpanded = ref(true);
 const notifications = ref([]);
 const notificationsLoading = ref(false);
 const notificationsError = ref("");
+const hasLoadedOnce = ref(false);
 
 const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
 
@@ -39,6 +40,10 @@ const lunarHeader = computed(() => formatLunarHeader(props.now));
 const monthPickerLabel = computed(() => formatMonthPickerLabel(viewDate.value));
 const calendarCells = computed(() => buildCalendarGrid(viewDate.value, props.now));
 const hasNotifications = computed(() => notifications.value.length > 0);
+
+let pollTimer = null;
+let inFlight = false;
+let pollGeneration = 0;
 
 watch(
   () => props.now,
@@ -55,43 +60,101 @@ watch(
 );
 
 watch(
-  () => props.serial,
-  () => {
-    void loadNotifications();
-  },
-);
-
-watch(
-  () => props.active,
-  (isActive) => {
-    if (isActive) {
-      void loadNotifications();
+  () => [props.active, props.serial],
+  ([isActive]) => {
+    if (isActive && props.serial) {
+      startPolling();
+      return;
     }
+
+    stopPolling();
   },
+  { immediate: true },
 );
 
-onMounted(() => {
-  void loadNotifications();
+onBeforeUnmount(() => {
+  stopPolling();
 });
 
-async function loadNotifications() {
+function startPolling() {
+  stopPolling();
+  void loadNotifications({ initial: true });
+  pollTimer = window.setInterval(() => {
+    void loadNotifications({ initial: false });
+  }, 1000);
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+async function loadNotifications({ initial = false } = {}) {
   if (!props.serial) {
     notifications.value = [];
     notificationsError.value = "";
+    hasLoadedOnce.value = false;
     return;
   }
 
-  notificationsLoading.value = true;
-  notificationsError.value = "";
+  if (inFlight) {
+    return;
+  }
+
+  const generation = ++pollGeneration;
+  inFlight = true;
+
+  if (initial || !hasLoadedOnce.value) {
+    notificationsLoading.value = true;
+  }
 
   try {
-    notifications.value = await fetchDeviceNotifications(props.serial);
+    const rows = await fetchDeviceNotifications(props.serial, {
+      light: hasLoadedOnce.value && !initial,
+    });
+
+    if (generation !== pollGeneration) {
+      return;
+    }
+
+    notifications.value = mergeNotificationIcons(notifications.value, rows);
+    notificationsError.value = "";
+    hasLoadedOnce.value = true;
   } catch (error) {
-    notifications.value = [];
+    if (generation !== pollGeneration) {
+      return;
+    }
+
+    if (!hasLoadedOnce.value) {
+      notifications.value = [];
+    }
     notificationsError.value = getErrorMessage(error) || "无法同步设备通知";
   } finally {
-    notificationsLoading.value = false;
+    if (generation === pollGeneration) {
+      notificationsLoading.value = false;
+    }
+    inFlight = false;
   }
+}
+
+/**
+ * Keep previously loaded icons when a light poll returns null icons.
+ * @param {Array} previous
+ * @param {Array} next
+ */
+function mergeNotificationIcons(previous, next) {
+  const previousIcons = new Map(
+    previous
+      .filter((item) => item.iconDataUrl)
+      .map((item) => [item.packageName, item.iconDataUrl]),
+  );
+
+  return next.map((item) => ({
+    ...item,
+    iconDataUrl: item.iconDataUrl || previousIcons.get(item.packageName) || null,
+  }));
 }
 
 function toggleCalendarExpanded() {
@@ -126,17 +189,17 @@ function initialsFor(item) {
           class="win11-date-flyout__icon-btn"
           aria-label="刷新通知"
           :disabled="notificationsLoading || !serial"
-          @click="loadNotifications"
+          @click="loadNotifications({ initial: true })"
         >
           <Win11TaskbarIcon name="refresh" :size="12" />
         </button>
       </header>
 
       <div class="win11-date-flyout__notifications-body">
-        <p v-if="notificationsLoading" class="win11-date-flyout__notifications-status">
+        <p v-if="notificationsLoading && !hasLoadedOnce" class="win11-date-flyout__notifications-status">
           正在同步设备通知…
         </p>
-        <p v-else-if="notificationsError" class="win11-date-flyout__notifications-status is-error">
+        <p v-else-if="notificationsError && !hasNotifications" class="win11-date-flyout__notifications-status is-error">
           {{ notificationsError }}
         </p>
         <p v-else-if="!hasNotifications" class="win11-date-flyout__notifications-status">

@@ -7,8 +7,9 @@ import { sendProtectedJson } from "../utils/protected-http.js";
  * @param {import("node:http").ServerResponse} res
  * @param {string} method
  * @param {string} pathname
+ * @param {URL} [url]
  */
-export async function handleDeviceNotificationsRoute(req, res, method, pathname) {
+export async function handleDeviceNotificationsRoute(req, res, method, pathname, url) {
   const listMatch = pathname.match(/^\/api\/devices\/([^/]+)\/notifications$/);
 
   if (!(method === "GET" && listMatch)) {
@@ -16,9 +17,10 @@ export async function handleDeviceNotificationsRoute(req, res, method, pathname)
   }
 
   const serial = decodeURIComponent(listMatch[1]);
+  const light = url?.searchParams?.get("light") === "1";
 
   try {
-    const notifications = await listDeviceNotifications(serial);
+    const notifications = await listDeviceNotifications(serial, { light });
 
     sendProtectedJson(res, 200, {
       success: true,

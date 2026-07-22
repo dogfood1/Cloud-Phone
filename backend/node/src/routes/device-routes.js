@@ -13,7 +13,7 @@ export async function handleDeviceRoute(req, res, method, pathname, url) {
     return true;
   }
 
-  if (await handleDeviceNotificationsRoute(req, res, method, pathname)) {
+  if (await handleDeviceNotificationsRoute(req, res, method, pathname, url)) {
     return true;
   }
 

@@ -9,12 +9,16 @@ import { resolvePrimaryApkPath } from "./device-apps-mutate.js";
 import { extractLauncherIconFromApk } from "./device-notifications-apk-icon.js";
 import { parseNotificationDump } from "./device-notifications-parse.js";
 
-/** @type {Map<string, { expires: number, iconDataUrl: string | null }>} */
+/** @type {Map<string, string | null>} package cache key -> data URL */
 const iconCache = new Map();
-const ICON_CACHE_TTL_MS = 10 * 60_000;
+/** @type {Set<string>} */
+const iconLoading = new Set();
+/** @type {Map<string, Map<string, { label: string, system: boolean }>>} */
+const labelSnapshot = new Map();
 
 /**
  * @param {string} serial
+ * @param {{ light?: boolean }} [options]
  * @returns {Promise<Array<{
  *   id: string,
  *   key: string,
@@ -26,70 +30,107 @@ const ICON_CACHE_TTL_MS = 10 * 60_000;
  *   iconDataUrl: string | null,
  * }>>}
  */
-export async function listDeviceNotifications(serial) {
-  return runWithAdbLock(async () => {
+export async function listDeviceNotifications(serial, options = {}) {
+  const light = Boolean(options.light);
+
+  const parsed = await runWithAdbLock(async () => {
     const { stdout } = await runAdb(
       ["-s", serial, "shell", "dumpsys", "notification", "--noredact"],
-      { timeout: 45_000, maxBuffer: 32 * 1024 * 1024 },
+      { timeout: 20_000, maxBuffer: 32 * 1024 * 1024 },
     );
-
-    const parsed = parseNotificationDump(stdout);
-    const labels = await fetchScrcpyAppLabels(serial).catch(() => new Map());
-    const packages = [...new Set(parsed.map((item) => item.packageName))];
-    const icons = await loadIconsForPackages(serial, packages);
-
-    const rows = parsed.map((item) => ({
-      ...item,
-      appLabel: labels.get(item.packageName)?.label ?? item.packageName,
-      iconDataUrl: icons.get(item.packageName) ?? null,
-    }));
-
-    rows.sort((a, b) => (b.postTime || 0) - (a.postTime || 0));
-    return rows.slice(0, 40);
+    return parseNotificationDump(stdout);
   }, { lockKey: serial });
+
+  const labels = await resolveLabels(serial, light);
+  const packages = [...new Set(parsed.map((item) => item.packageName))];
+
+  if (light) {
+    // Only use cached icons; warm missing packages in background.
+    void warmupMissingIcons(serial, packages);
+  } else {
+    await loadMissingIcons(serial, packages);
+  }
+
+  const rows = parsed.map((item) => ({
+    ...item,
+    appLabel: labels.get(item.packageName)?.label ?? item.packageName,
+    iconDataUrl: iconCache.get(iconCacheKey(serial, item.packageName)) ?? null,
+  }));
+
+  rows.sort((a, b) => (b.postTime || 0) - (a.postTime || 0));
+  return rows.slice(0, 40);
+}
+
+/**
+ * @param {string} serial
+ * @param {boolean} light
+ */
+async function resolveLabels(serial, light) {
+  const cached = labelSnapshot.get(serial);
+  if (cached && light) {
+    return cached;
+  }
+
+  try {
+    const labels = await fetchScrcpyAppLabels(serial);
+    labelSnapshot.set(serial, labels);
+    return labels;
+  } catch {
+    return cached ?? new Map();
+  }
 }
 
 /**
  * @param {string} serial
  * @param {string[]} packages
- * @returns {Promise<Map<string, string | null>>}
  */
-async function loadIconsForPackages(serial, packages) {
-  /** @type {Map<string, string | null>} */
-  const result = new Map();
-  const now = Date.now();
-  const pending = [];
+async function loadMissingIcons(serial, packages) {
+  const missing = packages.filter((pkg) => !iconCache.has(iconCacheKey(serial, pkg)));
+  for (const packageName of missing) {
+    await loadOneIcon(serial, packageName);
+  }
+}
 
-  for (const packageName of packages) {
-    const cacheKey = `${serial}::${packageName}`;
-    const cached = iconCache.get(cacheKey);
+/**
+ * @param {string} serial
+ * @param {string[]} packages
+ */
+async function warmupMissingIcons(serial, packages) {
+  const missing = packages.filter((pkg) => {
+    const key = iconCacheKey(serial, pkg);
+    return !iconCache.has(key) && !iconLoading.has(key);
+  });
 
-    if (cached && cached.expires > now) {
-      result.set(packageName, cached.iconDataUrl);
-      continue;
-    }
+  for (const packageName of missing.slice(0, 4)) {
+    void loadOneIcon(serial, packageName);
+  }
+}
 
-    pending.push(packageName);
+/**
+ * @param {string} serial
+ * @param {string} packageName
+ */
+async function loadOneIcon(serial, packageName) {
+  const key = iconCacheKey(serial, packageName);
+  if (iconCache.has(key) || iconLoading.has(key)) {
+    return iconCache.get(key) ?? null;
   }
 
-  const settled = await Promise.allSettled(
-    pending.map(async (packageName) => {
-      const iconDataUrl = await loadPackageIconDataUrl(serial, packageName).catch(() => null);
-      iconCache.set(`${serial}::${packageName}`, {
-        expires: Date.now() + ICON_CACHE_TTL_MS,
-        iconDataUrl,
-      });
-      return [packageName, iconDataUrl];
-    }),
-  );
+  iconLoading.add(key);
 
-  for (const item of settled) {
-    if (item.status === "fulfilled") {
-      result.set(item.value[0], item.value[1]);
-    }
+  try {
+    const iconDataUrl = await runWithAdbLock(
+      () => loadPackageIconDataUrl(serial, packageName),
+      { lockKey: serial },
+    );
+    iconCache.set(key, iconDataUrl);
+    return iconDataUrl;
+  } catch {
+    iconCache.set(key, null);
+    return null;
+  } finally {
+    iconLoading.delete(key);
   }
-
-  return result;
 }
 
 /**
@@ -105,7 +146,7 @@ async function loadPackageIconDataUrl(serial, packageName) {
   );
 
   try {
-    await runAdb(["-s", serial, "pull", remoteApk, tmpPath], { timeout: 60_000 });
+    await runAdb(["-s", serial, "pull", remoteApk, tmpPath], { timeout: 45_000 });
     const apkBuffer = await fs.readFile(tmpPath);
     const iconBytes = extractLauncherIconFromApk(apkBuffer);
 
@@ -118,4 +159,8 @@ async function loadPackageIconDataUrl(serial, packageName) {
   } finally {
     await fs.unlink(tmpPath).catch(() => undefined);
   }
+}
+
+function iconCacheKey(serial, packageName) {
+  return `${serial}::${packageName}`;
 }
