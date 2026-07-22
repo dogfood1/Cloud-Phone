@@ -772,3 +772,292 @@
 .device-workspace__multi-app-mode .mirror-searchable-select {
   min-width: 10rem;
 }
+
+/* —— Multi-app windows —— */
+.win11-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  user-select: none;
+}
+
+.win11-window.is-focused {
+  border-color: rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+}
+
+.win11-window.is-maximized {
+  border-radius: 0;
+  border-color: transparent;
+}
+
+.win11-window__titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0 0.2rem 0 0.35rem;
+  background: #f3f3f3;
+  cursor: default;
+}
+
+.win11-window.is-focused .win11-window__titlebar {
+  background: #e8f1fb;
+}
+
+.win11-window__title-left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.win11-window__title-right {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.win11-window__back,
+.win11-window__chrome-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #1f1f1f;
+  cursor: pointer;
+}
+
+.win11-window__back {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.win11-window__back:hover,
+.win11-window__chrome-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.win11-window__chrome-btn {
+  width: 40px;
+  height: 100%;
+}
+
+.win11-window__chrome-btn.is-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+.win11-window__app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #dfe6ee;
+  font-size: 0.65rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.win11-window__app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.win11-window__title {
+  overflow: hidden;
+  color: #1f1f1f;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.win11-window__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #111;
+}
+
+.multi-app-window-stream {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #000;
+}
+
+.multi-app-window-stream__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.multi-app-window-stream__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+  text-align: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.win11-window__placeholder {
+  display: none;
+}
+
+.win11-window__edge {
+  position: absolute;
+  z-index: 4;
+}
+
+.win11-window__edge.is-n,
+.win11-window__edge.is-s {
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.win11-window__edge.is-n {
+  top: -3px;
+}
+
+.win11-window__edge.is-s {
+  bottom: -3px;
+}
+
+.win11-window__edge.is-e,
+.win11-window__edge.is-w {
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.win11-window__edge.is-e {
+  right: -3px;
+}
+
+.win11-window__edge.is-w {
+  left: -3px;
+}
+
+.win11-window__edge.is-ne,
+.win11-window__edge.is-nw,
+.win11-window__edge.is-se,
+.win11-window__edge.is-sw {
+  width: 10px;
+  height: 10px;
+}
+
+.win11-window__edge.is-ne {
+  top: -3px;
+  right: -3px;
+  cursor: nesw-resize;
+}
+
+.win11-window__edge.is-nw {
+  top: -3px;
+  left: -3px;
+  cursor: nwse-resize;
+}
+
+.win11-window__edge.is-se {
+  right: -3px;
+  bottom: -3px;
+  cursor: nwse-resize;
+}
+
+.win11-window__edge.is-sw {
+  left: -3px;
+  bottom: -3px;
+  cursor: nesw-resize;
+}
+
+.win11-taskbar__apps {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: min(52vw, 42rem);
+  margin-left: 0.2rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.win11-taskbar__apps::-webkit-scrollbar {
+  display: none;
+}
+
+.win11-taskbar__app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 9.5rem;
+  height: 40px;
+  padding: 0 0.55rem 0 0.4rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #1f1f1f;
+  cursor: pointer;
+}
+
+.win11-taskbar__app:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.win11-taskbar__app.is-active {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 -2px 0 #005fb8;
+}
+
+.win11-taskbar__app.is-minimized {
+  opacity: 0.72;
+}
+
+.win11-taskbar__app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #d9e2ec;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.win11-taskbar__app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.win11-taskbar__app-name {
+  overflow: hidden;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+

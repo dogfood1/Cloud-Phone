@@ -162,6 +162,10 @@ public class SurfaceEncoder implements AsyncProcessor {
                         // Do not retry on broken pipe, which is expected on close because the socket is closed by the client
                         throw e;
                     }
+                    if (isVirtualDisplayDenied(e)) {
+                        // Permission / OEM policy — downsizing will not help
+                        throw e;
+                    }
                     Ln.e("Capture/encoding error: " + e.getClass().getName() + ": " + e.getMessage());
                     if (!prepareRetry(constraints, size)) {
                         throw e;
@@ -350,10 +354,13 @@ public class SurfaceEncoder implements AsyncProcessor {
                 streamCapture();
             } catch (ConfigurationException e) {
                 // Do not print stack trace, a user-friendly error-message has already been logged
+                streamer.notifyCastError("configuration", e.getMessage());
             } catch (IOException e) {
                 // Broken pipe is expected on close, because the socket is closed by the client
                 if (!IO.isBrokenPipe(e)) {
                     Ln.e("Video encoding error", e);
+                    String code = isVirtualDisplayDenied(e) ? "virtual_display" : "video";
+                    streamer.notifyCastError(code, e.getMessage());
                 }
             } finally {
                 Ln.d("Screen streaming stopped");
@@ -361,6 +368,24 @@ public class SurfaceEncoder implements AsyncProcessor {
             }
         }, "video");
         thread.start();
+    }
+
+    private static boolean isVirtualDisplayDenied(Throwable error) {
+        Throwable cur = error;
+        while (cur != null) {
+            String message = cur.getMessage();
+            if (message != null) {
+                String lower = message.toLowerCase();
+                if (lower.contains("virtual_display_denied")
+                        || lower.contains("add_trusted_display")
+                        || lower.contains("could not create virtual display")
+                        || lower.contains("could not create display")) {
+                    return true;
+                }
+            }
+            cur = cur.getCause();
+        }
+        return false;
     }
 
     /** Request encoder loop restart (safe before {@link SurfaceCapture#init} completes). */

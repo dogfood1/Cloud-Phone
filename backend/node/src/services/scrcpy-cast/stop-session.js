@@ -78,15 +78,27 @@ async function cleanupDeviceAdb(session) {
   logCastInfo(session.serial, "adb.cleanup.done", {});
 }
 
-export async function stopScrcpyCast(serial) {
+export async function stopScrcpyCast(serial, options = {}) {
+  const force = Boolean(options.force);
   const session = getCastSession(serial);
 
   if (!session) {
     return false;
   }
 
+  const consumers = Math.max(1, Number(session.consumerCount) || 1);
+
+  if (!force && consumers > 1) {
+    session.consumerCount = consumers - 1;
+    logCastInfo(serial, "cast.stop.release_consumer", {
+      consumerCount: session.consumerCount,
+    });
+    return false;
+  }
+
   logCastInfo(serial, "cast.stop", {
     streaming: session.streaming,
+    force,
     ...summarizeStreamStats(session.streamStats),
   });
 
@@ -114,6 +126,6 @@ export async function stopScrcpyCast(serial) {
 
 export async function stopAllScrcpyCasts() {
   for (const serial of listCastSerials()) {
-    await stopScrcpyCast(serial);
+    await stopScrcpyCast(serial, { force: true });
   }
 }

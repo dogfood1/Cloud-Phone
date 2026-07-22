@@ -116,12 +116,9 @@ public final class WsServer extends WebSocketServer {
   }
 
   private void joinDefaultStream(WebSocket webSocket, ClientInfo info) throws Exception {
-    int displayId = defaultVideoSettings.getDisplayId();
-    WsCastSession session = sessionsByDisplay.get(displayId);
-    if (session == null) {
-      session = new WsCastSession(options, defaultVideoSettings, this);
-      sessionsByDisplay.put(displayId, session);
-    }
+    // Each browser WebSocket owns an independent cast pipeline so multi-app
+    // windows can each create a virtual display + start_app.
+    WsCastSession session = new WsCastSession(options, VideoSettings.fromOptions(options), this);
     info.session = session;
     session.join(webSocket, null);
   }

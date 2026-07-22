@@ -13,7 +13,17 @@ defineProps({
     type: String,
     default: "",
   },
+  windows: {
+    type: Array,
+    default: () => [],
+  },
+  focusedId: {
+    type: String,
+    default: "",
+  },
 });
+
+const emit = defineEmits(["launch", "focus-window"]);
 
 const now = ref(new Date());
 const startOpen = ref(false);
@@ -67,6 +77,16 @@ function closeOtherPanels(except) {
   }
 }
 
+function onLaunch(app) {
+  startOpen.value = false;
+  emit("launch", app);
+}
+
+function initialsFor(win) {
+  const source = win.label || win.packageName || "?";
+  return String(source).trim().slice(0, 1).toUpperCase();
+}
+
 onMounted(() => {
   clockTimer = window.setInterval(() => {
     now.value = new Date();
@@ -101,8 +121,29 @@ onBeforeUnmount(() => {
             <Win11TaskbarIcon name="start" :size="26" />
           </button>
         </template>
-        <WindowsStartMenu :serial="serial" :active="startOpen" />
+        <WindowsStartMenu :serial="serial" :active="startOpen" @launch="onLaunch" />
       </NPopover>
+
+      <div class="win11-taskbar__apps" aria-label="打开的应用">
+        <button
+          v-for="win in windows"
+          :key="win.id"
+          type="button"
+          class="win11-taskbar__app"
+          :class="{
+            'is-active': focusedId === win.id && !win.minimized,
+            'is-minimized': win.minimized,
+          }"
+          :title="win.label || win.packageName"
+          @click="emit('focus-window', win.id)"
+        >
+          <span class="win11-taskbar__app-icon" aria-hidden="true">
+            <img v-if="win.iconDataUrl" :src="win.iconDataUrl" alt="" />
+            <span v-else>{{ initialsFor(win) }}</span>
+          </span>
+          <span class="win11-taskbar__app-name">{{ win.label || win.packageName }}</span>
+        </button>
+      </div>
     </div>
 
     <div class="win11-taskbar__tray" aria-label="系统托盘">

@@ -14,6 +14,7 @@ import {
   serializeNavigationActions,
   serializeNavigationPress,
   serializeResetVideo,
+  serializeResizeDisplay,
   serializeSetClipboard,
   serializeStartApp,
 } from "../utils/ws-scrcpy-control.js";
@@ -31,6 +32,11 @@ import {
   isAudioOnlyCast,
   isCastAudioEnabled,
 } from "../utils/scrcpy-cast-helpers.js";
+import {
+  formatVirtualDisplayUserMessage,
+  isVirtualDisplayError,
+  parseCastErrorMessage,
+} from "../utils/cast-error-message.js";
 import { useScrcpyCastRecording } from "./useScrcpyCastRecording.js";
 
 export function useDeviceScrcpyCast(
@@ -368,6 +374,16 @@ export function useDeviceScrcpyCast(
 
       socket.addEventListener("message", (event) => {
         if (typeof event.data === "string") {
+          const castError = parseCastErrorMessage(event.data);
+          if (castError) {
+            const friendly = isVirtualDisplayError(castError.message || castError.code)
+              ? formatVirtualDisplayUserMessage(castError.message)
+              : castError.message || "投屏失败";
+            status.value = "error";
+            errorMessage.value = friendly;
+            appendStartupLog(`设备报错：${castError.code} ${castError.message || ""}`.trim());
+            failReady(new Error(friendly));
+          }
           return;
         }
 
@@ -683,5 +699,14 @@ export function useDeviceScrcpyCast(
     pasteClipboardToDevice,
     copyClipboardFromDevice,
     getEffectiveScreenSize,
+    sendStartApp: (packageName) => {
+      const buffer = serializeStartApp(packageName);
+      if (buffer) {
+        sendControl(buffer);
+      }
+    },
+    sendResizeDisplay: (width, height) => {
+      sendControl(serializeResizeDisplay(width, height));
+    },
   };
 }

@@ -8,18 +8,21 @@ import { runWithAdbLock } from "../adb-lock.js";
 import { adbForward, adbForwardTcp, adbPush, clearDeviceTunnels, listAdbForward } from "../adb-command.js";
 import { logCastError, logCastInfo, logCastWarn } from "./cast-logger.js";
 import { appendCastStartupLog } from "./startup-log.js";
-import { listCastFeatures, resolveCastServerOptions } from "./cast-options.js";
-import { resolveVideoStreamSummary } from "./video-stream-config.js";
+import { resolveCastServerOptions } from "./cast-options.js";
 import { connectControlSocket } from "./control-bridge.js";
 import {
-  buildServerShellCommand,
   buildSocketName,
   CAST_TUNNEL_FORWARD,
   DEFAULT_CAST_SCID,
   getRemoteJarPath,
   pickLocalPort,
 } from "./server-args.js";
-import { deleteCastSession, getCastSession, setCastSession } from "./session-store.js";
+import { getCastSession, setCastSession } from "./session-store.js";
+import {
+  buildCastStartPayload,
+  tryReuseCastSession,
+  waitForCastSessionReady,
+} from "./session-reuse.js";
 import { stopScrcpyCast } from "./stop-session.js";
 import { createStreamStats } from "./stream-stats.js";
 import { connectVideoSocket } from "./video-bridge.js";
@@ -32,13 +35,34 @@ function delay(ms) {
 export async function startScrcpyCast(serial, options = {}) {
   await ensureScrcpyServerBuilt();
 
-  const existing = getCastSession(serial);
+  let existing = getCastSession(serial);
 
+  if (existing?.starting) {
+    logCastInfo(serial, "cast.start.wait_inflight", {
+      localPort: existing.localPort,
+    });
+    appendCastStartupLog(existing, "后端：等待进行中的 cast/start 完成以便复用");
+    const ready = await waitForCastSessionReady(existing, serial);
+    existing = getCastSession(serial);
+    if (ready && existing) {
+      const reused = tryReuseCastSession(existing, serial, options);
+      if (reused) {
+        return reused;
+      }
+    }
+  } else {
+    const reused = tryReuseCastSession(existing, serial, options);
+    if (reused) {
+      return reused;
+    }
+  }
+
+  existing = getCastSession(serial);
   if (existing) {
     logCastWarn(serial, "cast.start.replace_existing", {
       localPort: existing.localPort,
     });
-    await stopScrcpyCast(serial);
+    await stopScrcpyCast(serial, { force: true });
   }
 
   const scid = DEFAULT_CAST_SCID;
@@ -78,6 +102,7 @@ export async function startScrcpyCast(serial, options = {}) {
     stopping: false,
     streaming: false,
     streamStats: createStreamStats(),
+    consumerCount: 1,
     serverExited: false,
     serverExitCode: null,
     serverExitSignal: null,
@@ -129,7 +154,7 @@ export async function startScrcpyCast(serial, options = {}) {
     logCastError(serial, "cast.start.adb_failed", {
       message: error instanceof Error ? error.message : "unknown",
     });
-    await stopScrcpyCast(serial);
+    await stopScrcpyCast(serial, { force: true });
     throw error;
   }
 
@@ -143,27 +168,7 @@ export async function startScrcpyCast(serial, options = {}) {
   });
   appendCastStartupLog(session, "后端：cast/start 完成，等待 WebSocket 连接");
 
-  const encoded = encodeURIComponent(serial);
-  const features = listCastFeatures(serverOptions);
-  const video = resolveVideoStreamSummary(options);
-
-  return {
-    serial,
-    mode: "scrcpy",
-    serverVersion: SCRCPY_SERVER_VERSION,
-    localPort,
-    scid,
-    socketName,
-    tunnel: CAST_TUNNEL_FORWARD,
-    features,
-    castOptions: session.castOptions,
-    video,
-    wsPath: `/api/devices/${encoded}/cast/ws`,
-    controlWsPath: serverOptions.control ? `/api/devices/${encoded}/cast/control/ws` : null,
-    audio: serverOptions.audio,
-    control: serverOptions.control,
-    startupLogs: session.startupLogs ?? [],
-  };
+  return buildCastStartPayload(session, options);
 }
 
 export async function ensureCastVideoPipe(serial) {

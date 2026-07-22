@@ -18,6 +18,10 @@ import {
 } from "../utils/build-cast-payload.js";
 import { buildCastOptionsForDevice } from "../utils/harmony-cast-options.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
+import {
+  formatVirtualDisplayUserMessage,
+  isVirtualDisplayError,
+} from "../utils/cast-error-message.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
 import { getErrorMessage } from "../utils/api.js";
@@ -333,7 +337,12 @@ function handleCastFailed() {
   const message = viewport?.errorMessage?.value ?? viewport?.errorMessage;
 
   if (typeof message === "string" && message) {
-    castHint.value = message;
+    castHint.value = isVirtualDisplayError(message)
+      ? formatVirtualDisplayUserMessage(message)
+      : message;
+    if (isVirtualDisplayError(message)) {
+      feedback.error(castHint.value);
+    }
   }
 
   logError("stream", "cast.stream.failed", `串流失败：${message || "未知错误"}`, {
@@ -567,6 +576,7 @@ async function handleViewportFullscreenChange(isFullscreen) {
         v-if="isMultiAppMode"
         class="device-workspace__pane device-workspace__pane--right device-workspace__pane--multi-app"
         :device="device"
+        @switch-mirror="workspaceCastMode = 'mirror'"
       />
       <DeviceCastViewport
         v-show="!isMultiAppMode && (!isMobileLayout || !mobileCastOptionsOpen)"

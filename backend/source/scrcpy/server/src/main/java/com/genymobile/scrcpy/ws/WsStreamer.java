@@ -65,4 +65,56 @@ public final class WsStreamer implements VideoSink {
       }
     }
   }
+
+  @Override
+  public void notifyCastError(String code, String message) {
+    String safeCode = code == null || code.isEmpty() ? "cast_error" : code;
+    String safeMessage = message == null ? "" : message;
+    String json = "{\"type\":\"cast_error\",\"code\":\"" + jsonEscape(safeCode)
+        + "\",\"message\":\"" + jsonEscape(safeMessage) + "\"}";
+    synchronized (clients) {
+      for (WebSocket socket : clients) {
+        if (socket == null || !socket.isOpen()) {
+          continue;
+        }
+        try {
+          socket.send(json);
+        } catch (Exception e) {
+          Ln.w("WebSocket cast_error send failed: " + e.getMessage());
+        }
+      }
+    }
+  }
+
+  private static String jsonEscape(String value) {
+    StringBuilder out = new StringBuilder(value.length() + 8);
+    for (int i = 0; i < value.length(); i += 1) {
+      char c = value.charAt(i);
+      switch (c) {
+        case '\\':
+          out.append("\\\\");
+          break;
+        case '"':
+          out.append("\\\"");
+          break;
+        case '\n':
+          out.append("\\n");
+          break;
+        case '\r':
+          out.append("\\r");
+          break;
+        case '\t':
+          out.append("\\t");
+          break;
+        default:
+          if (c < 0x20) {
+            out.append(String.format("\\u%04x", (int) c));
+          } else {
+            out.append(c);
+          }
+          break;
+      }
+    }
+    return out.toString();
+  }
 }

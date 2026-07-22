@@ -13,6 +13,7 @@ export const CONTROL_MSG_TYPE = {
   CAMERA_SET_TORCH: 18,
   CAMERA_ZOOM_IN: 19,
   CAMERA_ZOOM_OUT: 20,
+  RESIZE_DISPLAY: 21,
 };
 
 const MOTION_ACTION = {
@@ -181,6 +182,18 @@ export function serializeRotateDevice() {
 
 export function serializeResetVideo() {
   return new Uint8Array([CONTROL_MSG_TYPE.RESET_VIDEO]);
+}
+
+/** scrcpy TYPE_RESIZE_DISPLAY: u8 type + u16be width + u16be height */
+export function serializeResizeDisplay(width, height) {
+  const w = Math.max(1, Math.min(0xffff, Math.round(Number(width) || 1)));
+  const h = Math.max(1, Math.min(0xffff, Math.round(Number(height) || 1)));
+  const buffer = new ArrayBuffer(5);
+  const view = new DataView(buffer);
+  view.setUint8(0, CONTROL_MSG_TYPE.RESIZE_DISPLAY);
+  writeU16BE(view, 1, w);
+  writeU16BE(view, 3, h);
+  return new Uint8Array(buffer);
 }
 
 /** scrcpy control message: 1-byte tiny length + UTF-8 app name (package or ?name). */

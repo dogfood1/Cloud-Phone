@@ -19,4 +19,9 @@ public interface VideoSink {
     void writeSessionMeta(int width, int height, boolean isClientResize) throws IOException;
 
     void writePacket(ByteBuffer buffer, MediaCodec.BufferInfo bufferInfo) throws IOException;
+
+    /** Optional: notify web clients that video capture failed fatally. */
+    default void notifyCastError(String code, String message) {
+        // no-op for classic TCP streamers
+    }
 }

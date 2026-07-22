@@ -8,6 +8,8 @@ import { useIconHelperGate } from "../../composables/useIconHelperGate.js";
 import { fetchDeviceLauncherApps } from "../../utils/device-launcher-apps-api.js";
 import { getErrorMessage } from "../../utils/api.js";
 
+const emit = defineEmits(["launch"]);
+
 const props = defineProps({
   serial: {
     type: String,
@@ -173,6 +175,15 @@ function initialsFor(app) {
 function displayName(app) {
   return packageNamesOnly.value ? app.packageName : app.label || app.packageName;
 }
+
+function launchApp(app) {
+  emit("launch", {
+    packageName: app.packageName,
+    activity: app.activity,
+    label: displayName(app),
+    iconDataUrl: packageNamesOnly.value ? null : app.iconDataUrl || null,
+  });
+}
 </script>
 
 <template>
@@ -216,7 +227,7 @@ function displayName(app) {
 
       <ul v-else-if="isSearching && filteredApps.length" class="win11-start-menu__search-list">
         <li v-for="app in filteredApps" :key="`${app.packageName}:${app.activity}`">
-          <button type="button" class="win11-start-menu__search-item">
+          <button type="button" class="win11-start-menu__search-item" @click="launchApp(app)">
             <span class="win11-start-menu__search-icon-wrap" aria-hidden="true">
               <img v-if="app.iconDataUrl && !packageNamesOnly" :src="app.iconDataUrl" alt="" />
               <span v-else>{{ initialsFor(app) }}</span>
@@ -237,6 +248,7 @@ function displayName(app) {
             type="button"
             class="win11-start-menu__app"
             :title="displayName(app)"
+            @click="launchApp(app)"
           >
             <span class="win11-start-menu__app-icon" aria-hidden="true">
               <img v-if="app.iconDataUrl && !packageNamesOnly" :src="app.iconDataUrl" alt="" />

@@ -1,6 +1,5 @@
 package com.genymobile.scrcpy.video;
 
-import com.genymobile.scrcpy.AndroidVersions;
 import com.genymobile.scrcpy.Options;
 import com.genymobile.scrcpy.control.PositionMapper;
 import com.genymobile.scrcpy.display.DisplayInfo;
@@ -20,27 +19,11 @@ import com.genymobile.scrcpy.wrappers.ServiceManager;
 
 import android.graphics.Rect;
 import android.hardware.display.VirtualDisplay;
-import android.os.Build;
 import android.view.Surface;
 
 import java.io.IOException;
 
 public class NewDisplayCapture extends SurfaceCapture {
-
-    // Internal fields copied from android.hardware.display.DisplayManager
-    private static final int VIRTUAL_DISPLAY_FLAG_PUBLIC = android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
-    private static final int VIRTUAL_DISPLAY_FLAG_PRESENTATION = android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
-    private static final int VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY = android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
-    private static final int VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH = 1 << 6;
-    private static final int VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT = 1 << 7;
-    private static final int VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL = 1 << 8;
-    private static final int VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS = 1 << 9;
-    private static final int VIRTUAL_DISPLAY_FLAG_TRUSTED = 1 << 10;
-    private static final int VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP = 1 << 11;
-    private static final int VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED = 1 << 12;
-    private static final int VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED = 1 << 13;
-    private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
-    private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
 
     private final VirtualDisplayListener vdListener;
     private final NewDisplay newDisplay;
@@ -208,31 +191,16 @@ public class NewDisplayCapture extends SurfaceCapture {
         displayTransform = AffineMatrix.multiplyAll(displayRotationMatrix, eventTransform);
     }
 
-    public void startNew(Surface surface) {
+    public void startNew(Surface surface) throws IOException {
         try {
-            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
-                    | VIRTUAL_DISPLAY_FLAG_PRESENTATION
-                    | VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY
-                    | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
-                    | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
-            if (vdDestroyContent) {
-                flags |= VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
-            }
-            if (vdSystemDecorations) {
-                flags |= VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS;
-            }
-            if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
-                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
-                        | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
-                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
-                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
-                if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
-                    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
-                            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
-                }
-            }
-            VirtualDisplay vd = ServiceManager.getDisplayManager()
-                    .createNewVirtualDisplay("scrcpy", displaySize.getWidth(), displaySize.getHeight(), dpi, surface, flags);
+            VirtualDisplay vd = VirtualDisplayCreator.create(
+                    "scrcpy",
+                    displaySize.getWidth(),
+                    displaySize.getHeight(),
+                    dpi,
+                    surface,
+                    vdDestroyContent,
+                    vdSystemDecorations);
             setCurrentVirtualDisplay(vd); // used for client resize
             int virtualDisplayId = vd.getDisplay().getDisplayId();
             Ln.i("New display: " + displaySize.getWidth() + "x" + displaySize.getHeight() + "/" + dpi + " (id=" + virtualDisplayId + ")");
@@ -259,7 +227,14 @@ public class NewDisplayCapture extends SurfaceCapture {
             });
         } catch (Exception e) {
             Ln.e("Could not create display", e);
-            throw new AssertionError("Could not create display");
+            String detail = VirtualDisplayCreator.summarize(e);
+            if (VirtualDisplayCreator.isTrustedDisplayPermissionError(e)) {
+                throw new IOException(
+                        "VIRTUAL_DISPLAY_DENIED: " + detail
+                                + " (device shell lacks ADD_TRUSTED_DISPLAY; common on Android 15 OEM builds)",
+                        e);
+            }
+            throw new IOException("Could not create virtual display: " + detail, e);
         }
     }
 
