@@ -18,6 +18,7 @@ import { buildCastOptionsForDevice } from "../utils/harmony-cast-options.js";
 import { startDeviceCast, stopDeviceCast } from "../utils/cast-api.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { getErrorMessage } from "../utils/api.js";
+import { logDebug, logError, logInfo, logWarn } from "../utils/app-event-logger.js";
 import { WsScrcpyAnnexBPlayer } from "../utils/ws-scrcpy-annexb-player.js";
 import { WsScrcpyAudioCanvas } from "../utils/ws-scrcpy-audio-canvas.js";
 
@@ -86,12 +87,24 @@ const {
   onOpenFiles: () => {
     filesExplorerPath.value = null;
     filesExplorerOpen.value = true;
+    logInfo("ui", "modal.files.open", "打开文件管理器", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
   },
   onOpenApps: () => {
     appsManagerOpen.value = true;
+    logInfo("ui", "modal.apps.open", "打开应用管理器", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
   },
   onOpenTerminal: () => {
     terminalOpen.value = true;
+    logInfo("ui", "modal.terminal.open", "打开终端", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
   },
 });
 
@@ -113,11 +126,16 @@ async function startCast(options) {
 
   if (!props.device?.serial) {
     castHint.value = "设备序列号无效。";
+    logWarn("cast", "cast.start.invalid", "开始投屏失败：设备序列号无效");
     return;
   }
 
   if (!props.device.connected) {
     castHint.value = "设备未在线，无法开始投屏。";
+    logWarn("cast", "cast.start.offline", "开始投屏失败：设备未在线", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
     return;
   }
 
@@ -128,6 +146,11 @@ async function startCast(options) {
 
   if (isCameraCast && Number(props.device.sdkVersion) > 0 && Number(props.device.sdkVersion) < 31) {
     castHint.value = "摄像头投屏需要 Android 12（API 31）及以上。";
+    logWarn("cast", "cast.start.unsupported", "开始投屏失败：摄像头模式需要 Android 12+", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+      details: { sdkVersion: props.device.sdkVersion },
+    });
     return;
   }
 
@@ -135,10 +158,12 @@ async function startCast(options) {
     if (audioOnly) {
       if (!WsScrcpyAudioCanvas.isSupported()) {
         castHint.value = "当前浏览器不支持 Web Audio，无法使用仅音频模式。";
+        logWarn("cast", "cast.start.unsupported", "开始投屏失败：浏览器不支持 Web Audio");
         return;
       }
     } else if (!WsScrcpyAnnexBPlayer.isSupported()) {
       castHint.value = "当前浏览器不支持 WebCodecs，请使用 Chrome 或 Edge。";
+      logWarn("cast", "cast.start.unsupported", "开始投屏失败：浏览器不支持 WebCodecs");
       return;
     }
   }
@@ -146,6 +171,16 @@ async function startCast(options) {
   if (options) {
     castOptions.value = options;
   }
+
+  logInfo("cast", "cast.start.request", "点击开始投屏", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: {
+      platform: props.device.platform,
+      castMode: options?.castMode ?? castOptions.value?.castMode ?? "mirror",
+      options: castOptions.value,
+    },
+  });
 
   castBusy.value = true;
 
@@ -175,6 +210,14 @@ async function startCast(options) {
     }
 
     await viewport.beginCast(castPayload);
+    logInfo("cast", "cast.start.success", "投屏已启动", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+      details: {
+        castProtocol: castPayload?.castProtocol,
+        session: castPayload,
+      },
+    });
     if (isMobileLayout.value) {
       mobileCastOptionsOpen.value = false;
       await nextTick();
@@ -186,6 +229,13 @@ async function startCast(options) {
       castPayload?.castProtocol === "harmony-jpeg" ||
       castPayload?.castProtocol === "ios-mjpeg";
     castHint.value = getErrorMessage(error, "投屏启动失败");
+    logError("cast", "cast.start.failed", `投屏启动失败：${castHint.value}`, {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+      details: {
+        error: getErrorMessage(error, "投屏启动失败"),
+      },
+    });
     isCasting.value = false;
 
     try {
@@ -209,12 +259,27 @@ async function startCast(options) {
 }
 
 function updateCastOptions(options) {
+  const previous = castOptions.value;
   castOptions.value = options;
+
+  logDebug("cast", "cast.options.update", "投屏参数已更新", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: {
+      previous,
+      next: options,
+    },
+  });
 }
 
 async function stopCast() {
   castHint.value = "";
   castBusy.value = true;
+
+  logInfo("cast", "cast.stop.request", "请求停止投屏", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+  });
 
   try {
     await castViewportRef.value?.stopCast?.({ backend: false });
@@ -224,9 +289,17 @@ async function stopCast() {
     }
   } catch (error) {
     castHint.value = getErrorMessage(error, "停止投屏失败");
+    logError("cast", "cast.stop.failed", `停止投屏失败：${castHint.value}`, {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
   } finally {
     isCasting.value = false;
     castBusy.value = false;
+    logInfo("cast", "cast.stop.done", "投屏已停止", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
   }
 }
 
@@ -241,6 +314,12 @@ function handleCastFailed() {
   if (typeof message === "string" && message) {
     castHint.value = message;
   }
+
+  logError("stream", "cast.stream.failed", `串流失败：${message || "未知错误"}`, {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: { message },
+  });
 
   const isJpegSession =
     props.device?.platform === "harmony" ||
@@ -258,6 +337,11 @@ function handleCastFailed() {
 }
 
 async function handleClose() {
+  logInfo("navigation", "workspace.back", "点击返回设备列表", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: { casting: isCasting.value },
+  });
   await stopCast();
   emit("close");
 }
@@ -327,12 +411,21 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", updateMobileLayoutState);
   window.removeEventListener("resize", updateFullscreenLayoutMode);
   window.removeEventListener("orientationchange", updateFullscreenLayoutMode);
+  logInfo("navigation", "workspace.unmount", "设备工作区页面卸载", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: { casting: isCasting.value },
+  });
   void stopCast();
 });
 
 function handleFilesExplorerClose() {
   filesExplorerOpen.value = false;
   filesExplorerPath.value = null;
+  logInfo("ui", "modal.files.close", "关闭文件管理器", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+  });
 }
 
 function handleOpenAppDataInFiles(devicePath) {
@@ -343,6 +436,10 @@ function handleOpenAppDataInFiles(devicePath) {
 
 async function handleViewportFullscreenChange(isFullscreen) {
   isViewportFullscreen.value = isFullscreen;
+  logInfo("ui", isFullscreen ? "viewport.fullscreen.enter" : "viewport.fullscreen.exit", isFullscreen ? "进入全屏" : "退出全屏", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+  });
   updateFullscreenLayoutMode();
   if (isFullscreen && isMobileLayout.value) {
     mobileCastOptionsOpen.value = false;

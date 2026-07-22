@@ -9,6 +9,7 @@ import {
   loginRequest,
   requestJson,
 } from "../utils/api.js";
+import { logInfo, logWarn } from "../utils/app-event-logger.js";
 
 function t(key, params) {
   return i18n.global.t(key, params);
@@ -75,6 +76,15 @@ export function useAuth() {
       state.sessionStateText = result.authenticated
         ? t("auth.sessionValid")
         : t("auth.sessionMissing");
+
+      if (result.authenticated) {
+        logInfo("auth", "auth.session.restore", "恢复登录会话", {
+          details: {
+            sessionExpiresAt: result.sessionExpiresAt,
+          },
+        });
+      }
+
       return result.authenticated;
     } catch (error) {
       state.sessionStateText = t("auth.sessionReadFailed");
@@ -108,10 +118,14 @@ export function useAuth() {
 
       state.loginPassword = "";
       state.sessionStateText = t("auth.enteredConsole");
+      logInfo("auth", "auth.login.success", "登录成功");
       return true;
     } catch (error) {
       state.sessionStateText = t("auth.loginFailed");
       state.loginFeedback = getErrorMessage(error, t("auth.loginFailedDefault"));
+      logWarn("auth", "auth.login.failed", "登录失败", {
+        details: { error: getErrorMessage(error, t("auth.loginFailedDefault")) },
+      });
       return false;
     } finally {
       state.loginPending = false;
@@ -153,6 +167,7 @@ export function useAuth() {
       state.nextPassword = "";
       state.confirmPassword = "";
       passwordChangeDialogOpen.value = false;
+      logInfo("auth", "auth.password.change", "修改密码成功");
       return true;
     } catch (error) {
       state.changeFeedback = getErrorMessage(error, t("auth.changeFailedDefault"));
@@ -199,6 +214,7 @@ export function useAuth() {
       state.requiresPasswordChange = false;
       state.sessionExpiresAt = null;
       state.sessionStateText = t("auth.sessionLoggedOut");
+      logInfo("auth", "auth.logout.done", "已退出登录");
     }
   }
 

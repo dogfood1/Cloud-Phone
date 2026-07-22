@@ -2,6 +2,7 @@ import { nextTick, onBeforeUnmount, ref, shallowRef, unref, watch } from "vue";
 
 import { stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
+import { bridgeCastStreamLog } from "../utils/cast-stream-log-bridge.js";
 import { buildCastWebSocketUrl } from "../utils/scrcpy-cast-helpers.js";
 import { applyStagePreviewRotation } from "../utils/canvas-rotation.js";
 import { HarmonyJpegPlayer } from "../utils/harmony-jpeg-player.js";
@@ -110,6 +111,11 @@ export function useIosCast(serialRef, canvasRef, castOptionsRef, rotatorRef, vie
 
   function appendStartupLog(message) {
     startupLog.append(message);
+    bridgeCastStreamLog(message, {
+      castType: "ios-mjpeg",
+      deviceSerial: serialRef.value,
+      source: "ios-startup-log",
+    });
     syncStartupLogText();
   }
 
@@ -117,6 +123,14 @@ export function useIosCast(serialRef, canvasRef, castOptionsRef, rotatorRef, vie
     const before = startupLog.lines.length;
     startupLog.ingest(entries);
     if (startupLog.lines.length !== before) {
+      for (const line of startupLog.lines.slice(before)) {
+        const message = line.replace(/^\d{1,2}:\d{2}:\d{2}\s+/, "");
+        bridgeCastStreamLog(message, {
+          castType: "ios-mjpeg",
+          deviceSerial: serialRef.value,
+          source: "ios-backend-log",
+        });
+      }
       syncStartupLogText();
     }
   }

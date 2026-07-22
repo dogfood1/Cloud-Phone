@@ -12,6 +12,7 @@ export default {
     navLabel: "主导航",
     devices: "设备",
     groupControl: "群控",
+    logs: "日志",
     settings: "设置",
     logout: "退出登录",
   },

@@ -12,6 +12,7 @@ export default {
     navLabel: "メインナビゲーション",
     devices: "デバイス",
     groupControl: "群制御",
+    logs: "ログ",
     settings: "設定",
     logout: "ログアウト",
   },

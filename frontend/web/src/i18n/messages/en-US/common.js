@@ -12,6 +12,7 @@ export default {
     navLabel: "Main navigation",
     devices: "Devices",
     groupControl: "Group control",
+    logs: "Logs",
     settings: "Settings",
     logout: "Log out",
   },

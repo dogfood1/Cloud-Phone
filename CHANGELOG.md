@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 - 2026-07-22
+
+- **Web / 操作日志**：左侧 Tab 新增「日志」页，按 Debug / Info / Warn / Error 分级，按认证、导航、设备、投屏、串流、设置、界面分类；支持搜索、筛选与展开详情
+- 全站埋点：登录/退出、Tab 切换、打开/关闭设备工作区、开始/停止投屏、参数修改、串流启动日志、工具栏操作、弹窗与全屏等
+- 串流日志桥接：scrcpy / 鸿蒙 JPEG / iOS MJPEG 启动日志同步写入全局事件日志
+- **iOS 修复**：`runner.js` 补导出 `getWdaPipelineJob`、`serializeWdaPipelineJob`，修复 WDA 流水线状态 API 启动报错
+
 ## 0.15.3 - 2026-07-08
 
 - **Docker**：修复 arm64 构建时 `sslpsk-pmd3` 编译失败，pip 安装阶段临时加入 `gcc`/`python3-dev`/`libssl-dev` 等构建依赖

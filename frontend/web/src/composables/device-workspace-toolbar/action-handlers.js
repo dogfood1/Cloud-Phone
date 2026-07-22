@@ -1,4 +1,5 @@
 import { getErrorMessage } from "../../utils/api.js";
+import { logDebug, logInfo } from "../../utils/app-event-logger.js";
 import { nextPreviewRotationDeg, normalizeRotationDeg } from "../../utils/canvas-rotation.js";
 import { downloadDeviceScreenshot } from "../../utils/device-screenshot-download.js";
 import { readExposedBoolean } from "../../utils/read-exposed-ref.js";
@@ -53,6 +54,12 @@ export function createToolbarActionHandlers({
       await viewport.toggleCastRecording(device.displayName ?? device.serial);
       const isAudioOnly = castOptions?.value?.mirror?.video?.disabled === true;
 
+      logInfo("ui", wasRecording ? "toolbar.record.stop" : "toolbar.record.start", wasRecording ? "停止录屏" : "开始录屏", {
+        deviceSerial: device.serial,
+        deviceName: device.displayName ?? device.serial,
+        details: { audioOnly: isAudioOnly },
+      });
+
       onHint?.(
         wasRecording
           ? isAudioOnly
@@ -80,6 +87,10 @@ export function createToolbarActionHandlers({
 
     try {
       await downloadDeviceScreenshot(device.serial, device.displayName);
+      logInfo("ui", "toolbar.screenshot", "截屏", {
+        deviceSerial: device.serial,
+        deviceName: device.displayName ?? device.serial,
+      });
     } catch (error) {
       onHint?.(getErrorMessage(error, "截屏失败"));
     } finally {
@@ -105,6 +116,12 @@ export function createToolbarActionHandlers({
       return;
     }
 
+    logDebug("ui", "toolbar.navigation", `发送导航键：${actionId}`, {
+      deviceSerial: device.serial,
+      deviceName: device.displayName ?? device.serial,
+      details: { actionId },
+    });
+
     viewport?.sendNavigation?.(actionId);
   }
 
@@ -112,6 +129,12 @@ export function createToolbarActionHandlers({
     if (!isCasting.value) {
       return;
     }
+
+    logDebug("ui", "toolbar.volume", `发送音量键：${subAction.id}`, {
+      deviceSerial: device.serial,
+      deviceName: device.displayName ?? device.serial,
+      details: { actionId: subAction.id },
+    });
 
     castViewportRef.value?.sendNavigation?.(subAction.id);
   }
@@ -141,6 +164,11 @@ export function createToolbarActionHandlers({
     }
 
     castViewportRef.value?.applyPreviewRotation?.(rotationDeg);
+    logDebug("cast", "cast.preview.rotate", `预览旋转：${rotationDeg}°`, {
+      deviceSerial: device.serial,
+      deviceName: device.displayName ?? device.serial,
+      details: { rotationDeg },
+    });
   }
 
   function handleToolbarClick(action, event, { usesPressHold, isActionDisabled, toggleVolumeMenu }) {

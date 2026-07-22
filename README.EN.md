@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v0.15.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v0.16.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -65,6 +65,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - Unified iconography via Lucide for key actions, with clearer focus-visible and hover feedback
 - `npm run dev` waits for backend health before Vite; light/dark theme
 - **i18n**: switch UI language in Settings (zh-CN, en-US, zh-TW, ja-JP, ko-KR); core shell strings localized
+- **Activity log**: sidebar **Logs** tab with Debug / Info / Warn / Error levels and auth / navigation / device / cast / stream / settings / UI categories; search, filters, expandable JSON details
 - **API security**: session cookie required; JSON payloads use AES-GCM after login; WebSocket upgrade requires session
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR; **HarmonyOS USB/HDC**; **Apple WDA** — Windows USB wizard (sign/install/connect), or Mac `tools/ios-wda-bridge.mjs` for LAN discovery
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
@@ -109,7 +110,7 @@ Images are embedded in the corresponding feature sections below.
 
 ![Device gallery](images/readme/gallery.png)
 
-- Tabs: **Devices**, **Group control**, **Settings**
+- Tabs: **Devices**, **Group control**, **Logs**, **Settings**
 - Uses bundled `platform-tools` ADB and **HDC** (`backend/bin/hdc`; Windows includes `libusb_shared.dll`) to discover devices
 - Shows model, manufacturer, IP, Android/HarmonyOS version, serial, product name
 - Screenshot refresh ~5s by default (configurable), list refresh ~1s
@@ -118,6 +119,13 @@ Images are embedded in the corresponding feature sections below.
 - Backend caps screenshot concurrency (max 4) and returns retryable status when a device is offline or ADB drops, avoiding `unhandledRejection` noise
 - **Right-click a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
 - Click a card to open the **device workspace**
+
+### Activity log (web)
+
+- Sidebar **Logs** tab records key console actions and streaming events
+- Four severity levels (Debug / Info / Warn / Error) and seven categories (auth, navigation, device, cast, stream, settings, UI)
+- Keyword search, level/category filters, clear log; each entry expands to JSON details (cast options, stream timeline, page-exit reason, etc.)
+- Cast startup logs (scrcpy / HarmonyOS / iOS) are bridged into the global log automatically
 
 ### Group control (web)
 

@@ -9,6 +9,7 @@ import ConsoleLayout from "./components/ConsoleLayout.vue";
 import ThemeToggle from "./components/ThemeToggle.vue";
 import { useAuth } from "./composables/useAuth.js";
 import { useDevices } from "./composables/useDevices.js";
+import { logInfo } from "./utils/app-event-logger.js";
 import {
   loadSettings,
   normalizeDeviceInterval,
@@ -98,6 +99,7 @@ async function handlePasswordChangeFromSettings() {
 }
 
 async function handleLogout() {
+  logInfo("auth", "auth.logout", "退出登录");
   await logout();
   stopDevices();
 }
@@ -116,6 +118,12 @@ function saveSettingsForm() {
   settingsFeedback.value = t("settings.savedFeedback", {
     device: settingsForm.deviceListIntervalSeconds,
     screenshot: settingsForm.screenshotIntervalSeconds,
+  });
+  logInfo("settings", "settings.save", "保存刷新设置", {
+    details: {
+      deviceListIntervalSeconds: settingsForm.deviceListIntervalSeconds,
+      screenshotIntervalSeconds: settingsForm.screenshotIntervalSeconds,
+    },
   });
 
   if (authState.authenticated) {

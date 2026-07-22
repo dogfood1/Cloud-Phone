@@ -9,6 +9,7 @@ import DeviceGalleryContextMenu from "./DeviceGalleryContextMenu.vue";
 import { getErrorMessage } from "../utils/api.js";
 import { disconnectWirelessDevice } from "../utils/devices-api.js";
 import { formatRefreshTime, summarizeDevices } from "../utils/device-format.js";
+import { logInfo } from "../utils/app-event-logger.js";
 
 const props = defineProps({
   devices: {
@@ -82,6 +83,11 @@ function handleViewDeviceDetails() {
   }
 }
 
+function handleRefreshDevices() {
+  logInfo("device", "devices.refresh", "刷新设备列表");
+  emit("refresh");
+}
+
 async function handleDisconnectDevice() {
   const device = contextMenu.value?.device;
   closeContextMenu();
@@ -105,7 +111,11 @@ async function handleDisconnectDevice() {
     actionFeedback.value = t("devices.contextMenu.disconnectSuccess", {
       name: device.displayName,
     });
-    emit("refresh");
+    logInfo("device", "devices.disconnect", `断开无线设备：${device.displayName}`, {
+      deviceSerial: device.serial,
+      deviceName: device.displayName,
+    });
+    handleRefreshDevices();
   } catch (error) {
     actionFeedback.value = getErrorMessage(error, t("devices.contextMenu.disconnectFailed"));
   }
@@ -145,7 +155,7 @@ async function handleDisconnectDevice() {
 
     <p v-if="error" class="feedback panel-feedback">
       {{ error }}
-      <button type="button" class="feedback__retry" @click="emit('refresh')">
+      <button type="button" class="feedback__retry" @click="handleRefreshDevices">
         {{ t("common.retry") }}
       </button>
     </p>

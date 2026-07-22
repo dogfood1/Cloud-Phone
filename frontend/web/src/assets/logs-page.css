@@ -1,0 +1,204 @@
+.logs-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.logs-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+}
+
+.logs-page__search {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+}
+
+.logs-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+}
+
+.logs-page__filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.logs-page__filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.logs-page__filter-btn--active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-elevated));
+  color: var(--accent);
+}
+
+.logs-page__filter-count {
+  min-width: 1.1rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.logs-page__list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-right: 0.15rem;
+}
+
+.logs-page__entry {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.logs-page__entry--error {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+}
+
+.logs-page__entry--warn {
+  border-color: color-mix(in srgb, var(--warning, #d97706) 35%, var(--line));
+}
+
+.logs-page__entry-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.55rem 0.75rem;
+  align-items: start;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.logs-page__entry-header:hover {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.logs-page__entry-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.logs-page__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.logs-page__badge--debug {
+  background: color-mix(in srgb, #64748b 16%, transparent);
+  color: #64748b;
+}
+
+.logs-page__badge--info {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.logs-page__badge--warn {
+  background: color-mix(in srgb, #d97706 16%, transparent);
+  color: #d97706;
+}
+
+.logs-page__badge--error {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.logs-page__badge--category {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--muted);
+  text-transform: none;
+}
+
+.logs-page__entry-main {
+  min-width: 0;
+}
+
+.logs-page__entry-message {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.logs-page__entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.logs-page__entry-chevron {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.logs-page__entry-details {
+  padding: 0 0.75rem 0.75rem;
+}
+
+.logs-page__details-pre {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--muted) 8%, var(--bg));
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  max-height: 18rem;
+}
+
+.logs-page__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

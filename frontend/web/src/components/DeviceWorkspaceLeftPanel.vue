@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { NAlert, NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
 import CameraCastSettings from "./mirror/CameraCastSettings.vue";
@@ -14,6 +14,7 @@ import { buildHarmonyCastOptions } from "../utils/harmony-cast-options.js";
 import { createDefaultCameraSettings } from "../utils/camera-cast-defaults.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
+import { logDebug, logInfo } from "../utils/app-event-logger.js";
 
 const props = defineProps({
   device: {
@@ -59,6 +60,16 @@ const modeOptions = computed(() =>
   DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
 );
 
+watch(castMode, (nextMode, previousMode) => {
+  if (previousMode && nextMode !== previousMode && !props.casting) {
+    logInfo("cast", "cast.mode.change", `切换投屏模式：${previousMode} → ${nextMode}`, {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+      details: { from: previousMode, to: nextMode },
+    });
+  }
+});
+
 function buildCastOptions() {
   if (isJpegCastDevice.value) {
     if (isHarmonyDevice.value) {
@@ -78,15 +89,39 @@ function buildCastOptions() {
 }
 
 function handleStartClick() {
-  emit("start-cast", buildCastOptions());
+  const options = buildCastOptions();
+  logInfo("cast", "cast.start.click", "点击开始投屏按钮", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: { options },
+  });
+  emit("start-cast", options);
 }
 
 function handleStopClick() {
+  logInfo("cast", "cast.stop.click", "点击取消投屏按钮", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+  });
   emit("stop-cast");
 }
 
-function handleSettingsChange() {
-  // Settings are locked while casting; options apply on next start.
+function handleSettingsChange(settings) {
+  if (props.casting) {
+    return;
+  }
+
+  const options = buildCastOptions();
+  logDebug("cast", "cast.settings.change", "修改投屏参数", {
+    deviceSerial: props.device.serial,
+    deviceName: props.device.displayName ?? props.device.serial,
+    details: {
+      castMode: castMode.value,
+      settings,
+      options,
+    },
+  });
+  emit("cast-options-change", options);
 }
 
 function stepPreviewRotationDeg() {

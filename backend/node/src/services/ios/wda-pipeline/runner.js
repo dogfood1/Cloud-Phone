@@ -73,6 +73,8 @@ function applyPipelineEvent(jobId, event) {
   appendWdaPipelineLog(jobId, { level: "info", step: event.step, message: event.message });
 }
 
+export { getWdaPipelineJob, serializeWdaPipelineJob } from "./job-store.js";
+
 export function getWdaPrepareReport() {
   const status = getWdaPrepareStatus();
 

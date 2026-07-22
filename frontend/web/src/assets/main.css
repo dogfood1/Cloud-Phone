@@ -319,6 +319,7 @@ input:focus-visible {
 
 .main-panel--settings,
 .main-panel--group-control,
+.main-panel--logs,
 .main-panel--devices {
   display: flex;
   flex-direction: column;

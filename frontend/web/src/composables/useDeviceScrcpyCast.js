@@ -19,6 +19,7 @@ import {
 } from "../utils/ws-scrcpy-control.js";
 import { startDeviceCast, stopDeviceCast, getDeviceCastStatus } from "../utils/cast-api.js";
 import { createCastStartupLog } from "../utils/cast-startup-log.js";
+import { bridgeCastStreamLog } from "../utils/cast-stream-log-bridge.js";
 import { readSystemClipboard, writeSystemClipboard } from "../utils/cast-clipboard.js";
 import { attachCastKeyboard } from "../utils/scrcpy-cast-keyboard.js";
 import { serializeChangeStreamParameters, videoSettingsFromCastOptions } from "../utils/ws-scrcpy-video-settings.js";
@@ -82,6 +83,11 @@ export function useDeviceScrcpyCast(
 
   function appendStartupLog(message) {
     startupLog.append(message);
+    bridgeCastStreamLog(message, {
+      castType: "scrcpy",
+      deviceSerial: serialRef.value,
+      source: "scrcpy-startup-log",
+    });
     syncStartupLogText();
   }
 
@@ -89,6 +95,14 @@ export function useDeviceScrcpyCast(
     const before = startupLog.lines.length;
     startupLog.ingest(entries);
     if (startupLog.lines.length !== before) {
+      for (const line of startupLog.lines.slice(before)) {
+        const message = line.replace(/^\d{1,2}:\d{2}:\d{2}\s+/, "");
+        bridgeCastStreamLog(message, {
+          castType: "scrcpy",
+          deviceSerial: serialRef.value,
+          source: "scrcpy-backend-log",
+        });
+      }
       syncStartupLogText();
     }
   }

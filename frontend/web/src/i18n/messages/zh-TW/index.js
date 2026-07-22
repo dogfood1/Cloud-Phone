@@ -3,6 +3,7 @@ import auth from "./auth.js";
 import common from "./common.js";
 import devices from "./devices.js";
 import groupControl from "./group-control.js";
+import logs from "./logs.js";
 import settings from "./settings.js";
 
-export default { ...common, ...settings, ...auth, ...devices, ...groupControl, ...app };
+export default { ...common, ...settings, ...auth, ...devices, ...groupControl, ...logs, ...app };

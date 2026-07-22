@@ -5,7 +5,9 @@ import AppSidebar from "./AppSidebar.vue";
 import DeviceWorkspace from "./DeviceWorkspace.vue";
 import DevicesPanel from "./DevicesPanel.vue";
 import GroupControlPanel from "./GroupControlPanel.vue";
+import LogsPanel from "./LogsPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
+import { logInfo } from "../utils/app-event-logger.js";
 
 const props = defineProps({
   devices: {
@@ -67,18 +69,52 @@ const workspaceDevice = computed(() => {
 const emit = defineEmits(["logout", "save-settings", "refresh-devices", "change-password"]);
 
 function handleOpenDevice(device) {
+  logInfo("device", "device.open", `打开设备工作区：${device.displayName ?? device.serial}`, {
+    deviceSerial: device.serial,
+    deviceName: device.displayName ?? device.serial,
+    details: {
+      platform: device.platform,
+      state: device.state,
+      connected: device.connected,
+    },
+  });
   selectedDevice.value = device;
 }
 
 function handleCloseWorkspace() {
+  const device = selectedDevice.value;
+
+  if (device?.serial) {
+    logInfo("navigation", "workspace.close", `退出设备工作区：${device.displayName ?? device.serial}`, {
+      deviceSerial: device.serial,
+      deviceName: device.displayName ?? device.serial,
+    });
+  }
+
   selectedDevice.value = null;
 }
 
 function handleTabChange(tabId) {
+  const previousTab = activeTab.value;
   activeTab.value = tabId;
   mobileSidebarOpen.value = false;
 
+  logInfo("navigation", "tab.change", `切换页面：${previousTab} → ${tabId}`, {
+    details: {
+      from: previousTab,
+      to: tabId,
+    },
+  });
+
   if (tabId !== "devices") {
+    if (selectedDevice.value?.serial) {
+      logInfo("navigation", "workspace.close", `切换 Tab 关闭设备工作区：${selectedDevice.value.displayName ?? selectedDevice.value.serial}`, {
+        deviceSerial: selectedDevice.value.serial,
+        deviceName: selectedDevice.value.displayName ?? selectedDevice.value.serial,
+        details: { reason: "tab-change", tab: tabId },
+      });
+    }
+
     selectedDevice.value = null;
   }
 }
@@ -127,6 +163,7 @@ function closeMobileSidebar() {
         'main-panel--devices': !selectedDevice && activeTab === 'devices',
         'main-panel--settings': !selectedDevice && activeTab === 'settings',
         'main-panel--group-control': !selectedDevice && activeTab === 'group-control',
+        'main-panel--logs': !selectedDevice && activeTab === 'logs',
       }"
     >
       <DeviceWorkspace
@@ -153,6 +190,7 @@ function closeMobileSidebar() {
         :screenshot-url="screenshotUrl"
         @refresh="emit('refresh-devices')"
       />
+      <LogsPanel v-else-if="activeTab === 'logs'" />
       <SettingsPanel
         v-else-if="activeTab === 'settings'"
         :settings-form="settingsForm"

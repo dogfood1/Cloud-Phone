@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v0.15.3** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v0.16.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -70,6 +70,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
+| **操作日志** | 左侧 Tab「日志」：Debug / Info / Warn / Error 分级，认证/导航/设备/投屏/串流/设置/界面分类；可搜索、筛选、展开 JSON 详情 |
 | **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码；**鸿蒙 USB/HDC**；**苹果 WDA**：Windows USB 向导（签名/安装/连接），或 Mac 运行 `tools/ios-wda-bridge.mjs` 后局域网发现 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
@@ -112,13 +113,20 @@ images/readme/
 
 ![设备画廊](images/readme/gallery.png)
 
-- 左侧 Tab：**设备**、**群控**、**设置**
+- 左侧 Tab：**设备**、**群控**、**日志**、**设置**
 - 自动发现 ADB 与 **HDC** 设备（内置 `platform-tools` / `backend/bin/hdc`；Windows 含 `libusb_shared.dll`），展示型号、厂商、IP、系统版本、序列号
 - 每台设备约 **5 秒**刷新截图（可调），列表约 **1 秒**刷新；刷新时保留上一帧，不闪全屏 loading
 - 汇总在线/离线数量、最近刷新时间，支持手动刷新；设备多时可滚动浏览全部卡片，截图懒加载减轻卡顿
 - 后端截图并发限制（最多 4 路），设备离线或 ADB 断开时返回可重试状态，避免日志 `unhandledRejection`
 - **右键设备卡片**：查看设备详细信息、断开无线设备（USB 连接不支持断开）
 - 点击卡片进入**设备工作区**
+
+### 操作日志（Web）
+
+- 左侧 Tab **日志**：记录控制台全部关键操作与串流事件
+- 四级等级（Debug / Info / Warn / Error）与七类分类（认证、导航、设备、投屏、串流、设置、界面）
+- 支持关键词搜索、等级/分类筛选、清空日志；每条可展开查看 JSON 详情（投屏参数、串流 timeline、页面退出原因等）
+- 投屏启动日志（scrcpy / 鸿蒙 / iOS）自动桥接到全局日志
 
 ### 群控（Web）
 

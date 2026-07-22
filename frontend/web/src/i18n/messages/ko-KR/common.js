@@ -12,6 +12,7 @@ export default {
     navLabel: "주 메뉴",
     devices: "기기",
     groupControl: "군 제어",
+    logs: "로그",
     settings: "설정",
     logout: "로그아웃",
   },
