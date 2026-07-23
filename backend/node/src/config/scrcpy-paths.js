@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { BACKEND_NODE_ROOT_PATH, PROJECT_ROOT_PATH } from "./paths.js";
-import { firstExistingPath, isAndroidLinuxHost, isTermux } from "./runtime-env.js";
+import { firstExistingPath } from "./runtime-env.js";
 
 const SCRCPY_SOURCE_ROOT = path.join(PROJECT_ROOT_PATH, "backend", "source", "scrcpy");
 const SCRCPY_BIN_ROOT = path.join(PROJECT_ROOT_PATH, "backend", "bin", "scrcpy");
@@ -54,13 +54,17 @@ function resolveProjectRootCandidates() {
 }
 
 function resolvePlatformKeys() {
-  const keys = new Set([getScrcpyPlatformKey()]);
+  // Prefer the host platform jar first so a freshly built windows/macos
+  // server is not shadowed by a stale linux copy checked earlier.
+  const keys = [getScrcpyPlatformKey()];
 
-  if (isTermux() || isAndroidLinuxHost() || process.platform === "linux") {
-    keys.add("linux");
+  for (const key of Object.values(PLATFORM_DIR)) {
+    if (!keys.includes(key)) {
+      keys.push(key);
+    }
   }
 
-  return [...keys];
+  return keys;
 }
 
 function appendServerCandidates(target, rootDir, platformKey) {
@@ -82,20 +86,16 @@ export function listScrcpyServerJarCandidates() {
     candidates.push(configured);
   }
 
-  candidates.push(
-    path.join(BACKEND_NODE_ROOT_PATH, "..", "bin", "scrcpy", "linux", "scrcpy-server"),
-    path.join(BACKEND_NODE_ROOT_PATH, "..", "bin", "scrcpy", "linux", "scrcpy-server.jar"),
-  );
+  // Host platform first, then other packaged copies.
+  for (const platformKey of resolvePlatformKeys()) {
+    for (const fileName of SERVER_FILE_NAMES) {
+      candidates.push(path.join(SCRCPY_BIN_ROOT, platformKey, fileName));
+    }
+  }
 
   for (const rootDir of resolveProjectRootCandidates()) {
     for (const platformKey of resolvePlatformKeys()) {
       appendServerCandidates(candidates, rootDir, platformKey);
-    }
-  }
-
-  for (const platformKey of resolvePlatformKeys()) {
-    for (const fileName of SERVER_FILE_NAMES) {
-      candidates.push(path.join(SCRCPY_BIN_ROOT, platformKey, fileName));
     }
   }
 

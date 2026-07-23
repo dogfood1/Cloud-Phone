@@ -98,8 +98,10 @@ public final class WsCastSession implements WsSocketBroadcaster {
       if (started) {
         if (changed) {
           softReconfigureStream();
+          server.broadcastInitialInfo();
         }
-        server.broadcastInitialInfo();
+        // Do not re-broadcast when type 101 is unchanged — avoids a
+        // scrcpy_initial ↔ type 101 feedback loop across multi-app windows.
         return;
       }
       startPipeline();
@@ -160,6 +162,14 @@ public final class WsCastSession implements WsSocketBroadcaster {
     boolean useVideo = streamOptions.getVideo();
     boolean useAudio = streamOptions.getAudio();
 
+    NewDisplay nd = streamOptions.getNewDisplay();
+    Ln.i("Web cast startPipeline session@" + Integer.toHexString(System.identityHashCode(this))
+        + " video=" + useVideo
+        + " new_display=" + (nd == null ? "null"
+            : (nd.getSize() == null ? "default" : nd.getSize()) + "/" + nd.getDpi())
+        + " start_app=" + streamOptions.getStartApp()
+        + " clients=" + clients.size());
+
     if (streamOptions.getCleanup()) {
       cleanUp = CleanUp.start(streamOptions);
     }
@@ -196,6 +206,13 @@ public final class WsCastSession implements WsSocketBroadcaster {
 
   private void softReconfigureStream() throws IOException, ConfigurationException {
     Options streamOptions = baseOptions.copyForWebStream(videoSettings);
+    boolean needCaptureRestart = requiresVideoCaptureRestart(activeStreamOptions, streamOptions);
+    Ln.i("Web cast softReconfigure session@" + Integer.toHexString(System.identityHashCode(this))
+        + " captureRestart=" + needCaptureRestart
+        + " prevStartApp=" + (activeStreamOptions == null ? "null" : activeStreamOptions.getStartApp())
+        + " nextStartApp=" + streamOptions.getStartApp()
+        + " clients=" + clients.size());
+
     applyShowTouchesSystemSetting(streamOptions.getShowTouches());
     syncAudioProcessor(streamOptions, streamOptions.getVideo());
 
@@ -204,7 +221,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
     }
 
     if (streamOptions.getVideo()) {
-      if (requiresVideoCaptureRestart(activeStreamOptions, streamOptions)) {
+      if (needCaptureRestart) {
         restartVideoCapture(streamOptions);
       } else if (surfaceEncoder != null) {
         surfaceEncoder.requestCaptureReset();
@@ -266,6 +283,12 @@ public final class WsCastSession implements WsSocketBroadcaster {
       }
     }
 
+    // Multi-app windows often share identical new_display size/dpi; a different
+    // start_app must create a new virtual display instead of soft-reusing one.
+    if (!java.util.Objects.equals(previous.getStartApp(), next.getStartApp())) {
+      return true;
+    }
+
     if (previous.getDisplayId() != next.getDisplayId()) {
       return true;
     }
@@ -319,6 +342,11 @@ public final class WsCastSession implements WsSocketBroadcaster {
   private void stopVideoEncoder() {
     if (surfaceEncoder != null) {
       surfaceEncoder.stop();
+      try {
+        surfaceEncoder.join();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
       surfaceEncoder = null;
     }
     surfaceCapture = null;

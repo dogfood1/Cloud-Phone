@@ -43,9 +43,11 @@ function toBuffer(data) {
 }
 
 /**
- * Connect to device WebSocket with retries (server may still be starting).
+ * Connect to device WebSocket and buffer early frames (scrcpy_initial is sent
+ * immediately on open — must not race past the message listener).
  * @param {string} remoteUrl
  * @param {{ attempts?: number, intervalMs?: number, serial?: string, shouldAbort?: () => boolean }} [options]
+ * @returns {Promise<{ remoteWs: import("ws").WebSocket, earlyRemoteMessages: unknown[] }>}
  */
 async function connectRemoteWebSocket(remoteUrl, options = {}) {
   const attempts = options.attempts ?? 20;
@@ -64,13 +66,21 @@ async function connectRemoteWebSocket(remoteUrl, options = {}) {
     logCastInfo(serial, "ws.proxy.connect_attempt", { remoteUrl, attempt, attempts });
 
     try {
-      const remoteWs = await new Promise((resolve, reject) => {
+      const connected = await new Promise((resolve, reject) => {
         if (shouldAbort()) {
           reject(new Error("WebSocket proxy connect aborted."));
           return;
         }
 
         const ws = new WS(remoteUrl);
+        const earlyRemoteMessages = [];
+        /** @type {(data: unknown) => void} */
+        let messageSink = (data) => {
+          earlyRemoteMessages.push(data);
+        };
+        const onMessage = (data) => {
+          messageSink(data);
+        };
         const timer = setTimeout(() => {
           ws.terminate();
           reject(new Error("device WebSocket open timeout"));
@@ -84,20 +94,36 @@ async function connectRemoteWebSocket(remoteUrl, options = {}) {
 
         const onOpen = () => {
           cleanup();
-          resolve(ws);
+          resolve({
+            remoteWs: ws,
+            earlyRemoteMessages,
+            adoptMessageSink: (nextSink) => {
+              messageSink = nextSink;
+            },
+            detachMessage: () => {
+              ws.off("message", onMessage);
+            },
+          });
         };
 
         const onError = (error) => {
           cleanup();
+          ws.off("message", onMessage);
           reject(error instanceof Error ? error : new Error(String(error)));
         };
 
+        // Attach BEFORE open — server sends scrcpy_initial in onOpen.
+        ws.on("message", onMessage);
         ws.once("open", onOpen);
         ws.once("error", onError);
       });
 
-      logCastInfo(serial, "ws.proxy.connect_ok", { remoteUrl, attempt });
-      return remoteWs;
+      logCastInfo(serial, "ws.proxy.connect_ok", {
+        remoteUrl,
+        attempt,
+        earlyRemote: connected.earlyRemoteMessages.length,
+      });
+      return connected;
     } catch (error) {
       lastError = error instanceof Error ? error : lastError;
 
@@ -154,9 +180,12 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     remoteToClient: 0,
     queued: 0,
     flushed: 0,
+    earlyRemoteFlushed: 0,
   };
   let remoteWs;
   let closed = false;
+  /** @type {null | (() => void)} */
+  let detachRemoteMessage = null;
 
   logCastInfo(serial, "ws.proxy.start", {
     remoteUrl,
@@ -189,10 +218,24 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
   };
 
+  // Attach before connecting so browser type-101 during dial is queued.
   clientWs.on("message", onClientMessage);
+  try {
+    options.onProxyListening?.();
+  } catch {
+    // ignore
+  }
+
+  let earlyRemoteMessages = [];
+  /** @type {null | ((sink: (data: unknown) => void) => void)} */
+  let adoptMessageSink = null;
 
   try {
-    remoteWs = await connectRemoteWebSocket(remoteUrl, { serial, shouldAbort });
+    const connected = await connectRemoteWebSocket(remoteUrl, { serial, shouldAbort });
+    remoteWs = connected.remoteWs;
+    earlyRemoteMessages = connected.earlyRemoteMessages;
+    adoptMessageSink = connected.adoptMessageSink;
+    detachRemoteMessage = connected.detachMessage;
   } catch (error) {
     clientWs.off("message", onClientMessage);
 
@@ -208,6 +251,24 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     throw error;
   }
 
+  const forwardRemoteToClient = (data) => {
+    if (closed) {
+      return;
+    }
+
+    counters.remoteToClient += 1;
+    logProxyPacket(serial, "remote_to_client", data, counters);
+
+    if (clientWs.readyState === WS.OPEN) {
+      clientWs.send(data);
+    } else {
+      logCastWarn(serial, "ws.proxy.drop_remote", {
+        clientReadyState: clientWs.readyState,
+        packet: summarizeWsPacket(data),
+      });
+    }
+  };
+
   const closeBoth = (code = 1000, reason = "", source = "unknown") => {
     if (closed) {
       return;
@@ -215,6 +276,8 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
 
     closed = true;
     clientWs.off("message", onClientMessage);
+    detachRemoteMessage?.();
+    detachRemoteMessage = null;
 
     logCastInfo(serial, "ws.proxy.close", {
       source,
@@ -241,6 +304,20 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
   };
 
+  // Point the single remote message listener at live forward, then flush early frames.
+  adoptMessageSink?.(forwardRemoteToClient);
+  for (const data of earlyRemoteMessages) {
+    counters.earlyRemoteFlushed += 1;
+    forwardRemoteToClient(data);
+  }
+  earlyRemoteMessages.length = 0;
+
+  if (counters.earlyRemoteFlushed > 0) {
+    logCastInfo(serial, "ws.proxy.early_remote_flushed", {
+      flushed: counters.earlyRemoteFlushed,
+    });
+  }
+
   const flushClientQueue = () => {
     if (remoteWs.readyState !== WS.OPEN) {
       logCastWarn(serial, "ws.proxy.flush_skipped", {
@@ -259,25 +336,14 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
 
     if (pending > 0) {
-      logCastInfo(serial, "ws.proxy.queue_flushed", { flushed: pending, totalFlushed: counters.flushed });
+      logCastInfo(serial, "ws.proxy.queue_flushed", {
+        flushed: pending,
+        totalFlushed: counters.flushed,
+      });
     }
   };
 
   flushClientQueue();
-
-  remoteWs.on("message", (data) => {
-    counters.remoteToClient += 1;
-    logProxyPacket(serial, "remote_to_client", data, counters);
-
-    if (clientWs.readyState === WS.OPEN) {
-      clientWs.send(data);
-    } else {
-      logCastWarn(serial, "ws.proxy.drop_remote", {
-        clientReadyState: clientWs.readyState,
-        packet: summarizeWsPacket(data),
-      });
-    }
-  });
 
   remoteWs.on("close", (code, reason) => {
     closeBoth(code, reason.toString(), "device_ws_closed");

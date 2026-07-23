@@ -16,8 +16,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const scrcpyRoot = path.join(rootDir, "backend", "source", "scrcpy");
 const serverDir = path.join(scrcpyRoot, "server");
 const gradlew = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
-const installAllPlatforms =
-  process.argv.includes("--all-platforms") || process.argv.includes("--all");
+const installAllPlatforms = true;
 
 function run(command, args, options = {}) {
   if (!resolveJavaHome() && !options.allowMissingJava) {

@@ -7,6 +7,7 @@ import WindowsTaskbar from "./WindowsTaskbar.vue";
 import IconHelperGatePanel from "../IconHelperGatePanel.vue";
 import { useMultiAppIconWarm } from "../../composables/useMultiAppIconWarm.js";
 import { useMultiAppWindows } from "../../composables/useMultiAppWindows.js";
+import { fetchAppOrientation } from "../../utils/device-apps-api.js";
 
 const props = defineProps({
   device: {
@@ -69,10 +70,30 @@ function setStreamRef(id, el) {
 }
 
 function handleLaunch(app) {
-  openOrFocusApp(app, {
+  const serial = String(props.device?.serial || "");
+  const packageName = String(app?.packageName || "").trim();
+  const desktop = {
     canvasWidth: canvasSize.value.width,
     canvasHeight: canvasSize.value.height,
-  });
+  };
+
+  if (!serial || !packageName) {
+    openOrFocusApp(app, desktop);
+    return;
+  }
+
+  void (async () => {
+    let orientation = "portrait";
+    try {
+      const result = await fetchAppOrientation(serial, packageName);
+      if (result === "landscape" || result === "portrait") {
+        orientation = result;
+      }
+    } catch {
+      // default portrait
+    }
+    openOrFocusApp({ ...app, orientation }, desktop);
+  })();
 }
 
 function handleFocus(id) {

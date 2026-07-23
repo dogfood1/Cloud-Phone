@@ -12,6 +12,18 @@ export async function fetchDeviceAppDetail(serial, packageName) {
   return result.detail ?? null;
 }
 
+/**
+ * @param {string} serial
+ * @param {string} packageName
+ * @returns {Promise<"portrait" | "landscape">}
+ */
+export async function fetchAppOrientation(serial, packageName) {
+  const result = await requestJson(
+    `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}/orientation`,
+  );
+  return result?.orientation === "landscape" ? "landscape" : "portrait";
+}
+
 export async function uninstallDeviceApp(serial, packageName) {
   return requestJson(
     `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}?confirm=1`,

@@ -143,6 +143,9 @@ public final class WsServer extends WebSocketServer {
     // windows can each create a virtual display + start_app.
     WsCastSession session = new WsCastSession(options, VideoSettings.fromOptions(options), this);
     info.session = session;
+    Ln.i("Web cast client#" + info.clientId + " -> new WsCastSession@"
+        + Integer.toHexString(System.identityHashCode(session))
+        + " (connections=" + getConnections().size() + ")");
     session.join(webSocket, null);
   }
 }

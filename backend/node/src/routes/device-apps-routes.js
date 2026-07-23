@@ -4,6 +4,7 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { APP_VERSION } from "../config/version.js";
+import { resolveAppOrientation } from "../services/device-app-orientation.js";
 import { getPackageDetail } from "../services/device-apps-detail.js";
 import { listInstalledApps } from "../services/device-apps-list.js";
 import {
@@ -33,6 +34,7 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
   const listMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps$/);
   const apkMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/apk$/);
   const stateMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/state$/);
+  const orientationMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)\/orientation$/);
   const detailMatch = pathname.match(/^\/api\/devices\/([^/]+)\/apps\/([^/]+)$/);
 
   if (method === "PUT" && installMatch) {
@@ -168,6 +170,31 @@ export async function handleDeviceAppsRoute(req, res, method, pathname, url) {
         version: APP_VERSION,
         error: "freeze_failed",
         message: error instanceof Error ? error.message : "操作失败",
+      });
+    }
+
+    return true;
+  }
+
+  if (method === "GET" && orientationMatch) {
+    const serial = decodeURIComponent(orientationMatch[1]);
+    const packageName = decodeURIComponent(orientationMatch[2]);
+
+    try {
+      const orientation = await resolveAppOrientation(serial, packageName);
+      sendProtectedJson(res, 200, {
+        success: true,
+        version: APP_VERSION,
+        serial,
+        packageName,
+        orientation,
+      });
+    } catch (error) {
+      sendProtectedJson(res, 500, {
+        success: false,
+        version: APP_VERSION,
+        error: "orientation_failed",
+        message: error instanceof Error ? error.message : "读取应用方向失败",
       });
     }
 

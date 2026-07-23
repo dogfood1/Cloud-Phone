@@ -351,26 +351,29 @@ export function useDeviceScrcpyCast(
         failReady(new Error("等待视频首帧超时，请重试"));
       }, 30_000);
 
-      socket.addEventListener("open", () => {
-        appendStartupLog("WebSocket 已连接，已发送流参数");
+      let streamParametersSent = false;
+      const sendStreamParameters = (reason) => {
         const options = unref(castOptionsRef) ?? {};
         sendControl(
           serializeChangeStreamParameters(
             videoSettingsFromCastOptions(options, sessionMeta.value),
           ),
         );
-
-        queueStartAppAfterConnect(1200);
-      });
-
-      const resendStreamParameters = () => {
-        const options = unref(castOptionsRef) ?? {};
-        sendControl(
-          serializeChangeStreamParameters(
-            videoSettingsFromCastOptions(options, sessionMeta.value),
-          ),
-        );
+        streamParametersSent = true;
+        appendStartupLog(`已发送流参数 (${reason})`);
       };
+
+      socket.addEventListener("open", () => {
+        appendStartupLog("WebSocket 已连接");
+        sendStreamParameters("ws-open");
+        // Retry once shortly after — covers proxy races that drop the first type-101.
+        window.setTimeout(() => {
+          if (!settled && socket && socket.readyState === WebSocket.OPEN) {
+            sendStreamParameters("ws-open-retry");
+          }
+        }, 400);
+        queueStartAppAfterConnect(1800);
+      });
 
       socket.addEventListener("message", (event) => {
         if (typeof event.data === "string") {
@@ -394,8 +397,10 @@ export function useDeviceScrcpyCast(
             status,
             errorMessage,
             onInitialInfo: () => {
-              appendStartupLog("设备 scrcpy-server 已响应，重新发送流参数");
-              resendStreamParameters();
+              appendStartupLog("设备 scrcpy-server 已响应，确认流参数");
+              if (!streamParametersSent) {
+                sendStreamParameters("scrcpy-initial");
+              }
               queueStartAppAfterConnect(500);
             },
             onDeviceMessage: (message) => {

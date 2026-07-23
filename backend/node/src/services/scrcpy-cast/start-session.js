@@ -1,4 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+
 import {
+  getScrcpyServerDiagnostics,
   getScrcpyServerJarPath,
   SCRCPY_SERVER_VERSION,
   SCRCPY_WEB_CAST_MODE,
@@ -32,6 +37,29 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * @param {string} jarPath
+ */
+function describeServerJar(jarPath) {
+  try {
+    const st = fs.statSync(jarPath);
+    const hash = crypto.createHash("sha256").update(fs.readFileSync(jarPath)).digest("hex").slice(0, 12);
+    return {
+      jarPath,
+      jarBytes: st.size,
+      jarMtime: st.mtime.toISOString(),
+      jarSha256_12: hash,
+      jarDiagnostics: getScrcpyServerDiagnostics(),
+    };
+  } catch (error) {
+    return {
+      jarPath,
+      jarError: error instanceof Error ? error.message : "stat_failed",
+      jarDiagnostics: getScrcpyServerDiagnostics(),
+    };
+  }
+}
+
 function tryAttachToLiveSession(serial, options) {
   const existing = getCastSession(serial);
   if (!existing || existing.stopping || existing.serverExited) {
@@ -46,7 +74,29 @@ function tryAttachToLiveSession(serial, options) {
 export async function startScrcpyCast(serial, options = {}) {
   await ensureScrcpyServerBuilt();
 
+  const jarPath = getScrcpyServerJarPath();
+  const jarInfo = describeServerJar(jarPath);
+
   let existing = getCastSession(serial);
+
+  if (
+    existing &&
+    existing.jarSha256_12 &&
+    jarInfo.jarSha256_12 &&
+    existing.jarSha256_12 !== jarInfo.jarSha256_12
+  ) {
+    logCastWarn(serial, "cast.start.jar_mismatch_restart", {
+      sessionJar: existing.jarSha256_12,
+      diskJar: jarInfo.jarSha256_12,
+      consumerCount: existing.consumerCount ?? 0,
+    });
+    appendCastStartupLog(
+      existing,
+      `后端：scrcpy-server jar 已更新 (${existing.jarSha256_12} → ${jarInfo.jarSha256_12})，强制重建会话`,
+    );
+    await stopScrcpyCast(serial, { force: true });
+    existing = null;
+  }
 
   if (existing?.starting) {
     logCastInfo(serial, "cast.start.wait_inflight", {
@@ -95,7 +145,6 @@ export async function startScrcpyCast(serial, options = {}) {
   const scid = DEFAULT_CAST_SCID;
   const localPort = pickLocalPort();
   const socketName = buildSocketName(scid);
-  const jarPath = getScrcpyServerJarPath();
   const serverOptions = resolveCastServerOptions(options);
   const isWsScrcpy = SCRCPY_WEB_CAST_MODE;
 
@@ -106,7 +155,7 @@ export async function startScrcpyCast(serial, options = {}) {
     socketName,
     tunnel: CAST_TUNNEL_FORWARD,
     options,
-    jarPath,
+    ...jarInfo,
   });
 
   const session = {
@@ -117,6 +166,8 @@ export async function startScrcpyCast(serial, options = {}) {
     tunnelMode: CAST_TUNNEL_FORWARD,
     serverVersion: SCRCPY_SERVER_VERSION,
     webCast: SCRCPY_WEB_CAST_MODE,
+    jarPath,
+    jarSha256_12: jarInfo.jarSha256_12 ?? null,
     castOptions: { ...options, ...serverOptions },
     controlClients: new Set(),
     controlSocket: null,
@@ -148,8 +199,14 @@ export async function startScrcpyCast(serial, options = {}) {
       appendCastStartupLog(session, "adb：清理旧 forward 隧道");
       await clearDeviceTunnels(serial);
 
-      logCastInfo(serial, "adb.push.begin", { remote: getRemoteJarPath() });
-      appendCastStartupLog(session, "adb：push scrcpy-server.jar 开始");
+      logCastInfo(serial, "adb.push.begin", {
+        remote: getRemoteJarPath(),
+        ...jarInfo,
+      });
+      appendCastStartupLog(
+        session,
+        `adb：push scrcpy-server.jar 开始 (${path.basename(path.dirname(jarPath))}/${path.basename(jarPath)} ${jarInfo.jarBytes ?? "?"}B sha=${jarInfo.jarSha256_12 ?? "?"})`,
+      );
       await adbPush(serial, jarPath, getRemoteJarPath());
       logCastInfo(serial, "adb.push.done", { remote: getRemoteJarPath() });
       appendCastStartupLog(session, "adb：push scrcpy-server.jar 完成");

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.13.2 - 2026-07-23
+
+- **修复首帧超时**：WebSocket 代理在 `open` 前缓冲设备端 `scrcpy_initial`（此前在注册 message 监听前丢失，导致管线永不启动、仅见 START_APP 被丢弃）
+- **交接 type 101**：prefetch → proxy 无缝切换；前端在 open 后短重试一次流参数
+
+## 1.13.1 - 2026-07-23
+
+- **修复推送错误的 scrcpy-server**：不再优先选用过期的 `linux/` jar；Windows 主机推送本机 `windows/` 构建，编包时同步写入三平台目录
+- **jar 热更新**：磁盘 jar 哈希变化时强制重建设备端会话，避免复用旧进程导致双窗仍共用一屏
+- **诊断日志**：`cast.start`/`adb.push` 输出 jar 路径/大小/mtime/sha；type 101 日志解析 `new_display`/`start_app`；服务端记录每路 `WsCastSession` 与 softReconfigure 决策
+
+## 1.13.0 - 2026-07-23
+
+- **多应用独立虚拟屏加固**：魔改 scrcpy-server 在 `start_app` 变化时强制重建采集；打断 type 101 ↔ `scrcpy_initial` 回环；编码器 stop 后 join，避免多窗口软重配合并到同一虚拟屏
+- **默认虚拟屏分辨率**：按应用横/竖屏使用 `1920×1080` / `1080×1920`（固定 VD，窗口仅缩放预览）
+- **默认窗口布局**：新窗口停靠在底部任务栏上方，默认尺寸小于桌面可用区域
+- **API**：`GET /api/devices/:serial/apps/:pkg/orientation` 推断启动方向
+
 ## 1.12.0 - 2026-07-22
 
 - **开始菜单秒开**：应用列表与图标写入浏览器 IndexedDB，指纹存 localStorage；首次/指纹变化才拉网，命中缓存即时展示

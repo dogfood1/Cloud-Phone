@@ -1,5 +1,11 @@
 import { computed, ref } from "vue";
 
+import {
+  TITLE_BAR_H,
+  defaultWindowBounds,
+  resolveVdSize,
+} from "../utils/multi-app-window-layout.js";
+
 let windowSeq = 0;
 
 /**
@@ -9,6 +15,9 @@ let windowSeq = 0;
  *   activity: string,
  *   label: string,
  *   iconDataUrl: string | null,
+ *   orientation: "portrait" | "landscape",
+ *   vdWidth: number,
+ *   vdHeight: number,
  *   x: number,
  *   y: number,
  *   width: number,
@@ -20,11 +29,8 @@ let windowSeq = 0;
  * }} MultiAppWindowState
  */
 
-const TITLE_BAR_H = 36;
-const DEFAULT_W = 420;
-const DEFAULT_H = 760;
-const MIN_W = 280;
-const MIN_H = 360;
+const MIN_W = 240;
+const MIN_H = 320;
 
 /**
  * Desktop window manager for multi-app mode.
@@ -46,7 +52,7 @@ export function useMultiAppWindows() {
   const taskbarWindows = computed(() => windows.value);
 
   /**
-   * @param {{ packageName: string, activity?: string, label?: string, iconDataUrl?: string | null }} app
+   * @param {{ packageName: string, activity?: string, label?: string, iconDataUrl?: string | null, orientation?: "portrait" | "landscape" }} app
    * @param {{ canvasWidth: number, canvasHeight: number }} desktop
    */
   function openOrFocusApp(app, desktop) {
@@ -64,11 +70,16 @@ export function useMultiAppWindows() {
       return existing;
     }
 
-    const canvasW = Math.max(desktop.canvasWidth || 800, DEFAULT_W + 40);
-    const canvasH = Math.max(desktop.canvasHeight || 600, DEFAULT_H + 40);
-    const width = Math.min(DEFAULT_W, canvasW - 48);
-    const height = Math.min(DEFAULT_H, canvasH - 48);
-    const offset = (windows.value.length % 6) * 28;
+    const orientation = app.orientation === "landscape" ? "landscape" : "portrait";
+    const vd = resolveVdSize(orientation);
+    const bounds = defaultWindowBounds(
+      {
+        canvasWidth: desktop.canvasWidth,
+        canvasHeight: desktop.canvasHeight,
+        windowIndex: windows.value.length,
+      },
+      orientation,
+    );
 
     /** @type {MultiAppWindowState} */
     const win = {
@@ -77,10 +88,13 @@ export function useMultiAppWindows() {
       activity: String(app.activity || ""),
       label: String(app.label || packageName),
       iconDataUrl: app.iconDataUrl || null,
-      x: 36 + offset,
-      y: 28 + offset,
-      width,
-      height,
+      orientation,
+      vdWidth: bounds.vdWidth || vd.width,
+      vdHeight: bounds.vdHeight || vd.height,
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
       minimized: false,
       maximized: false,
       zIndex: ++zCounter,
@@ -199,7 +213,7 @@ export function useMultiAppWindows() {
   }
 
   /**
-   * Content area size (excludes title bar) for virtual display sync.
+   * Content area size (excludes title bar) for video layout.
    * @param {MultiAppWindowState} win
    */
   function getContentSize(win) {

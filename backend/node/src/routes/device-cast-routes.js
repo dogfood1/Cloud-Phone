@@ -277,10 +277,7 @@ export async function handleCastWebSocket(ws, serial) {
       shellPid: session.shellProcess?.pid ?? null,
     });
 
-    // ws-scrcpy server listens at ws://127.0.0.1:<localPort>/
     if (session.webCast) {
-      ws.off("message", prefetchClientMessage);
-
       const remoteUrl = `ws://127.0.0.1:${session.localPort}/`;
       logCastInfo(serial, "ws.proxy.attach", {
         remoteUrl,
@@ -297,6 +294,9 @@ export async function handleCastWebSocket(ws, serial) {
         prefetchedClientMessages,
         serial,
         shouldAbort,
+        onProxyListening: () => {
+          ws.off("message", prefetchClientMessage);
+        },
       });
 
       if (!proxied) {

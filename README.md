@@ -76,7 +76,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送 |
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
-| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单（搜索/应用网格）；从开始菜单打开应用即新建窗口，**每个窗口独立 WebSocket / 虚拟屏并在该屏 `start_app`**（可拖动/缩放/最小化/最大化；多窗口复用同一 scrcpy 进程、互不拆毁）；应用退出后自动关窗；虚拟屏创建失败时弹窗说明并可切换镜像投屏；**开始菜单图标缓存在浏览器（IndexedDB），仅首次与指纹变化时加载，可秒开**；Icon Helper 仅首次弹窗，之后静默同步缓存图标；快速设置可控制 Wi‑Fi/蓝牙/飞行模式与音量/亮度；通知中心打开时每秒同步设备通知 |
+| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单（搜索/应用网格）；从开始菜单打开应用即新建窗口，**每个窗口独立 WebSocket / 虚拟屏并在该屏 `start_app`**（可拖动/缩放/最小化/最大化；多窗口复用同一 scrcpy 进程、互不拆毁；`start_app` 变化时服务端强制重建采集）；默认虚拟屏 `1080×1920`/`1920×1080`（按应用方向），窗口默认停靠任务栏上方且小于桌面可用区；推送本机平台对应的 scrcpy-server（避免误用过期 linux jar）；代理正确转发 `scrcpy_initial`/type 101；应用退出后自动关窗；虚拟屏创建失败时弹窗说明并可切换镜像投屏；**开始菜单图标缓存在浏览器（IndexedDB），仅首次与指纹变化时加载，可秒开**；Icon Helper 仅首次弹窗，之后静默同步缓存图标；快速设置可控制 Wi‑Fi/蓝牙/飞行模式与音量/亮度；通知中心打开时每秒同步设备通知 |
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
@@ -390,6 +390,7 @@ Cloud-Phone/
 | PUT | `/api/devices/:serial/files/upload?path=` | 上传到设备 |
 | GET/DELETE | `/api/devices/:serial/apps` | 应用列表 / 卸载 |
 | GET | `/api/devices/:serial/apps/:pkg` | 应用详情 |
+| GET | `/api/devices/:serial/apps/:pkg/orientation` | 推断应用横/竖屏 |
 | POST | `/api/devices/:serial/apps/:pkg/state` | 冻结/解冻 |
 | GET | `/api/devices/:serial/apps/:pkg/apk` | 导出 APK |
 | PUT | `/api/devices/:serial/apps/install` | 安装 APK |

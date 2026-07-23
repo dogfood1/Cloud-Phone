@@ -37,10 +37,11 @@ const viewportRef = ref(null);
 const rotatorRef = ref(null);
 const castOptions = ref(
   buildMultiAppCastOptions({
-    width: props.contentWidth,
-    height: props.contentHeight,
+    width: props.window.vdWidth || 1080,
+    height: props.window.vdHeight || 1920,
     packageName: props.window.packageName,
     deviceSdk: props.device?.sdkVersion,
+    orientation: props.window.orientation,
   }),
 );
 
@@ -57,7 +58,6 @@ const errorMessage = ref("");
 const ready = ref(false);
 const showVdError = ref(false);
 const vdErrorDetail = ref("");
-let resizeTimer = null;
 let started = false;
 /** Backend cast/start succeeded for this window (consumer counted). */
 let backendConsumerHeld = false;
@@ -128,10 +128,11 @@ async function startWindowCast({ force = false } = {}) {
   showVdError.value = false;
 
   castOptions.value = buildMultiAppCastOptions({
-    width: props.contentWidth,
-    height: props.contentHeight,
+    width: props.window.vdWidth || 1080,
+    height: props.window.vdHeight || 1920,
     packageName: props.window.packageName,
     deviceSdk: props.device?.sdkVersion,
+    orientation: props.window.orientation,
   });
 
   try {
@@ -164,28 +165,11 @@ async function startWindowCast({ force = false } = {}) {
   }
 }
 
-function scheduleResize() {
-  if (!started || !ready.value) {
-    return;
-  }
-  if (resizeTimer) {
-    window.clearTimeout(resizeTimer);
-  }
-  resizeTimer = window.setTimeout(() => {
-    cast.sendResizeDisplay?.(props.contentWidth, props.contentHeight);
-  }, 120);
-}
-
 function sendBack() {
   cast.sendNavigation?.("back");
 }
 
 async function stopWindowCast() {
-  if (resizeTimer) {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = null;
-  }
-
   const hadSession = started || backendConsumerHeld;
   started = false;
   ready.value = false;
@@ -202,11 +186,6 @@ async function stopWindowCast() {
 
   await releaseBackendConsumer();
 }
-
-watch(
-  () => [props.contentWidth, props.contentHeight],
-  () => scheduleResize(),
-);
 
 watch(
   () => props.window.packageName,

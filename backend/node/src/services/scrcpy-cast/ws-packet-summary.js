@@ -105,6 +105,45 @@ function summarizeTouch(buffer) {
 }
 
 /**
+ * Extract new_display / start_app from type-101 codec extras for multi-app diagnosis.
+ * Layout matches serializeVideoSettings (body) with a leading control type byte.
+ * @param {Buffer} buffer full control frame including leading type byte
+ */
+function summarizeChangeStreamParameters(buffer) {
+  const out = {};
+  // type(1) + base VideoSettings(35) = 36 minimum before optional strings
+  if (buffer.length < 36) {
+    return out;
+  }
+
+  try {
+    const width = buffer.readUInt16BE(10);
+    const height = buffer.readUInt16BE(12);
+    const displayId = buffer.readInt32BE(24);
+    out.bounds = `${width}x${height}`;
+    out.displayId = displayId;
+
+    const codecLen = buffer.readUInt32BE(28);
+    if (codecLen > 0 && buffer.length >= 32 + codecLen) {
+      const extras = buffer.subarray(32, 32 + codecLen).toString("utf8");
+      const newDisplay = extras.match(/(?:^|,)new_display=([^,]*)/)?.[1];
+      const startApp = extras.match(/(?:^|,)start_app=([^,]*)/)?.[1];
+      if (newDisplay != null) {
+        out.newDisplay = newDisplay;
+      }
+      if (startApp) {
+        out.startApp = startApp;
+      }
+      out.extrasLen = codecLen;
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  return out;
+}
+
+/**
  * @param {Buffer | ArrayBuffer | ArrayBufferView} data
  */
 export function summarizeWsPacket(data) {
@@ -161,6 +200,17 @@ export function summarizeWsPacket(data) {
 
     if (type === 14 && size >= 3) {
       summary.uhidId = buffer.readUInt16BE(1);
+    }
+
+    if (type === 16 && size >= 3) {
+      const nameLen = buffer.readUInt16BE(1);
+      if (nameLen > 0 && size >= 3 + nameLen) {
+        summary.startApp = buffer.subarray(3, 3 + nameLen).toString("utf8");
+      }
+    }
+
+    if (type === 101) {
+      Object.assign(summary, summarizeChangeStreamParameters(buffer));
     }
 
     return summary;
