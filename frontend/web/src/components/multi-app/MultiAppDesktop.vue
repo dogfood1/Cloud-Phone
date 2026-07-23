@@ -79,24 +79,26 @@ function handleLaunch(app) {
     canvasHeight: canvasSize.value.height,
   };
 
-  if (!serial || !packageName) {
-    openOrFocusApp(app, desktop);
+  // Show the window immediately — do not wait for orientation / cast/start.
+  const win = openOrFocusApp({ ...app, orientation: app?.orientation || "portrait" }, desktop);
+  if (!serial || !packageName || !win) {
     return;
   }
 
-  // Stagger opens so cast/start + type 101 do not race on a cold scrcpy process.
+  // Stagger cast/start work so type-101 does not race on a cold scrcpy process.
+  // Orientation can refine bounds after the window is already visible.
   launchChain = launchChain.then(async () => {
-    let orientation = "portrait";
     try {
       const result = await fetchAppOrientation(serial, packageName);
       if (result === "landscape" || result === "portrait") {
-        orientation = result;
+        if (win.orientation !== result) {
+          win.orientation = result;
+        }
       }
     } catch {
-      // default portrait
+      // keep default
     }
-    openOrFocusApp({ ...app, orientation }, desktop);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 400));
   });
 }
 

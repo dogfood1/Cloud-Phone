@@ -16,21 +16,29 @@ import { requestJson } from "../utils/api.js";
  */
 export function useAppExitWatch(options) {
   const intervalMs = options.intervalMs ?? 2500;
-  const graceMs = options.graceMs ?? 8000;
-  const missLimit = options.missLimit ?? 2;
+  const graceMs = options.graceMs ?? 12_000;
+  const missLimit = options.missLimit ?? 4;
 
   let timer = null;
   let startedAt = 0;
+  let pauseUntil = 0;
   let missCount = 0;
   let checking = false;
 
   function stop() {
     if (timer) {
       clearInterval(timer);
-      timer = null;
     }
+    timer = null;
     missCount = 0;
     checking = false;
+  }
+
+  /** Pause exit detection (e.g. while resizing VD / reconnecting). */
+  function bumpGrace(ms = graceMs) {
+    const until = Date.now() + Math.max(0, Number(ms) || 0);
+    pauseUntil = Math.max(pauseUntil, until);
+    missCount = 0;
   }
 
   async function tick() {
@@ -42,7 +50,8 @@ export function useAppExitWatch(options) {
     if (!serial || !packageName) {
       return;
     }
-    if (Date.now() - startedAt < graceMs) {
+    const now = Date.now();
+    if (now - startedAt < graceMs || now < pauseUntil) {
       return;
     }
 
@@ -51,6 +60,10 @@ export function useAppExitWatch(options) {
       const result = await requestJson(
         `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}/running`,
       );
+      // Uncertain / failed checks must not close the window.
+      if (result?.uncertain || result?.running == null) {
+        return;
+      }
       if (result?.running) {
         missCount = 0;
         return;
@@ -61,7 +74,7 @@ export function useAppExitWatch(options) {
         options.onExit();
       }
     } catch {
-      // Ignore transient ADB errors; do not close the window.
+      // Ignore transient ADB / network errors; do not close the window.
     } finally {
       checking = false;
     }
@@ -70,6 +83,7 @@ export function useAppExitWatch(options) {
   function start() {
     stop();
     startedAt = Date.now();
+    pauseUntil = 0;
     missCount = 0;
     timer = setInterval(() => {
       void tick();
@@ -92,5 +106,5 @@ export function useAppExitWatch(options) {
     stop();
   });
 
-  return { stop, start };
+  return { stop, start, bumpGrace };
 }

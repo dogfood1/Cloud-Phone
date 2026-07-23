@@ -13,24 +13,13 @@ import {
   buildMultiAppCastOptions,
   vdOptionsFromContent,
 } from "../../utils/multi-app-cast-options.js";
+import { withTimeout } from "../../utils/with-timeout.js";
 
 const props = defineProps({
-  device: {
-    type: Object,
-    required: true,
-  },
-  window: {
-    type: Object,
-    required: true,
-  },
-  contentWidth: {
-    type: Number,
-    required: true,
-  },
-  contentHeight: {
-    type: Number,
-    required: true,
-  },
+  device: { type: Object, required: true },
+  window: { type: Object, required: true },
+  contentWidth: { type: Number, required: true },
+  contentHeight: { type: Number, required: true },
 });
 
 const emit = defineEmits(["close-window", "switch-mirror"]);
@@ -53,7 +42,6 @@ function buildOptionsFromWindow() {
 }
 
 const castOptions = ref(buildOptionsFromWindow());
-
 const cast = useDeviceCast(
   toRef(props, "device"),
   canvasRef,
@@ -68,22 +56,27 @@ const ready = ref(false);
 const showVdError = ref(false);
 const vdErrorDetail = ref("");
 let resizeTimer = null;
+let reconnectTimer = null;
 let started = false;
 let resizeReadyAt = 0;
-/** Backend cast/start succeeded for this window (consumer counted). */
 let backendConsumerHeld = false;
+let unmounted = false;
+let reconnectAttempts = 0;
 
 const statusText = computed(() => {
-  if (starting.value) {
-    return "正在创建虚拟屏…";
-  }
-  if (errorMessage.value) {
-    return errorMessage.value;
-  }
-  if (!ready.value) {
-    return "等待画面…";
-  }
+  if (starting.value) return "正在创建虚拟屏…";
+  if (errorMessage.value) return errorMessage.value;
+  if (!ready.value) return "等待画面…";
   return "";
+});
+
+const exitWatch = useAppExitWatch({
+  getSerial: () => String(props.device?.serial || ""),
+  getPackageName: () => String(props.window?.packageName || ""),
+  enabled: () => Boolean(ready.value && started && !showVdError.value && !starting.value),
+  onExit: () => emit("close-window"),
+  graceMs: 15_000,
+  missLimit: 4,
 });
 
 function presentError(raw) {
@@ -99,14 +92,10 @@ function presentError(raw) {
 }
 
 async function releaseBackendConsumer() {
-  if (!backendConsumerHeld) {
-    return;
-  }
+  if (!backendConsumerHeld) return;
   backendConsumerHeld = false;
   const serial = props.device?.serial;
-  if (!serial) {
-    return;
-  }
+  if (!serial) return;
   try {
     await stopDeviceCast(serial);
   } catch {
@@ -115,16 +104,14 @@ async function releaseBackendConsumer() {
 }
 
 async function startWindowCast({ force = false } = {}) {
-  if ((!force && started) || starting.value) {
-    return;
-  }
+  if (unmounted) return;
+  if ((!force && started) || starting.value) return;
 
   const serial = props.device?.serial;
   if (!serial) {
     presentError("设备序列号无效");
     return;
   }
-
   if (props.device?.platform && props.device.platform !== "android") {
     presentError("多应用窗口投屏目前仅支持 Android 设备");
     return;
@@ -138,29 +125,34 @@ async function startWindowCast({ force = false } = {}) {
   errorMessage.value = "";
   showVdError.value = false;
   ready.value = false;
-
+  exitWatch.bumpGrace(12_000);
   castOptions.value = buildOptionsFromWindow();
 
   try {
     await nextTick();
-    if (!canvasRef.value) {
-      await nextTick();
-    }
-    if (!canvasRef.value) {
-      throw new Error("投屏画布未就绪");
-    }
+    if (!canvasRef.value) await nextTick();
+    if (!canvasRef.value) throw new Error("投屏画布未就绪");
 
-    const payload = await startDeviceCast(serial, castOptions.value);
+    // VD is created after type-101 new_display (not --list-displays).
+    const payload = await withTimeout(
+      startDeviceCast(serial, castOptions.value),
+      45_000,
+      "创建虚拟屏超时（cast/start），请重试",
+    );
+    if (unmounted) {
+      backendConsumerHeld = true;
+      await releaseBackendConsumer();
+      return;
+    }
     backendConsumerHeld = true;
-
-    // Backend accepted — VD is being created on device. Do NOT keep the
-    // "正在启动虚拟屏" overlay while waiting for the first decoded frame.
     starting.value = false;
     started = true;
-    resizeReadyAt = Date.now() + 1200;
+    resizeReadyAt = Date.now() + 1500;
 
     await cast.beginCast(payload);
     ready.value = true;
+    reconnectAttempts = 0;
+    exitWatch.bumpGrace(10_000);
   } catch (error) {
     ready.value = false;
     started = false;
@@ -176,28 +168,46 @@ async function startWindowCast({ force = false } = {}) {
   }
 }
 
-function scheduleResize() {
-  if (!started || !ready.value || Date.now() < resizeReadyAt) {
+function scheduleReconnect(reason) {
+  if (unmounted || reconnectTimer || starting.value || showVdError.value) return;
+  if (reconnectAttempts >= 3) {
+    presentError(reason || "画面中断，重连失败");
     return;
   }
-  if (resizeTimer) {
-    window.clearTimeout(resizeTimer);
-  }
+  reconnectAttempts += 1;
+  exitWatch.bumpGrace(15_000);
+  errorMessage.value = "画面中断，正在重连…";
+  ready.value = false;
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null;
+    errorMessage.value = "";
+    void startWindowCast({ force: true });
+  }, 400);
+}
+
+function scheduleResize() {
+  if (!started || !ready.value || Date.now() < resizeReadyAt) return;
+  if (resizeTimer) window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
     const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
     const prevW = Number(props.window?.vdWidth) || 0;
     const prevH = Number(props.window?.vdHeight) || 0;
-    // Skip tiny drags — each RESIZE_DISPLAY resets the encoder briefly.
     if (Math.abs(vd.width - prevW) < 48 && Math.abs(vd.height - prevH) < 48) {
       return;
     }
+    // Pause exit-watch during encoder reset (dumpsys can flap).
+    exitWatch.bumpGrace(12_000);
     if (props.window) {
       props.window.vdWidth = vd.width;
       props.window.vdHeight = vd.height;
       props.window.vdDpi = vd.dpi;
     }
-    cast.sendResizeDisplay?.(vd.width, vd.height);
-  }, 500);
+    try {
+      cast.sendResizeDisplay?.(vd.width, vd.height);
+    } catch {
+      scheduleReconnect("resize_send_failed");
+    }
+  }, 600);
 }
 
 function sendBack() {
@@ -209,35 +219,28 @@ async function stopWindowCast() {
     window.clearTimeout(resizeTimer);
     resizeTimer = null;
   }
-
+  if (reconnectTimer) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   const hadSession = started || backendConsumerHeld;
   started = false;
   ready.value = false;
-
-  if (!hadSession) {
-    return;
-  }
-
+  if (!hadSession) return;
   try {
     await cast.stopCast?.({ backend: false });
   } catch {
     // ignore
   }
-
   await releaseBackendConsumer();
 }
 
-watch(
-  () => [props.contentWidth, props.contentHeight],
-  () => scheduleResize(),
-);
+watch(() => [props.contentWidth, props.contentHeight], () => scheduleResize());
 
 watch(
   () => props.window.packageName,
   (pkg, prev) => {
-    if (!prev || pkg === prev) {
-      return;
-    }
+    if (!prev || pkg === prev) return;
     void startWindowCast({ force: true });
   },
 );
@@ -246,31 +249,36 @@ watch(
   () => unref(cast.errorMessage),
   (message) => {
     const text = typeof message === "string" ? message : "";
-    if (text && isVirtualDisplayError(text)) {
+    if (!text) return;
+    if (isVirtualDisplayError(text)) {
       presentError(text);
+      return;
+    }
+    if (started && !starting.value && !showVdError.value) {
+      scheduleReconnect(text);
     }
   },
 );
 
-useAppExitWatch({
-  getSerial: () => String(props.device?.serial || ""),
-  getPackageName: () => String(props.window?.packageName || ""),
-  enabled: () => Boolean(ready.value && started && !showVdError.value),
-  onExit: () => emit("close-window"),
-});
+watch(
+  () => unref(cast.status),
+  (status) => {
+    if (status === "error" && started && !starting.value && !showVdError.value) {
+      scheduleReconnect("cast_status_error");
+    }
+  },
+);
 
 onMounted(() => {
   void startWindowCast();
 });
 
 onBeforeUnmount(() => {
+  unmounted = true;
   void stopWindowCast();
 });
 
-defineExpose({
-  sendBack,
-  stopWindowCast,
-});
+defineExpose({ sendBack, stopWindowCast });
 </script>
 
 <template>

@@ -5,9 +5,12 @@ import { runWithAdbLock } from "./adb-lock.js";
  * Best-effort check: whether a package still has a visible / resumed activity.
  * Used by multi-app windows to auto-close when the app exits.
  *
+ * Important: ADB / dumpsys failures must NOT be reported as "not running"
+ * (that falsely closes windows during resize / cast/start lock contention).
+ *
  * @param {string} serial
  * @param {string} packageName
- * @returns {Promise<{ running: boolean, pid: number | null, reason: string }>}
+ * @returns {Promise<{ running: boolean | null, pid: number | null, reason: string, uncertain?: boolean }>}
  */
 export async function getPackageRunningState(serial, packageName) {
   const pkg = String(packageName || "").trim();
@@ -15,13 +18,36 @@ export async function getPackageRunningState(serial, packageName) {
     return { running: false, pid: null, reason: "invalid_package" };
   }
 
-  const [pid, visible] = await Promise.all([
-    readPackagePid(serial, pkg),
-    hasVisibleActivity(serial, pkg),
-  ]);
+  let pid = null;
+  let visible = null;
+  let checkFailed = false;
 
-  if (visible) {
+  try {
+    pid = await readPackagePid(serial, pkg);
+  } catch {
+    checkFailed = true;
+  }
+
+  try {
+    visible = await hasVisibleActivity(serial, pkg);
+  } catch {
+    checkFailed = true;
+    visible = null;
+  }
+
+  if (visible === true) {
     return { running: true, visible: true, pid, reason: "visible_activity" };
+  }
+
+  if (checkFailed || visible === null) {
+    // Keep the window open when we cannot tell — e.g. adb lock during resize.
+    return {
+      running: null,
+      visible: null,
+      pid,
+      uncertain: true,
+      reason: "check_failed",
+    };
   }
 
   if (pid) {
@@ -37,41 +63,34 @@ export async function getPackageRunningState(serial, packageName) {
  * @param {string} packageName
  */
 async function readPackagePid(serial, packageName) {
-  try {
-    const { stdout } = await runWithAdbLock(
-      () =>
-        runAdb(["-s", serial, "shell", "pidof", "-s", packageName], {
-          timeout: 8_000,
-        }),
-      { lockKey: serial },
-    );
-    const raw = String(stdout || "").trim().split(/\s+/)[0];
-    const pid = Number.parseInt(raw, 10);
-    return Number.isFinite(pid) && pid > 0 ? pid : null;
-  } catch {
-    return null;
-  }
+  const { stdout } = await runWithAdbLock(
+    () =>
+      runAdb(["-s", serial, "shell", "pidof", "-s", packageName], {
+        timeout: 8_000,
+      }),
+    { lockKey: serial },
+  );
+  const raw = String(stdout || "").trim().split(/\s+/)[0];
+  const pid = Number.parseInt(raw, 10);
+  return Number.isFinite(pid) && pid > 0 ? pid : null;
 }
 
 /**
  * @param {string} serial
  * @param {string} packageName
+ * @returns {Promise<boolean>}
  */
 async function hasVisibleActivity(serial, packageName) {
-  try {
-    const { stdout } = await runWithAdbLock(
-      () =>
-        runAdb(["-s", serial, "shell", "dumpsys", "activity", "activities"], {
-          timeout: 20_000,
-          maxBuffer: 6 * 1024 * 1024,
-        }),
-      { lockKey: serial },
-    );
+  const { stdout } = await runWithAdbLock(
+    () =>
+      runAdb(["-s", serial, "shell", "dumpsys", "activity", "activities"], {
+        timeout: 20_000,
+        maxBuffer: 6 * 1024 * 1024,
+      }),
+    { lockKey: serial },
+  );
 
-    return parsePackageVisibleInActivities(stdout, packageName);
-  } catch {
-    return false;
-  }
+  return parsePackageVisibleInActivities(stdout, packageName);
 }
 
 /**

@@ -69,7 +69,10 @@ export async function waitForCastSessionReady(session, serial) {
       return false;
     }
     if (!session.starting) {
-      return Boolean(session.shellProcess);
+      // Web cast may detach adb shell (nohup) while :8886 stays alive.
+      return Boolean(
+        session.shellProcess || session.webCast || session.shellDetached,
+      );
     }
     await delay(100);
   }

@@ -37,6 +37,8 @@ export function buildMultiAppCastOptions(opts) {
   settings.screen.flexDisplay = true;
   settings.screen.newDisplayApp = packageName;
   settings.screen.noVdSystemDecorations = true;
+  // Keep app content across VD resize / soft reset (avoid blank→exit-watch close).
+  settings.screen.noVdDestroyContent = true;
   // Match mirror defaults — aggressive 8Mbps / I=2s + client drop logic caused stutter.
   settings.video.maxFps = 60;
   settings.video.bitRateMbps = 5;
