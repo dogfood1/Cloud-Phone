@@ -47,8 +47,12 @@ export async function handleDeviceIconHelperRoute(req, res, method, pathname) {
   if (method === "POST" && ensureMatch) {
     const serial = decodeURIComponent(ensureMatch[1]);
     try {
+      const force = Boolean(
+        // optional query: /icon-helper/ensure?force=1
+        typeof req.url === "string" && /[?&]force=1(?:&|$)/.test(req.url),
+      );
       const result = await ensureIconHelperInstalled(serial);
-      const extract = await startIconHelperExtract(serial);
+      const extract = await startIconHelperExtract(serial, { force });
       sendProtectedJson(res, 200, {
         success: true,
         version: APP_VERSION,
@@ -71,7 +75,10 @@ export async function handleDeviceIconHelperRoute(req, res, method, pathname) {
   if (method === "POST" && extractMatch) {
     const serial = decodeURIComponent(extractMatch[1]);
     try {
-      const result = await startIconHelperExtract(serial);
+      const force = Boolean(
+        typeof req.url === "string" && /[?&]force=1(?:&|$)/.test(req.url),
+      );
+      const result = await startIconHelperExtract(serial, { force });
       sendProtectedJson(res, 200, { success: true, version: APP_VERSION, serial, ...result });
     } catch (error) {
       sendProtectedJson(res, 500, {

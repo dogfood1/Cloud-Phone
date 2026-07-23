@@ -21,11 +21,15 @@ export async function handleDeviceLauncherAppsRoute(req, res, method, pathname, 
   const packageNamesOnly = url?.searchParams?.get("packageNamesOnly") === "1";
 
   try {
-    const apps = await listLauncherApps(serial, { light, packageNamesOnly });
+    const { apps, fingerprint } = await listLauncherApps(serial, {
+      light,
+      packageNamesOnly,
+    });
     sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       serial,
+      fingerprint,
       apps,
     });
   } catch (error) {
@@ -33,6 +37,7 @@ export async function handleDeviceLauncherAppsRoute(req, res, method, pathname, 
       success: false,
       version: APP_VERSION,
       serial,
+      fingerprint: "",
       apps: [],
       error: "launcher_apps_failed",
       message: error instanceof Error ? error.message : "Unknown error",

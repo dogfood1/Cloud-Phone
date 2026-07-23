@@ -9,6 +9,7 @@ import PanelAlert from "./ui/PanelAlert.vue";
 import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { useDeviceAppManager } from "../composables/useDeviceAppManager.js";
 import { useIconHelperGate } from "../composables/useIconHelperGate.js";
+import { isIconHelperFirstSetupDone } from "../utils/icon-helper-consent.js";
 
 const props = defineProps({
   device: {
@@ -104,9 +105,18 @@ watch(
       return;
     }
 
+    const serial = props.device.serial;
+    // Always load the package list first so the dialog is never stuck empty
+    // while Icon Helper consent / extract is running.
+    void loadList({ packageNamesOnly: true });
+
     gateBusy.value = true;
     try {
-      const result = await prepareIconHelper(props.device.serial);
+      const forceFirst = !isIconHelperFirstSetupDone(serial);
+      const result = await prepareIconHelper(serial, {
+        silent: !forceFirst,
+        force: forceFirst,
+      });
       await loadList({ packageNamesOnly: result.packageNamesOnly });
     } finally {
       gateBusy.value = false;

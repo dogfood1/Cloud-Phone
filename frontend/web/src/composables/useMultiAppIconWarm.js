@@ -1,9 +1,16 @@
 import { onBeforeUnmount, watch } from "vue";
 
 import { useIconHelperGate } from "./useIconHelperGate.js";
+import { isIconHelperFirstSetupDone } from "../utils/icon-helper-consent.js";
+import {
+  prefetchLauncherAppsToBrowserCache,
+  readLauncherAppsBrowserCache,
+} from "../utils/launcher-apps-browser-resolve.js";
+import { clearLauncherAppsCache } from "../utils/launcher-icon-browser-cache.js";
 
 /**
- * Warm Icon Helper as soon as multi-app desktop mounts; poll for package changes.
+ * Warm Icon Helper when multi-app desktop mounts.
+ * First enter (no first-setup / no browser icons): show progress + force reload.
  * @param {import("vue").Ref | import("vue").ComputedRef | (() => string)} serialSource
  */
 export function useMultiAppIconWarm(serialSource) {
@@ -12,9 +19,9 @@ export function useMultiAppIconWarm(serialSource) {
 
   function resolveSerial() {
     if (typeof serialSource === "function") {
-      return String(serialSource() || "");
+      return String(serialSource() || "").trim();
     }
-    return String(serialSource?.value || "");
+    return String(serialSource?.value || "").trim();
   }
 
   function stopSync() {
@@ -34,6 +41,14 @@ export function useMultiAppIconWarm(serialSource) {
     }, 12_000);
   }
 
+  async function shouldForceFirstLoad(serial) {
+    if (!isIconHelperFirstSetupDone(serial)) {
+      return true;
+    }
+    const cached = await readLauncherAppsBrowserCache(serial);
+    return !cached.fromCache || !cached.apps.some((item) => item.iconDataUrl);
+  }
+
   watch(
     () => resolveSerial(),
     (serial) => {
@@ -41,7 +56,17 @@ export function useMultiAppIconWarm(serialSource) {
       if (!serial) {
         return;
       }
-      void gate.warmIconHelper(serial).then(() => startSync(serial));
+      void (async () => {
+        const force = await shouldForceFirstLoad(serial);
+        if (force) {
+          await clearLauncherAppsCache(serial);
+        }
+        const result = await gate.warmIconHelper(serial, { force });
+        if (result?.ok && !result.packageNamesOnly) {
+          await prefetchLauncherAppsToBrowserCache(serial);
+        }
+        startSync(serial);
+      })();
     },
     { immediate: true },
   );

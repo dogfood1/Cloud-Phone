@@ -113,11 +113,13 @@ export function useIconHelperGate() {
 
   /**
    * @param {string} serial
-   * @param {{ silent?: boolean }} [options]
+   * @param {{ silent?: boolean, force?: boolean }} [options]
    */
   async function prepareIconHelper(serial, options = {}) {
+    const force = Boolean(options.force);
     const firstDone = isIconHelperFirstSetupDone(serial);
-    const silent = Boolean(options.silent) || firstDone;
+    // force always shows progress UI and reloads from device
+    const silent = force ? false : Boolean(options.silent) || firstDone;
     errorMessage.value = "";
     packageNamesOnly.value = false;
     progressUiVisible.value = false;
@@ -140,8 +142,9 @@ export function useIconHelperGate() {
         phase.value = "ensuring";
       }
 
+      const ensureQs = force ? "?force=1" : "";
       const ensureResult = await requestJson(
-        `/api/devices/${encodeURIComponent(serial)}/icon-helper/ensure`,
+        `/api/devices/${encodeURIComponent(serial)}/icon-helper/ensure${ensureQs}`,
         { method: "POST" },
       );
       const extract = ensureResult?.extract || {};
@@ -149,7 +152,7 @@ export function useIconHelperGate() {
         applyProgress(extract.progress);
       }
 
-      if (extract.skipped && extract.progress?.phase === "done") {
+      if (!force && extract.skipped && extract.progress?.phase === "done") {
         phase.value = "ready";
         packageNamesOnly.value = false;
         markReady(serial);
@@ -160,10 +163,12 @@ export function useIconHelperGate() {
         phase.value = "extracting";
       }
 
-      if (!extract.started && extract.progress?.phase !== "done") {
-        await requestJson(`/api/devices/${encodeURIComponent(serial)}/icon-helper/extract`, {
-          method: "POST",
-        });
+      if (force || (!extract.started && extract.progress?.phase !== "done")) {
+        const extractQs = force ? "?force=1" : "";
+        await requestJson(
+          `/api/devices/${encodeURIComponent(serial)}/icon-helper/extract${extractQs}`,
+          { method: "POST" },
+        );
       }
 
       await pollUntilDone(serial, { updateUi: !silent });
@@ -177,7 +182,7 @@ export function useIconHelperGate() {
 
       packageNamesOnly.value = false;
       markReady(serial);
-      return { ok: true, packageNamesOnly: false, skipped: Boolean(extract.skipped) };
+      return { ok: true, packageNamesOnly: false, skipped: Boolean(extract.skipped) && !force };
     } catch (error) {
       phase.value = "error";
       errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -188,18 +193,20 @@ export function useIconHelperGate() {
     }
   }
 
-  async function warmIconHelper(serial) {
+  async function warmIconHelper(serial, options = {}) {
     if (!serial) {
       return { ok: false, packageNamesOnly: true };
     }
     if (resolveIconHelperConsent(serial) === "denied") {
       return { ok: false, packageNamesOnly: true };
     }
-    if (warmedSerials.value.has(serial) && isIconHelperFirstSetupDone(serial)) {
+    const force = Boolean(options.force);
+    if (!force && warmedSerials.value.has(serial) && isIconHelperFirstSetupDone(serial)) {
       return { ok: true, packageNamesOnly: false, skipped: true };
     }
     return prepareIconHelper(serial, {
-      silent: isIconHelperFirstSetupDone(serial),
+      silent: force ? false : isIconHelperFirstSetupDone(serial),
+      force,
     });
   }
 

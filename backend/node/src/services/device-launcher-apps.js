@@ -5,7 +5,11 @@ import {
   loadMissingAppIcons,
   warmupMissingAppIcons,
 } from "./device-app-icons.js";
-import { getCachedHelperApps } from "./icon-helper-cache.js";
+import {
+  fingerprintHelperApps,
+  getCachedHelperApps,
+  getCachedHelperFingerprint,
+} from "./icon-helper-cache.js";
 
 /** @type {Map<string, { expires: number, apps: Array<{ packageName: string, activity: string, label: string }> }>} */
 const launcherCache = new Map();
@@ -25,12 +29,15 @@ export function invalidateLauncherAppsCache(serial) {
 /**
  * @param {string} serial
  * @param {{ light?: boolean, packageNamesOnly?: boolean }} [options]
- * @returns {Promise<Array<{
- *   packageName: string,
- *   activity: string,
- *   label: string,
- *   iconDataUrl: string | null,
- * }>>}
+ * @returns {Promise<{
+ *   apps: Array<{
+ *     packageName: string,
+ *     activity: string,
+ *     label: string,
+ *     iconDataUrl: string | null,
+ *   }>,
+ *   fingerprint: string,
+ * }>}
  */
 export async function listLauncherApps(serial, options = {}) {
   const light = Boolean(options.light);
@@ -46,10 +53,17 @@ export async function listLauncherApps(serial, options = {}) {
     }
   }
 
-  return apps.map((item) => ({
-    ...item,
-    iconDataUrl: packageNamesOnly ? null : getCachedAppIcon(serial, item.packageName),
-  }));
+  const fingerprint = packageNamesOnly
+    ? ""
+    : getCachedHelperFingerprint(serial) || fingerprintHelperApps(apps);
+
+  return {
+    fingerprint,
+    apps: apps.map((item) => ({
+      ...item,
+      iconDataUrl: packageNamesOnly ? null : getCachedAppIcon(serial, item.packageName),
+    })),
+  };
 }
 
 /**

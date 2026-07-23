@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.0 - 2026-07-22
+
+- **开始菜单秒开**：应用列表与图标写入浏览器 IndexedDB，指纹存 localStorage；首次/指纹变化才拉网，命中缓存即时展示
+- **首次强制加载**：第一次进入多应用（无本地图标缓存）弹出 Icon Helper 进度窗并强制重提取/重拉列表，避免空菜单
+- **空列表修复**：修复开始菜单 `serial` 双重 Ref 导致请求失败；应用管理不再等 Icon Helper 结束后才拉包名列表
+- **预热写缓存**：进入多应用桌面并完成 Icon Helper 后预填浏览器缓存；同步时指纹一致则跳过图标下载
+- **API**：`GET /launcher-apps` 返回 `fingerprint`；`icon-helper/ensure|extract?force=1` 支持强制重提取
+
 ## 1.11.0 - 2026-07-22
 
 - **多应用每窗口虚拟屏修复**：禁止在仍有消费者时强制重建 scrcpy 会话（避免开第二个窗口时杀掉第一路虚拟屏）；每路 WebSocket 绑定独立 displayId；虚拟屏使用唯一名称
