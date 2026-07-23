@@ -3,167 +3,14 @@ import WS from "ws";
 import { logCastError, logCastInfo, logCastWarn } from "./cast-logger.js";
 import { getCastSession } from "./session-store.js";
 import { appendCastStartupLog } from "./startup-log.js";
-import { shouldLogPacketSummary, summarizeWsPacket } from "./ws-packet-summary.js";
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function delayWithAbort(ms, shouldAbort) {
-  const step = 50;
-  let elapsed = 0;
-
-  while (elapsed < ms) {
-    if (shouldAbort()) {
-      const error = new Error("WebSocket proxy connect aborted.");
-      error.code = "proxy_connect_aborted";
-      throw error;
-    }
-
-    const chunk = Math.min(step, ms - elapsed);
-    await delay(chunk);
-    elapsed += chunk;
-  }
-}
-
-function toBuffer(data) {
-  if (Buffer.isBuffer(data)) {
-    return data;
-  }
-
-  if (data instanceof ArrayBuffer) {
-    return Buffer.from(data);
-  }
-
-  if (ArrayBuffer.isView(data)) {
-    return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-  }
-
-  return Buffer.from(data);
-}
-
-/**
- * Connect to device WebSocket and buffer early frames (scrcpy_initial is sent
- * immediately on open — must not race past the message listener).
- * @param {string} remoteUrl
- * @param {{ attempts?: number, intervalMs?: number, serial?: string, shouldAbort?: () => boolean }} [options]
- * @returns {Promise<{ remoteWs: import("ws").WebSocket, earlyRemoteMessages: unknown[] }>}
- */
-async function connectRemoteWebSocket(remoteUrl, options = {}) {
-  const attempts = options.attempts ?? 20;
-  const intervalMs = options.intervalMs ?? 300;
-  const serial = options.serial ?? "-";
-  const shouldAbort = options.shouldAbort ?? (() => false);
-  let lastError = new Error("Unable to connect device WebSocket.");
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    if (shouldAbort()) {
-      const error = new Error("WebSocket proxy connect aborted.");
-      error.code = "proxy_connect_aborted";
-      throw error;
-    }
-
-    logCastInfo(serial, "ws.proxy.connect_attempt", { remoteUrl, attempt, attempts });
-
-    try {
-      const connected = await new Promise((resolve, reject) => {
-        if (shouldAbort()) {
-          reject(new Error("WebSocket proxy connect aborted."));
-          return;
-        }
-
-        const ws = new WS(remoteUrl);
-        const earlyRemoteMessages = [];
-        /** @type {(data: unknown) => void} */
-        let messageSink = (data) => {
-          earlyRemoteMessages.push(data);
-        };
-        const onMessage = (data) => {
-          messageSink(data);
-        };
-        const timer = setTimeout(() => {
-          ws.terminate();
-          reject(new Error("device WebSocket open timeout"));
-        }, 5_000);
-
-        const cleanup = () => {
-          clearTimeout(timer);
-          ws.off("open", onOpen);
-          ws.off("error", onError);
-        };
-
-        const onOpen = () => {
-          cleanup();
-          resolve({
-            remoteWs: ws,
-            earlyRemoteMessages,
-            adoptMessageSink: (nextSink) => {
-              messageSink = nextSink;
-            },
-            detachMessage: () => {
-              ws.off("message", onMessage);
-            },
-          });
-        };
-
-        const onError = (error) => {
-          cleanup();
-          ws.off("message", onMessage);
-          reject(error instanceof Error ? error : new Error(String(error)));
-        };
-
-        // Attach BEFORE open — server sends scrcpy_initial in onOpen.
-        ws.on("message", onMessage);
-        ws.once("open", onOpen);
-        ws.once("error", onError);
-      });
-
-      logCastInfo(serial, "ws.proxy.connect_ok", {
-        remoteUrl,
-        attempt,
-        earlyRemote: connected.earlyRemoteMessages.length,
-      });
-      return connected;
-    } catch (error) {
-      lastError = error instanceof Error ? error : lastError;
-
-      if (shouldAbort() || lastError.message.includes("aborted")) {
-        const abortError = new Error("WebSocket proxy connect aborted.");
-        abortError.code = "proxy_connect_aborted";
-        throw abortError;
-      }
-
-      logCastWarn(serial, "ws.proxy.connect_retry", {
-        remoteUrl,
-        attempt,
-        message: lastError.message,
-      });
-
-      if (attempt < attempts) {
-        await delayWithAbort(intervalMs, shouldAbort);
-      }
-    }
-  }
-
-  logCastError(serial, "ws.proxy.connect_failed", {
-    remoteUrl,
-    attempts,
-    message: lastError.message,
-  });
-
-  throw lastError;
-}
-
-function logProxyPacket(serial, direction, data, counters) {
-  const buffer = toBuffer(data);
-  const summary = summarizeWsPacket(buffer);
-
-  if (!shouldLogPacketSummary(summary, counters, direction)) {
-    return;
-  }
-
-  logCastInfo(serial, `ws.proxy.${direction}`, summary);
-}
+import { summarizeWsPacket } from "./ws-packet-summary.js";
+import { connectRemoteWebSocket } from "./ws-scrcpy-ws-proxy-connect.js";
+import {
+  CLIENT_BACKLOG_DROP_BYTES,
+  isLikelyVideoAnnexB,
+  logProxyPacket,
+  toBuffer,
+} from "./ws-scrcpy-ws-proxy-hotpath.js";
 
 /**
  * Proxy a browser WebSocket to a device WebSocket endpoint.
@@ -202,7 +49,7 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     logProxyPacket(serial, "client_to_remote", data, counters);
 
     if (remoteWs && remoteWs.readyState === WS.OPEN) {
-      remoteWs.send(toBuffer(data));
+      remoteWs.send(data);
       return;
     }
 
@@ -218,7 +65,6 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
   };
 
-  // Attach before connecting so browser type-101 during dial is queued.
   clientWs.on("message", onClientMessage);
   try {
     options.onProxyListening?.();
@@ -257,16 +103,31 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
 
     counters.remoteToClient += 1;
-    logProxyPacket(serial, "remote_to_client", data, counters);
 
-    if (clientWs.readyState === WS.OPEN) {
-      clientWs.send(data);
-    } else {
+    if (clientWs.readyState !== WS.OPEN) {
       logCastWarn(serial, "ws.proxy.drop_remote", {
         clientReadyState: clientWs.readyState,
         packet: summarizeWsPacket(data),
       });
+      return;
     }
+
+    if (
+      isLikelyVideoAnnexB(data) &&
+      (clientWs.bufferedAmount || 0) > CLIENT_BACKLOG_DROP_BYTES
+    ) {
+      counters.droppedVideo = (counters.droppedVideo || 0) + 1;
+      if (counters.droppedVideo <= 3 || counters.droppedVideo % 300 === 0) {
+        logCastWarn(serial, "ws.proxy.drop_backlog_video", {
+          bufferedAmount: clientWs.bufferedAmount,
+          dropped: counters.droppedVideo,
+        });
+      }
+      return;
+    }
+
+    logProxyPacket(serial, "remote_to_client", data, counters);
+    clientWs.send(data, { compress: false });
   };
 
   const closeBoth = (code = 1000, reason = "", source = "unknown") => {
@@ -304,7 +165,6 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
   };
 
-  // Point the single remote message listener at live forward, then flush early frames.
   adoptMessageSink?.(forwardRemoteToClient);
   for (const data of earlyRemoteMessages) {
     counters.earlyRemoteFlushed += 1;
@@ -328,7 +188,6 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
     }
 
     const pending = clientQueue.length;
-
     while (clientQueue.length > 0) {
       const item = clientQueue.shift();
       remoteWs.send(toBuffer(item));

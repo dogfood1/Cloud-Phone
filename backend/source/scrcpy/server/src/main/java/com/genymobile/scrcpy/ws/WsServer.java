@@ -78,7 +78,7 @@ public final class WsServer extends WebSocketServer {
       if (info.session == null) {
         joinDefaultStream(webSocket, info);
       }
-      info.session.handleControl(bytes.duplicate());
+      info.session.handleControl(webSocket, bytes.duplicate());
     } catch (Exception e) {
       Ln.e("WebSocket control error", e);
     }

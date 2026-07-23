@@ -317,6 +317,7 @@ export function useDeviceScrcpyCast(
       socket.binaryType = "arraybuffer";
 
       let settled = false;
+      let videoPipeLive = false;
 
       const settleReady = () => {
         if (settled) {
@@ -325,6 +326,8 @@ export function useDeviceScrcpyCast(
 
         settled = true;
         clearTimeout(readyTimeout);
+        clearStreamParamRetry?.();
+        clearSettleFallback?.();
         openWebSocketReady = null;
         resolve();
       };
@@ -336,43 +339,109 @@ export function useDeviceScrcpyCast(
 
         settled = true;
         clearTimeout(readyTimeout);
+        clearStreamParamRetry?.();
+        clearSettleFallback?.();
         openWebSocketReady = null;
         reject(error instanceof Error ? error : new Error(String(error)));
       };
 
       openWebSocketReady = settleReady;
 
+      let streamParametersSent = false;
+      let streamParamRecovered = false;
+      let streamParamRetryTimer = null;
+      let streamParamRetryCount = 0;
+      let settleFallbackTimer = null;
+
+      const clearStreamParamRetry = () => {
+        if (streamParamRetryTimer) {
+          clearTimeout(streamParamRetryTimer);
+          streamParamRetryTimer = null;
+        }
+      };
+
+      const clearSettleFallback = () => {
+        if (settleFallbackTimer) {
+          clearTimeout(settleFallbackTimer);
+          settleFallbackTimer = null;
+        }
+      };
+
+      // Fail fast — 30s left the multi-app window stuck on a loading overlay.
       const readyTimeout = setTimeout(() => {
         if (audioOnly) {
           settleReady();
           return;
         }
+        // Prefer soft-ready over hard-fail: VD may exist while decode still warms up.
+        if (streamParametersSent) {
+          appendStartupLog("首帧较慢，先结束等待（继续收流）");
+          settleReady();
+          return;
+        }
+        failReady(new Error("等待视频超时，请重试"));
+      }, 8_000);
 
-        failReady(new Error("等待视频首帧超时，请重试"));
-      }, 30_000);
-
-      let streamParametersSent = false;
       const sendStreamParameters = (reason) => {
-        const options = unref(castOptionsRef) ?? {};
-        sendControl(
-          serializeChangeStreamParameters(
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          appendStartupLog(`流参数未发送（socket 未就绪，${reason}）`);
+          return false;
+        }
+
+        try {
+          const options = unref(castOptionsRef) ?? {};
+          const body = serializeChangeStreamParameters(
             videoSettingsFromCastOptions(options, sessionMeta.value),
-          ),
-        );
-        streamParametersSent = true;
-        appendStartupLog(`已发送流参数 (${reason})`);
+          );
+          const copy = new Uint8Array(body.byteLength);
+          copy.set(body);
+          sendControl(copy);
+          streamParametersSent = true;
+          appendStartupLog(`已发送流参数 (${reason}, ${copy.byteLength}B)`);
+          return true;
+        } catch (error) {
+          appendStartupLog(
+            `流参数发送失败 (${reason}): ${error instanceof Error ? error.message : String(error)}`,
+          );
+          return false;
+        }
+      };
+
+      const scheduleStreamParamRetries = () => {
+        clearStreamParamRetry();
+        streamParamRetryCount = 0;
+        streamParamRetryTimer = setTimeout(() => {
+          streamParamRetryTimer = null;
+          if (settled || videoPipeLive || !socket || socket.readyState !== WebSocket.OPEN) {
+            return;
+          }
+          streamParamRetryCount += 1;
+          sendStreamParameters("retry-1");
+        }, 1200);
+      };
+
+      const requestKeyframeSoon = () => {
+        try {
+          sendControl(serializeResetVideo());
+        } catch {
+          // ignore
+        }
       };
 
       socket.addEventListener("open", () => {
         appendStartupLog("WebSocket 已连接");
         sendStreamParameters("ws-open");
-        // Retry once shortly after — covers proxy races that drop the first type-101.
-        window.setTimeout(() => {
-          if (!settled && socket && socket.readyState === WebSocket.OPEN) {
-            sendStreamParameters("ws-open-retry");
+        scheduleStreamParamRetries();
+        queueStartAppAfterConnect(400);
+        // Fallback: never leave callers blocked if video NALs are delayed.
+        clearSettleFallback();
+        settleFallbackTimer = setTimeout(() => {
+          settleFallbackTimer = null;
+          if (!settled && streamParametersSent) {
+            appendStartupLog("流参数已发送，结束连接等待");
+            settleReady();
           }
-        }, 400);
-        queueStartAppAfterConnect(1800);
+        }, 700);
       });
 
       socket.addEventListener("message", (event) => {
@@ -385,9 +454,37 @@ export function useDeviceScrcpyCast(
             status.value = "error";
             errorMessage.value = friendly;
             appendStartupLog(`设备报错：${castError.code} ${castError.message || ""}`.trim());
+            clearStreamParamRetry();
+            clearSettleFallback();
             failReady(new Error(friendly));
           }
           return;
+        }
+
+        if (!videoPipeLive && (event.data instanceof ArrayBuffer || ArrayBuffer.isView(event.data))) {
+          const head = new Uint8Array(
+            event.data instanceof ArrayBuffer
+              ? event.data
+              : event.data.buffer,
+            event.data instanceof ArrayBuffer ? 0 : event.data.byteOffset,
+            Math.min(8, event.data instanceof ArrayBuffer ? event.data.byteLength : event.data.byteLength),
+          );
+          if (
+            head.length >= 4 &&
+            head[0] === 0x00 &&
+            head[1] === 0x00 &&
+            (head[2] === 0x01 || (head[2] === 0x00 && head[3] === 0x01))
+          ) {
+            videoPipeLive = true;
+            clearStreamParamRetry();
+            clearSettleFallback();
+            appendStartupLog("已收到视频流");
+            if (!settled && !audioOnly) {
+              settleReady();
+            }
+            // Always request IDR once video starts (even if beginCast already settled).
+            window.setTimeout(requestKeyframeSoon, 80);
+          }
         }
 
         handleWsScrcpyBinary(
@@ -397,11 +494,20 @@ export function useDeviceScrcpyCast(
             status,
             errorMessage,
             onInitialInfo: () => {
-              appendStartupLog("设备 scrcpy-server 已响应，确认流参数");
               if (!streamParametersSent) {
+                appendStartupLog("设备已响应，发送流参数");
                 sendStreamParameters("scrcpy-initial");
+              } else {
+                appendStartupLog("设备已响应，流参数已发送");
+                clearStreamParamRetry();
               }
-              queueStartAppAfterConnect(500);
+              streamParamRecovered = true;
+              queueStartAppAfterConnect(400);
+              // Server is alive — enough to unblock beginCast for multi-app UI.
+              if (!settled && streamParametersSent) {
+                clearSettleFallback();
+                settleReady();
+              }
             },
             onDeviceMessage: (message) => {
               if (message.type === "clipboard" && message.text != null) {
@@ -416,6 +522,7 @@ export function useDeviceScrcpyCast(
           const bytes = new Uint8Array(event.data);
 
           if (isScrcpyAudioPacket(bytes)) {
+            clearStreamParamRetry();
             settleReady();
           }
         }
@@ -459,8 +566,14 @@ export function useDeviceScrcpyCast(
       return;
     }
 
-    const newDisplay = isNewDisplayEnabled(screen);
-    const baseDelay = delayMs ?? (newDisplay ? 2800 : 900);
+    // Official/web path: start_app in type-101 extras launches when the VD is ready.
+    // Do not send a delayed START_APP control — it only adds 2–4s of empty wait.
+    if (isNewDisplayEnabled(screen) && String(screen.newDisplayApp || "").trim()) {
+      startAppSent = true;
+      return;
+    }
+
+    const baseDelay = delayMs ?? 400;
 
     const sendOnce = () => {
       if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -479,10 +592,6 @@ export function useDeviceScrcpyCast(
       startAppTimer = null;
       startAppSent = true;
       sendOnce();
-
-      if (newDisplay) {
-        setTimeout(sendOnce, 2500);
-      }
     }, baseDelay);
   }
 
@@ -514,7 +623,16 @@ export function useDeviceScrcpyCast(
       return;
     }
 
-    socket.send(buffer);
+    // Ensure a standalone binary frame (Uint8Array or ArrayBuffer both OK for ws).
+    if (buffer instanceof ArrayBuffer) {
+      socket.send(buffer);
+    } else if (ArrayBuffer.isView(buffer)) {
+      const copy = new Uint8Array(buffer.byteLength);
+      copy.set(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
+      socket.send(copy);
+    } else {
+      socket.send(buffer);
+    }
     onControlSent?.(buffer);
   }
 

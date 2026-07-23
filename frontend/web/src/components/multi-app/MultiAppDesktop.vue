@@ -69,6 +69,8 @@ function setStreamRef(id, el) {
   }
 }
 
+let launchChain = Promise.resolve();
+
 function handleLaunch(app) {
   const serial = String(props.device?.serial || "");
   const packageName = String(app?.packageName || "").trim();
@@ -82,7 +84,8 @@ function handleLaunch(app) {
     return;
   }
 
-  void (async () => {
+  // Stagger opens so cast/start + type 101 do not race on a cold scrcpy process.
+  launchChain = launchChain.then(async () => {
     let orientation = "portrait";
     try {
       const result = await fetchAppOrientation(serial, packageName);
@@ -93,7 +96,8 @@ function handleLaunch(app) {
       // default portrait
     }
     openOrFocusApp({ ...app, orientation }, desktop);
-  })();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
 }
 
 function handleFocus(id) {

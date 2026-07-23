@@ -54,7 +54,19 @@ function startsWithMagic(bytes, magic) {
 export function handleWsScrcpyBinary(ctx, data) {
   const { player: nextPlayer, audioPlayback, status, errorMessage, onInitialInfo, onDeviceMessage } =
     ctx;
-  const bytes = new Uint8Array(data);
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+
+  // Hot path: Annex-B video starts with 00 00 — skip magic string scans.
+  if (bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x00) {
+    if (typeof nextPlayer.pushFrame === "function") {
+      nextPlayer.pushFrame(bytes);
+    }
+    if (nextPlayer.lastError && status.value === "streaming") {
+      status.value = "error";
+      errorMessage.value = `H.264 解码失败：${nextPlayer.lastError}`;
+    }
+    return;
+  }
 
   if (startsWithMagic(bytes, MAGIC_INITIAL)) {
     onInitialInfo?.();
@@ -77,15 +89,5 @@ export function handleWsScrcpyBinary(ctx, data) {
     } else {
       audioPlayback?.pushPcm?.(bytes);
     }
-    return;
-  }
-
-  if (typeof nextPlayer.pushFrame === "function") {
-    nextPlayer.pushFrame(bytes);
-  }
-
-  if (nextPlayer.lastError && status.value === "streaming") {
-    status.value = "error";
-    errorMessage.value = `H.264 解码失败：${nextPlayer.lastError}`;
   }
 }

@@ -1,28 +1,52 @@
 /**
  * ws-scrcpy compatible WebCodecs player (Annex-B H.264).
- *
- * Wire format: each WebSocket binary message is one or more Annex-B NAL units
- * (0x00000001 start codes). Logic aligned with NetrisTV/ws-scrcpy WebCodecsPlayer.
+ * Splits multi-NAL packets (SPS+PPS+IDR often arrive in one MediaCodec buffer).
  */
 
 import { codecFromSps } from "./h264-nal-utils.js";
 
-function isStartCodeAt(bytes, offset) {
-  return (
-    offset + 4 <= bytes.length &&
-    bytes[offset] === 0x00 &&
-    bytes[offset + 1] === 0x00 &&
-    bytes[offset + 2] === 0x00 &&
-    bytes[offset + 3] === 0x01
-  );
+function startCodeLenAt(bytes, offset) {
+  if (offset + 3 > bytes.length || bytes[offset] !== 0x00 || bytes[offset + 1] !== 0x00) {
+    return 0;
+  }
+  if (bytes[offset + 2] === 0x01) {
+    return 3;
+  }
+  if (offset + 4 <= bytes.length && bytes[offset + 2] === 0x00 && bytes[offset + 3] === 0x01) {
+    return 4;
+  }
+  return 0;
 }
 
-function nalTypeAt(bytes, offset) {
-  if (!isStartCodeAt(bytes, offset)) {
+/** @param {Uint8Array} bytes */
+function splitAnnexBNals(bytes) {
+  const nals = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const sc = startCodeLenAt(bytes, i);
+    if (!sc) {
+      i += 1;
+      continue;
+    }
+    let next = bytes.length;
+    for (let j = i + sc; j < bytes.length; j += 1) {
+      if (startCodeLenAt(bytes, j)) {
+        next = j;
+        break;
+      }
+    }
+    nals.push(bytes.subarray(i, next));
+    i = next;
+  }
+  return nals;
+}
+
+function nalTypeOf(nal) {
+  const sc = startCodeLenAt(nal, 0);
+  if (!sc || nal.length <= sc) {
     return null;
   }
-
-  return bytes[offset + 4] & 0x1f;
+  return nal[sc] & 0x1f;
 }
 
 export class WsScrcpyAnnexBPlayer {
@@ -32,52 +56,61 @@ export class WsScrcpyAnnexBPlayer {
 
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
-    this.container = canvas.parentElement;
+    this.ctx =
+      canvas.getContext("2d", { alpha: false, desynchronized: true }) ||
+      canvas.getContext("2d");
     this.decoder = null;
-    this.buffer = null;
-    this.bufferedSps = false;
-    this.bufferedPps = false;
+    this.accessUnit = null;
     this.hadIdr = false;
-    this.timestampUs = 0;
+    this.needIdr = false;
+    this.baseTimeUs = 0;
     this.lastError = "";
-    /** Encoded video frame size — must match scrcpy PositionMapper.videoSize for touch. */
     this.videoFrameSize = { width: 0, height: 0 };
-    /** @type {((size: { width: number, height: number }) => void) | null} */
     this.onVideoFrameSize = null;
-    /** @type {(() => void) | null} */
     this.onFirstFrameRendered = null;
     this.hasRenderedFrame = false;
+    /** @type {VideoFrame | null} */
+    this.pendingFrame = null;
+    this.rafId = 0;
 
-    this.resizeObserver = null;
-    if (this.container) {
-      this.resizeObserver = new ResizeObserver(() => this.#syncCanvasSize());
-      this.resizeObserver.observe(this.container);
-      this.#syncCanvasSize();
+    if (this.canvas) {
+      this.canvas.style.width = "100%";
+      this.canvas.style.height = "100%";
+      this.canvas.style.objectFit = "contain";
     }
 
     this.decoder = new VideoDecoder({
-      output: (frame) => this.#drawFrame(frame),
+      output: (frame) => this.#queueFrame(frame),
       error: (error) => {
         this.lastError = error?.message ?? String(error);
+        this.needIdr = true;
       },
     });
   }
 
-  #syncCanvasSize() {
-    if (!this.container || !this.canvas || !this.ctx) {
+  #nowUs() {
+    if (!this.baseTimeUs) {
+      this.baseTimeUs = Math.round(performance.now() * 1000);
+    }
+    return Math.round(performance.now() * 1000) - this.baseTimeUs;
+  }
+
+  #queueFrame(frame) {
+    if (this.pendingFrame) {
+      this.pendingFrame.close();
+    }
+    this.pendingFrame = frame;
+    if (this.rafId) {
       return;
     }
-
-    const width = Math.max(1, Math.floor(this.container.clientWidth));
-    const height = Math.max(1, Math.floor(this.container.clientHeight));
-
-    if (this.canvas.width !== width || this.canvas.height !== height) {
-      this.canvas.width = width;
-      this.canvas.height = height;
-      this.ctx.fillStyle = "#000";
-      this.ctx.fillRect(0, 0, width, height);
-    }
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = 0;
+      const next = this.pendingFrame;
+      this.pendingFrame = null;
+      if (next) {
+        this.#drawFrame(next);
+      }
+    });
   }
 
   #drawFrame(frame) {
@@ -86,31 +119,23 @@ export class WsScrcpyAnnexBPlayer {
       return;
     }
 
-    this.#syncCanvasSize();
-
-    const viewWidth = this.canvas.width;
-    const viewHeight = this.canvas.height;
     const frameWidth = frame.displayWidth;
     const frameHeight = frame.displayHeight;
-
-    if (
-      frameWidth > 0 &&
-      frameHeight > 0 &&
-      (this.videoFrameSize.width !== frameWidth || this.videoFrameSize.height !== frameHeight)
-    ) {
-      this.videoFrameSize = { width: frameWidth, height: frameHeight };
-      this.onVideoFrameSize?.(this.videoFrameSize);
+    if (frameWidth > 0 && frameHeight > 0) {
+      if (this.canvas.width !== frameWidth || this.canvas.height !== frameHeight) {
+        this.canvas.width = frameWidth;
+        this.canvas.height = frameHeight;
+      }
+      if (
+        this.videoFrameSize.width !== frameWidth ||
+        this.videoFrameSize.height !== frameHeight
+      ) {
+        this.videoFrameSize = { width: frameWidth, height: frameHeight };
+        this.onVideoFrameSize?.(this.videoFrameSize);
+      }
     }
 
-    const scale = Math.min(viewWidth / frameWidth, viewHeight / frameHeight);
-    const drawWidth = Math.round(frameWidth * scale);
-    const drawHeight = Math.round(frameHeight * scale);
-    const offsetX = Math.floor((viewWidth - drawWidth) / 2);
-    const offsetY = Math.floor((viewHeight - drawHeight) / 2);
-
-    this.ctx.fillStyle = "#000";
-    this.ctx.fillRect(0, 0, viewWidth, viewHeight);
-    this.ctx.drawImage(frame, offsetX, offsetY, drawWidth, drawHeight);
+    this.ctx.drawImage(frame, 0, 0);
     frame.close();
     if (!this.hasRenderedFrame) {
       this.hasRenderedFrame = true;
@@ -119,123 +144,133 @@ export class WsScrcpyAnnexBPlayer {
     this.lastError = "";
   }
 
-  #appendToBuffer(data) {
-    if (this.buffer) {
-      const merged = new Uint8Array(this.buffer.length + data.length);
-      merged.set(this.buffer);
-      merged.set(data, this.buffer.length);
-      this.buffer = merged;
+  #appendAu(nal) {
+    if (this.accessUnit) {
+      const merged = new Uint8Array(this.accessUnit.length + nal.length);
+      merged.set(this.accessUnit);
+      merged.set(nal, this.accessUnit.length);
+      this.accessUnit = merged;
     } else {
-      this.buffer = data.slice();
+      this.accessUnit = nal.slice();
     }
-
-    return this.buffer;
   }
 
-  #configureFromSps(bytes) {
-    if (!this.decoder || this.decoder.state === "closed") {
+  #configureFromSpsNal(nal) {
+    if (!this.decoder || this.decoder.state === "closed" || this.decoder.state === "configured") {
       return;
     }
-
-    if (this.decoder.state === "configured") {
+    const sc = startCodeLenAt(nal, 0);
+    if (!sc || nal.length < sc + 4) {
       return;
     }
-
-    if (!isStartCodeAt(bytes, 0) || bytes.length < 9) {
-      return;
-    }
-
-    const startCodeLen = 4;
-    let nextStart = bytes.length;
-    for (let i = startCodeLen; i + 4 <= bytes.length; i += 1) {
-      if (isStartCodeAt(bytes, i)) {
-        nextStart = i;
-        break;
+    const spsRbsp = nal.subarray(sc);
+    try {
+      this.decoder.configure({
+        codec: codecFromSps(spsRbsp),
+        optimizeForLatency: true,
+        hardwareAcceleration: "prefer-hardware",
+      });
+    } catch (error) {
+      try {
+        this.decoder.configure({
+          codec: codecFromSps(spsRbsp),
+          optimizeForLatency: true,
+          hardwareAcceleration: "prefer-software",
+        });
+      } catch (error2) {
+        this.lastError = error2?.message ?? String(error2);
       }
     }
+  }
 
-    const spsNal = bytes.subarray(startCodeLen, nextStart);
-    if (spsNal.length < 4) {
+  #flushAccessUnit(isKey) {
+    if (!this.accessUnit || !this.decoder || this.decoder.state !== "configured") {
+      this.accessUnit = null;
+      return;
+    }
+    if (!isKey && this.decoder.decodeQueueSize > 1) {
+      this.needIdr = true;
+      this.accessUnit = null;
+      return;
+    }
+    if (this.needIdr && !isKey) {
+      this.accessUnit = null;
+      return;
+    }
+    try {
+      this.decoder.decode(
+        new EncodedVideoChunk({
+          type: isKey ? "key" : "delta",
+          timestamp: this.#nowUs(),
+          data: this.accessUnit,
+        }),
+      );
+      if (isKey) {
+        this.needIdr = false;
+        this.hadIdr = true;
+      }
+    } catch (error) {
+      this.lastError = error?.message ?? String(error);
+      this.needIdr = true;
+    }
+    this.accessUnit = null;
+  }
+
+  /** @param {Uint8Array} nal */
+  #pushNal(nal) {
+    const nalType = nalTypeOf(nal);
+    if (nalType == null) {
       return;
     }
 
-    try {
-      const codec = codecFromSps(spsNal);
-      this.decoder.configure({ codec, optimizeForLatency: true });
-    } catch (error) {
-      this.lastError = error?.message ?? String(error);
+    if (nalType === 7) {
+      this.#configureFromSpsNal(nal);
+      this.accessUnit = null;
+      this.#appendAu(nal);
+      return;
     }
+    if (nalType === 8 || nalType === 6 || nalType === 9) {
+      this.#appendAu(nal);
+      return;
+    }
+
+    const isIdr = nalType === 5;
+    if (!this.hadIdr && !isIdr) {
+      // Drop P/B until the first IDR after SPS/PPS.
+      return;
+    }
+
+    this.#appendAu(nal);
+    this.#flushAccessUnit(isIdr);
   }
 
   pushFrame(arrayBuffer) {
     if (!arrayBuffer || !this.decoder || this.decoder.state === "closed") {
       return;
     }
-
     const bytes = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
-
-    if (bytes.length < 5 || !isStartCodeAt(bytes, 0)) {
+    if (bytes.length < 4 || !startCodeLenAt(bytes, 0)) {
       return;
     }
 
-    const nalType = nalTypeAt(bytes, 0);
-    const isIdr = nalType === 5;
-
-    if (nalType === 7) {
-      this.#configureFromSps(bytes);
-      this.bufferedSps = true;
-      this.#appendToBuffer(bytes);
-      this.hadIdr = false;
+    const nals = splitAnnexBNals(bytes);
+    if (!nals.length) {
       return;
     }
-
-    if (nalType === 8) {
-      this.bufferedPps = true;
-      this.#appendToBuffer(bytes);
-      return;
-    }
-
-    if (nalType === 6) {
-      if (!this.bufferedSps || !this.bufferedPps) {
-        return;
-      }
-    }
-
-    const merged = this.#appendToBuffer(bytes);
-    this.hadIdr = this.hadIdr || isIdr;
-
-    if (!merged || this.decoder.state !== "configured" || !this.hadIdr) {
-      return;
-    }
-
-    const chunkData = merged;
-    this.buffer = null;
-    this.bufferedPps = false;
-    this.bufferedSps = false;
-
-    try {
-      this.decoder.decode(
-        new EncodedVideoChunk({
-          type: "key",
-          timestamp: this.timestampUs,
-          data: chunkData,
-        }),
-      );
-      this.timestampUs += 33_333;
-    } catch (error) {
-      this.lastError = error?.message ?? String(error);
+    for (const nal of nals) {
+      this.#pushNal(nal);
     }
   }
 
   destroy() {
-    try {
-      this.resizeObserver?.disconnect();
-    } catch {
-      // ignore
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
     }
-
-    this.resizeObserver = null;
-
+    if (this.pendingFrame) {
+      this.pendingFrame.close();
+      this.pendingFrame = null;
+    }
     try {
       if (this.decoder && this.decoder.state !== "closed") {
         this.decoder.close();
@@ -243,8 +278,7 @@ export class WsScrcpyAnnexBPlayer {
     } catch {
       // ignore
     }
-
     this.decoder = null;
-    this.buffer = null;
+    this.accessUnit = null;
   }
 }

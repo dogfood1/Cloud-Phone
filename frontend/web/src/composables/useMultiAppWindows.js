@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import {
   TITLE_BAR_H,
   defaultWindowBounds,
+  resolveVdFromContent,
   resolveVdSize,
 } from "../utils/multi-app-window-layout.js";
 
@@ -18,6 +19,7 @@ let windowSeq = 0;
  *   orientation: "portrait" | "landscape",
  *   vdWidth: number,
  *   vdHeight: number,
+ *   vdDpi: number,
  *   x: number,
  *   y: number,
  *   width: number,
@@ -91,6 +93,7 @@ export function useMultiAppWindows() {
       orientation,
       vdWidth: bounds.vdWidth || vd.width,
       vdHeight: bounds.vdHeight || vd.height,
+      vdDpi: bounds.vdDpi || 320,
       x: bounds.x,
       y: bounds.y,
       width: bounds.width,
@@ -158,6 +161,7 @@ export function useMultiAppWindows() {
         win.width = restore.width;
         win.height = restore.height;
       }
+      syncWindowVdSize(win);
       return;
     }
 
@@ -172,7 +176,8 @@ export function useMultiAppWindows() {
     win.x = 0;
     win.y = 0;
     win.width = Math.max(MIN_W, desktop.canvasWidth || win.width);
-    win.height = Math.max(MIN_H, desktop.canvasHeight || win.height);
+    win.height = Math.max(MIN_H, (desktop.canvasHeight || win.height) - 0);
+    syncWindowVdSize(win);
   }
 
   /**
@@ -204,12 +209,32 @@ export function useMultiAppWindows() {
     if (typeof bounds.y === "number") {
       win.y = Math.max(0, bounds.y);
     }
+
+    let sized = false;
     if (typeof bounds.width === "number") {
       win.width = Math.max(MIN_W, bounds.width);
+      sized = true;
     }
     if (typeof bounds.height === "number") {
       win.height = Math.max(MIN_H, bounds.height);
+      sized = true;
     }
+
+    if (sized) {
+      syncWindowVdSize(win);
+    }
+  }
+
+  /**
+   * Keep virtual-display target in sync with window content size.
+   * @param {MultiAppWindowState} win
+   */
+  function syncWindowVdSize(win) {
+    const content = getContentSize(win);
+    const vd = resolveVdFromContent(content.width, content.height);
+    win.vdWidth = vd.width;
+    win.vdHeight = vd.height;
+    win.vdDpi = vd.dpi;
   }
 
   /**

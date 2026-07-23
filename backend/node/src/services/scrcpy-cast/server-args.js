@@ -35,7 +35,7 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
       "com.genymobile.scrcpy.Server",
       SCRCPY_SERVER_VERSION,
       "web",
-      "DEBUG",
+      "INFO",
       "8886",
       "true",
       "2>&1",

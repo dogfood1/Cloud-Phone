@@ -4,7 +4,7 @@ import {
   handleCastControlWebSocket,
   handleCastWebSocket,
   parseCastWebSocketPath,
-} from "../routes/device-cast-routes.js";
+} from "../routes/device-cast-ws.js";
 import {
   handleDeviceTerminalWebSocket,
   parseTerminalWebSocketPath,
@@ -13,7 +13,11 @@ import { verifyWebSocketSession } from "../middleware/ws-auth.js";
 import { logCastInfo, logCastWarn } from "../services/scrcpy-cast/cast-logger.js";
 
 export function setupDeviceWebSocket(server) {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({
+    noServer: true,
+    // H.264 is already compressed; deflate adds CPU and latency on the hot path.
+    perMessageDeflate: false,
+  });
 
   server.on("upgrade", async (request, socket, head) => {
     const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
@@ -54,7 +58,18 @@ export function setupDeviceWebSocket(server) {
         return;
       }
 
-      void handleCastWebSocket(ws, castRoute.serial);
+      // Buffer client frames IMMEDIATELY — browser may send type 101 on open
+      // before async handleCastWebSocket attaches its own listener.
+      const earlyClientMessages = [];
+      const onEarlyMessage = (data) => {
+        earlyClientMessages.push(data);
+      };
+      ws.on("message", onEarlyMessage);
+
+      void handleCastWebSocket(ws, castRoute.serial, {
+        earlyClientMessages,
+        detachEarlyMessage: () => ws.off("message", onEarlyMessage),
+      });
     });
   });
 

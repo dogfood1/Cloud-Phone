@@ -125,7 +125,7 @@ public final class WsCastSession implements WsSocketBroadcaster {
     }
   }
 
-  void handleControl(ByteBuffer payload) throws IOException, ConfigurationException {
+  void handleControl(WebSocket socket, ByteBuffer payload) throws IOException, ConfigurationException {
     if (!payload.hasRemaining()) {
       return;
     }
@@ -134,7 +134,8 @@ public final class WsCastSession implements WsSocketBroadcaster {
       payload.get(); // consume type
       byte[] bytes = new byte[payload.remaining()];
       payload.get(bytes);
-      join(null, VideoSettings.fromByteArray(bytes));
+      // Keep the owning socket in clients (type-101 used to call join(null, …)).
+      join(socket, VideoSettings.fromByteArray(bytes));
       return;
     }
     if (type == WsControlFilter.TYPE_PUSH_FILE) {
@@ -331,6 +332,12 @@ public final class WsCastSession implements WsSocketBroadcaster {
       server.bindSessionDisplay(this, displayId);
       Ln.i("Web cast pipeline attached to display " + displayId
           + (streamOptions.getNewDisplay() != null ? " (virtual)" : ""));
+      // Official scrcpy: START_APP waits ≤1s for VD id — launch as soon as VD exists.
+      String app = streamOptions.getStartApp();
+      if (app != null && !app.isEmpty() && controller != null) {
+        Ln.i("Starting app \"" + app + "\" immediately on display " + displayId);
+        controller.requestStartApp(app);
+      }
     };
     surfaceCapture = createSurfaceCapture(controller, streamOptions, displayListener);
     streamer = new WsStreamer(clients, streamOptions);
@@ -357,27 +364,28 @@ public final class WsCastSession implements WsSocketBroadcaster {
     startVideoEncoder(streamOptions);
   }
 
+  /**
+   * Mirror official scrcpy client: request start-app as soon as control is ready.
+   * For --new-display, the actual launch happens in the VD listener (display id known).
+   * Do NOT sleep 3.5s — that made multi-app windows feel extremely slow.
+   */
   private void scheduleStartAppIfRequested(Options streamOptions) {
     String app = streamOptions.getStartApp();
     if (app == null || app.isEmpty() || controller == null) {
       return;
     }
 
-    boolean onNewDisplay = streamOptions.getNewDisplay() != null;
-    long delay = onNewDisplay ? 3500 : 600;
-    Ln.i("Scheduling --start-app \"" + app + "\" on "
-        + (onNewDisplay ? "new virtual display" : "display " + streamOptions.getDisplayId())
-        + " in " + delay + "ms");
+    if (streamOptions.getNewDisplay() != null) {
+      Ln.i("start_app \"" + app + "\" will run when virtual display is ready");
+      return;
+    }
+
+    Ln.i("Scheduling start_app \"" + app + "\" on display " + streamOptions.getDisplayId() + " in 100ms");
     SCHEDULER.schedule(() -> {
       if (started && controller != null) {
         controller.requestStartApp(app);
       }
-    }, delay, TimeUnit.MILLISECONDS);
-    SCHEDULER.schedule(() -> {
-      if (started && controller != null) {
-        controller.requestStartApp(app);
-      }
-    }, delay + 2500, TimeUnit.MILLISECONDS);
+    }, 100, TimeUnit.MILLISECONDS);
   }
 
   private AsyncProcessor.TerminationListener videoTerminationListener() {

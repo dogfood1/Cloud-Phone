@@ -9,7 +9,10 @@ import {
   formatVirtualDisplayUserMessage,
   isVirtualDisplayError,
 } from "../../utils/cast-error-message.js";
-import { buildMultiAppCastOptions } from "../../utils/multi-app-cast-options.js";
+import {
+  buildMultiAppCastOptions,
+  vdOptionsFromContent,
+} from "../../utils/multi-app-cast-options.js";
 
 const props = defineProps({
   device: {
@@ -35,15 +38,20 @@ const emit = defineEmits(["close-window", "switch-mirror"]);
 const canvasRef = ref(null);
 const viewportRef = ref(null);
 const rotatorRef = ref(null);
-const castOptions = ref(
-  buildMultiAppCastOptions({
-    width: props.window.vdWidth || 1080,
-    height: props.window.vdHeight || 1920,
+
+function buildOptionsFromWindow() {
+  const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
+  return buildMultiAppCastOptions({
+    width: props.window.vdWidth || vd.width,
+    height: props.window.vdHeight || vd.height,
+    dpi: props.window.vdDpi || vd.dpi,
     packageName: props.window.packageName,
     deviceSdk: props.device?.sdkVersion,
     orientation: props.window.orientation,
-  }),
-);
+  });
+}
+
+const castOptions = ref(buildOptionsFromWindow());
 
 const cast = useDeviceCast(
   toRef(props, "device"),
@@ -58,13 +66,15 @@ const errorMessage = ref("");
 const ready = ref(false);
 const showVdError = ref(false);
 const vdErrorDetail = ref("");
+let resizeTimer = null;
 let started = false;
+let resizeReadyAt = 0;
 /** Backend cast/start succeeded for this window (consumer counted). */
 let backendConsumerHeld = false;
 
 const statusText = computed(() => {
   if (starting.value) {
-    return "正在启动虚拟屏…";
+    return "正在创建虚拟屏…";
   }
   if (errorMessage.value) {
     return errorMessage.value;
@@ -126,17 +136,11 @@ async function startWindowCast({ force = false } = {}) {
   starting.value = true;
   errorMessage.value = "";
   showVdError.value = false;
+  ready.value = false;
 
-  castOptions.value = buildMultiAppCastOptions({
-    width: props.window.vdWidth || 1080,
-    height: props.window.vdHeight || 1920,
-    packageName: props.window.packageName,
-    deviceSdk: props.device?.sdkVersion,
-    orientation: props.window.orientation,
-  });
+  castOptions.value = buildOptionsFromWindow();
 
   try {
-    // Wait until canvas is in the DOM (do not start from setup immediate watch).
     await nextTick();
     if (!canvasRef.value) {
       await nextTick();
@@ -147,8 +151,14 @@ async function startWindowCast({ force = false } = {}) {
 
     const payload = await startDeviceCast(serial, castOptions.value);
     backendConsumerHeld = true;
-    await cast.beginCast(payload);
+
+    // Backend accepted — VD is being created on device. Do NOT keep the
+    // "正在启动虚拟屏" overlay while waiting for the first decoded frame.
+    starting.value = false;
     started = true;
+    resizeReadyAt = Date.now() + 1200;
+
+    await cast.beginCast(payload);
     ready.value = true;
   } catch (error) {
     ready.value = false;
@@ -165,11 +175,40 @@ async function startWindowCast({ force = false } = {}) {
   }
 }
 
+function scheduleResize() {
+  if (!started || !ready.value || Date.now() < resizeReadyAt) {
+    return;
+  }
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+  }
+  resizeTimer = window.setTimeout(() => {
+    const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
+    const prevW = Number(props.window?.vdWidth) || 0;
+    const prevH = Number(props.window?.vdHeight) || 0;
+    // Skip tiny drags — each RESIZE_DISPLAY resets the encoder briefly.
+    if (Math.abs(vd.width - prevW) < 48 && Math.abs(vd.height - prevH) < 48) {
+      return;
+    }
+    if (props.window) {
+      props.window.vdWidth = vd.width;
+      props.window.vdHeight = vd.height;
+      props.window.vdDpi = vd.dpi;
+    }
+    cast.sendResizeDisplay?.(vd.width, vd.height);
+  }, 500);
+}
+
 function sendBack() {
   cast.sendNavigation?.("back");
 }
 
 async function stopWindowCast() {
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = null;
+  }
+
   const hadSession = started || backendConsumerHeld;
   started = false;
   ready.value = false;
@@ -186,6 +225,11 @@ async function stopWindowCast() {
 
   await releaseBackendConsumer();
 }
+
+watch(
+  () => [props.contentWidth, props.contentHeight],
+  () => scheduleResize(),
+);
 
 watch(
   () => props.window.packageName,

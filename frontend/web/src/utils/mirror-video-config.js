@@ -61,6 +61,12 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
   const maxSize =
     Number(castOptions.maxSize) || maxSizeFromMirrorVideo(video) || 0;
 
+  // Prefer explicit virtual-display size; else maxSize as width with height 0 (ws-scrcpy convention).
+  const ndW = Math.round(Number(screen.newDisplayWidth) || 0);
+  const ndH = Math.round(Number(screen.newDisplayHeight) || 0);
+  const width = ndW > 0 ? ndW & ~15 : maxSize > 0 ? maxSize & ~15 : 0;
+  const height = ndH > 0 ? ndH & ~15 : 0;
+
   // scrcpy uses display id NONE (-1) with --new-display; server applies new_display from codec extras.
   const displayId = isNewDisplayEnabled(screen)
     ? -1
@@ -74,8 +80,8 @@ export function videoStreamSettingsFromCastOptions(castOptions = {}) {
     bitRate: Math.round(Number(video.bitRateMbps ?? DEFAULT_VIDEO_BITRATE_MBPS) * 1_000_000),
     maxFps: Number(video.maxFps ?? 60),
     iFrameInterval: Number(video.iFrameInterval ?? 10),
-    width: maxSize > 0 ? maxSize & ~15 : 0,
-    height: 0,
+    width,
+    height,
     displayId,
     lockedVideoOrientation: -1,
     sendFrameMeta: false,
