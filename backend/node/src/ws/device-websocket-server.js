@@ -69,6 +69,7 @@ export function setupDeviceWebSocket(server) {
       void handleCastWebSocket(ws, castRoute.serial, {
         earlyClientMessages,
         detachEarlyMessage: () => ws.off("message", onEarlyMessage),
+        sessionKey: requestUrl.searchParams.get("sessionKey") || castRoute.serial,
       });
     });
   });

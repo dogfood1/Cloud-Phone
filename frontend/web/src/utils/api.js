@@ -178,7 +178,7 @@ export async function requestJson(url, options = {}) {
       throw parseError;
     }
 
-    if (response.status === 401) {
+    if (response.status === 401 && !options.skipAuthExpire) {
       handleUnauthorizedResponse(response, { message: "Valid session required. Sign in first." });
     }
 
@@ -192,6 +192,9 @@ export async function requestJson(url, options = {}) {
   }
 
   if (isUnauthorizedResponse(response, result)) {
+    if (options.skipAuthExpire) {
+      return result;
+    }
     handleUnauthorizedResponse(response, result);
   }
 

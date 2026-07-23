@@ -5,17 +5,17 @@ import {
   clearSessionEncryptionKey,
   changePasswordRequest,
   getErrorMessage,
-  hasSessionEncryptionKey,
   loginRequest,
   requestJson,
 } from "../utils/api.js";
-import {
-  registerSessionExpiredHandler,
-  resetSessionExpiredGate,
-} from "../utils/auth-session-bridge.js";
+import { registerSessionExpiredHandler, resetSessionExpiredGate } from "../utils/auth-session-bridge.js";
 import { logInfo, logWarn } from "../utils/app-event-logger.js";
 import { isRememberPasswordEnabled } from "../utils/remembered-password.js";
 import { createRememberLoginController } from "./auth-remember-login.js";
+import {
+  createCookieSessionRestorer,
+  softRecoverSession,
+} from "./auth-session-recover.js";
 
 function t(key, params) {
   return i18n.global.t(key, params);
@@ -24,6 +24,7 @@ function t(key, params) {
 export function useAuth() {
   const state = reactive({
     booting: true,
+    reauthenticating: false,
     authenticated: false,
     requiresPasswordChange: false,
     passwordConfigured: false,
@@ -44,35 +45,45 @@ export function useAuth() {
   state.sessionStateText = t("auth.sessionChecking");
 
   const passwordChangeDialogOpen = ref(false);
+
+  function syncAuthState(result) {
+    state.authenticated = Boolean(result.authenticated);
+    state.requiresPasswordChange = Boolean(result.requiresPasswordChange);
+    state.passwordConfigured = Boolean(result.passwordConfigured);
+    state.passwordUpdatedAt = result.passwordUpdatedAt;
+    state.sessionExpiresAt = result.sessionExpiresAt;
+  }
+
   const remember = createRememberLoginController({
     state,
     submitLogin: (options) => submitLogin(options),
   });
 
-  function expireSession() {
-    clearSessionEncryptionKey();
-    state.authenticated = false;
-    state.requiresPasswordChange = false;
-    state.sessionExpiresAt = null;
-    state.sessionStateText = t("auth.sessionMissing");
-    state.loginPassword = "";
-    state.currentPassword = "";
-    state.nextPassword = "";
-    state.confirmPassword = "";
-    state.loginFeedback = "";
-    state.changeFeedback = "";
-    passwordChangeDialogOpen.value = false;
-    logWarn("auth", "auth.session.expired", "会话失效，返回登录页");
-    remember.resetAutoLogin();
-    void remember.runRememberedLogin({ manageBooting: true });
-  }
+  const tryRestoreFromCookie = createCookieSessionRestorer({
+    syncAuthState,
+    sessionValidText: t("auth.sessionValid"),
+  });
 
-  registerSessionExpiredHandler(expireSession);
+  registerSessionExpiredHandler(() => {
+    void softRecoverSession({
+      state,
+      remember,
+      tryRestoreFromCookie,
+      texts: {
+        sessionChecking: t("auth.sessionChecking"),
+        sessionMissing: t("auth.sessionMissing"),
+        sessionValid: t("auth.sessionValid"),
+      },
+      logWarn,
+    });
+  });
 
   const passwordStatusText = computed(() =>
     state.passwordConfigured ? t("auth.passwordUpdated") : t("auth.passwordDefault"),
   );
-  const showAuthLayer = computed(() => !state.authenticated);
+  const showAuthLayer = computed(
+    () => !state.authenticated && !state.booting && !state.reauthenticating,
+  );
   const showForcedPasswordChangeModal = computed(
     () => state.requiresPasswordChange && Boolean(state.currentPassword),
   );
@@ -91,34 +102,23 @@ export function useAuth() {
     remember.resetAutoLogin();
 
     try {
-      const result = await requestJson("/api/auth/session");
-
-      if (result.authenticated && !hasSessionEncryptionKey()) {
-        syncAuthState({ ...result, authenticated: false });
-        clearSessionEncryptionKey();
-        state.sessionStateText = t("auth.sessionMissing");
-        return await remember.runRememberedLogin();
-      }
-
-      if (!result.authenticated) {
-        clearSessionEncryptionKey();
-      }
-
-      syncAuthState(result);
-      state.sessionStateText = result.authenticated
-        ? t("auth.sessionValid")
-        : t("auth.sessionMissing");
-
-      if (result.authenticated) {
+      const restored = await tryRestoreFromCookie();
+      if (restored) {
+        state.sessionStateText = t("auth.sessionValid");
         resetSessionExpiredGate();
-        logInfo("auth", "auth.session.restore", "恢复登录会话", {
-          details: {
-            sessionExpiresAt: result.sessionExpiresAt,
-          },
+        logInfo("auth", "auth.session.restore", "通过 Cookie 恢复登录会话", {
+          details: { sessionExpiresAt: restored.result.sessionExpiresAt },
         });
         return true;
       }
 
+      clearSessionEncryptionKey();
+      syncAuthState({
+        authenticated: false,
+        requiresPasswordChange: false,
+        passwordConfigured: false,
+      });
+      state.sessionStateText = t("auth.sessionMissing");
       return await remember.runRememberedLogin();
     } catch (error) {
       state.sessionStateText = t("auth.sessionReadFailed");
@@ -273,14 +273,6 @@ export function useAuth() {
       remember.prefillRememberedPassword();
       logInfo("auth", "auth.logout.done", "已退出登录");
     }
-  }
-
-  function syncAuthState(result) {
-    state.authenticated = Boolean(result.authenticated);
-    state.requiresPasswordChange = Boolean(result.requiresPasswordChange);
-    state.passwordConfigured = Boolean(result.passwordConfigured);
-    state.passwordUpdatedAt = result.passwordUpdatedAt;
-    state.sessionExpiresAt = result.sessionExpiresAt;
   }
 
   return {

@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.14.9** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.15.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -71,12 +71,12 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
 | **主题** | 左下角浅色/深色切换，偏好写本地 |
 | **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
-| **API 安全** | 登录后会话鉴权；JSON 接口 AES-GCM 加密；WebSocket 需有效会话；会话失效自动返回登录页；可选「记住密码」自动重登，密码失效则重新输入 |
+| **API 安全** | 登录后会话 Cookie（约 **150 天**）写入 SQLite，服务重启可恢复；修改密码立即失效全部会话；401 时先 Cookie、再记住密码静默恢复，失败才显示登录页；JSON 接口 AES-GCM；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码 / **直接连接**（IP+端口，适用 ReDroid 等）；**鸿蒙 USB/HDC**；**苹果 WDA**：Windows USB 向导（签名/安装/连接），或 Mac 运行 `tools/ios-wda-bridge.mjs` 后局域网发现 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送 |
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
-| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；每窗独立 WebSocket / 虚拟屏 + `start_app`（对齐原版：VD 就绪即启动应用）；**60fps/16Mbps**；Annex-B 多 NAL 拆包出画；代理零拷贝与积压丢帧；VD 启动态不卡死；缩放同步虚拟屏；推送本机平台 scrcpy-server；应用退出自动关窗；开始菜单图标缓存秒开；Icon Helper / 快速设置 / 通知中心 |
+| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；**每设备一个 scrcpy-server**，每窗独立 WebSocket / 虚拟屏 + `start_app`；编码对齐镜像 **60fps/5Mbps**；Annex-B 多 NAL 拆包；避免「丢 P 等 I」卡顿；积压不丢关键帧；缩放同步虚拟屏；应用退出自动关窗；开始菜单图标缓存秒开；Icon Helper / 快速设置 / 通知中心 |
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |

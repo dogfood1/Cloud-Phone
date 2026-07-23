@@ -3,7 +3,12 @@ import { spawnSync } from "node:child_process";
 import { runWithAdbLock } from "../adb-lock.js";
 import { adbForwardRemove, clearDeviceTunnels, runAdb } from "../adb-command.js";
 import { logCastInfo, logCastWarn } from "./cast-logger.js";
-import { deleteCastSession, getCastSession, listCastSerials } from "./session-store.js";
+import { makeSessionKey } from "./session-keys.js";
+import {
+  deleteCastSession,
+  getCastSession,
+  listCastSessionKeys,
+} from "./session-store.js";
 import { logStreamStopped, summarizeStreamStats } from "./stream-stats.js";
 import { teardownControlListener } from "./control-bridge.js";
 import { teardownVideoListener } from "./video-bridge.js";
@@ -55,7 +60,7 @@ function killShellProcess(shellProcess) {
   }
 }
 
-async function cleanupDeviceAdb(session) {
+async function cleanupSharedSession(session) {
   logCastInfo(session.serial, "adb.cleanup.begin", {
     localPort: session.localPort,
   });
@@ -65,7 +70,7 @@ async function cleanupDeviceAdb(session) {
 
   try {
     await runAdb(
-      ["-s", session.serial, "shell", "pkill", "-f", "com.genymobile.scrcpy.Server"],
+      ["-s", session.serial, "shell", "pkill -f com.genymobile.scrcpy.Server"],
       { timeout: 5000 },
     );
     logCastInfo(session.serial, "adb.cleanup.server_killed", {});
@@ -78,9 +83,15 @@ async function cleanupDeviceAdb(session) {
   logCastInfo(session.serial, "adb.cleanup.done", {});
 }
 
+/**
+ * @param {string} serial
+ * @param {{ force?: boolean, sessionKey?: string, windowId?: string }} [options]
+ */
 export async function stopScrcpyCast(serial, options = {}) {
   const force = Boolean(options.force);
-  const session = getCastSession(serial);
+  const sessionKey =
+    options.sessionKey || makeSessionKey(serial, options.windowId || "");
+  const session = getCastSession(sessionKey);
 
   if (!session) {
     return false;
@@ -91,12 +102,15 @@ export async function stopScrcpyCast(serial, options = {}) {
   if (!force && consumers > 1) {
     session.consumerCount = consumers - 1;
     logCastInfo(serial, "cast.stop.release_consumer", {
+      sessionKey,
       consumerCount: session.consumerCount,
     });
     return false;
   }
 
   logCastInfo(serial, "cast.stop", {
+    sessionKey,
+    isolateServer: Boolean(session.isolateServer),
     streaming: session.streaming,
     force,
     ...summarizeStreamStats(session.streamStats),
@@ -109,23 +123,26 @@ export async function stopScrcpyCast(serial, options = {}) {
   }
 
   closeSessionResources(session);
-  deleteCastSession(serial);
+  deleteCastSession(sessionKey);
 
   try {
-    await runWithAdbLock(() => cleanupDeviceAdb(session), { lockKey: serial });
+    await runWithAdbLock(() => cleanupSharedSession(session), { lockKey: serial });
   } catch (error) {
     logCastWarn(serial, "cast.stop.cleanup_failed", {
       message: error instanceof Error ? error.message : "unknown",
     });
   }
 
-  logCastInfo(serial, "cast.stop.done", {});
+  logCastInfo(serial, "cast.stop.done", { sessionKey });
 
   return true;
 }
 
 export async function stopAllScrcpyCasts() {
-  for (const serial of listCastSerials()) {
-    await stopScrcpyCast(serial, { force: true });
+  for (const sessionKey of listCastSessionKeys()) {
+    const session = getCastSession(sessionKey);
+    if (session) {
+      await stopScrcpyCast(session.serial, { force: true, sessionKey });
+    }
   }
 }

@@ -2,22 +2,28 @@ import crypto from "node:crypto";
 
 import {
   AUTH_COOKIE_NAME,
-  AUTH_SESSION_DURATION_HOURS,
+  AUTH_SESSION_DURATION_MS,
   DEFAULT_PASSWORD,
   PASSWORD_MIN_LENGTH,
 } from "../config/auth.js";
 import { createSessionEncryptionKey } from "../utils/api-crypto.js";
 import { getAuthKeyMaterial, getPasswordRecord, savePasswordRecord } from "./auth-store.js";
-import { getSessionRecord, registerSession, removeSession } from "./session-store.js";
+import {
+  clearAllSessions,
+  getSessionRecord,
+  registerSession,
+  removeSession,
+} from "./session-store.js";
 
 const SESSION_SECRET_CONTEXT = "cloud-phone-session";
 
 export async function getAuthStatus(sessionToken) {
   const passwordRecord = getPasswordRecord();
   const session = verifySessionTokenInternal(sessionToken);
-  const hasActiveSession = Boolean(session && getSessionRecord(sessionToken));
+  const record = session ? getSessionRecord(sessionToken) : null;
+  const hasActiveSession = Boolean(session && record);
 
-  if (!hasActiveSession) {
+  if (sessionToken && !hasActiveSession) {
     removeSession(sessionToken);
   }
 
@@ -28,6 +34,7 @@ export async function getAuthStatus(sessionToken) {
     requiresPasswordChange: !passwordRecord && hasActiveSession,
     sessionExpiresAt: hasActiveSession ? session?.expiresAt ?? null : null,
     passwordUpdatedAt: passwordRecord?.updatedAt ?? null,
+    encryptionKey: hasActiveSession ? record.encryptionKey.toString("base64") : null,
   };
 }
 
@@ -55,7 +62,7 @@ export async function loginWithPassword(password) {
     };
   }
 
-  const session = createSessionToken();
+  const session = createSessionToken(passwordRecord.updatedAt);
 
   return {
     success: true,
@@ -98,7 +105,9 @@ export async function changePassword(currentPassword, nextPassword) {
 
   const nextRecord = await createPasswordRecord(nextPassword);
   const savedRecord = savePasswordRecord(nextRecord);
-  const session = createSessionToken();
+  // Password change invalidates every existing cookie/session immediately.
+  clearAllSessions();
+  const session = createSessionToken(savedRecord.updatedAt);
 
   return {
     success: true,
@@ -123,7 +132,7 @@ export function getClearSessionCookie() {
 }
 
 export function getSessionCookie(token) {
-  const expiresAt = new Date(Date.now() + AUTH_SESSION_DURATION_HOURS * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + AUTH_SESSION_DURATION_MS);
   return serializeSessionCookie(token, expiresAt);
 }
 
@@ -169,12 +178,13 @@ async function derivePasswordHash(password, salt) {
   });
 }
 
-function createSessionToken() {
-  const expiresAt = new Date(Date.now() + AUTH_SESSION_DURATION_HOURS * 60 * 60 * 1000);
+function createSessionToken(passwordUpdatedAt) {
+  const expiresAt = new Date(Date.now() + AUTH_SESSION_DURATION_MS);
   const payload = Buffer.from(
     JSON.stringify({
       exp: expiresAt.toISOString(),
       iat: new Date().toISOString(),
+      pwd: passwordUpdatedAt || "none",
     }),
     "utf8",
   ).toString("base64url");
@@ -207,6 +217,12 @@ function verifySessionTokenInternal(token) {
     const expiresAt = new Date(parsedPayload.exp);
 
     if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      return null;
+    }
+
+    const passwordRecord = getPasswordRecord();
+    const expectedPwd = passwordRecord?.updatedAt || "none";
+    if (parsedPayload.pwd !== expectedPwd) {
       return null;
     }
 

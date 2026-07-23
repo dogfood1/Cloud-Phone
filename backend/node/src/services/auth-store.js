@@ -16,7 +16,12 @@ database.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
-  )
+  );
+  CREATE TABLE IF NOT EXISTS auth_sessions (
+    token TEXT PRIMARY KEY,
+    encryption_key TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
 `);
 
 const selectSettingStatement = database.prepare(
@@ -29,6 +34,18 @@ const upsertSettingStatement = database.prepare(`
     value = excluded.value,
     updated_at = excluded.updated_at
 `);
+const upsertSessionStatement = database.prepare(`
+  INSERT INTO auth_sessions (token, encryption_key, expires_at)
+  VALUES (?, ?, ?)
+  ON CONFLICT(token) DO UPDATE SET
+    encryption_key = excluded.encryption_key,
+    expires_at = excluded.expires_at
+`);
+const selectAllSessionsStatement = database.prepare(
+  "SELECT token, encryption_key, expires_at FROM auth_sessions",
+);
+const deleteSessionStatement = database.prepare("DELETE FROM auth_sessions WHERE token = ?");
+const clearSessionsStatement = database.prepare("DELETE FROM auth_sessions");
 
 const encryptionKey = loadOrCreateEncryptionKey();
 
@@ -71,6 +88,44 @@ export function savePasswordRecord(record) {
     ...record,
     updatedAt: timestamp,
   };
+}
+
+export function upsertPersistedSession(token, encryptionKeyBuffer, expiresAtIso) {
+  upsertSessionStatement.run(
+    token,
+    encryptValue(encryptionKeyBuffer.toString("base64")),
+    expiresAtIso,
+  );
+}
+
+export function listPersistedSessions() {
+  const rows = selectAllSessionsStatement.all();
+  const out = [];
+
+  for (const row of rows) {
+    try {
+      const encryptionKey = Buffer.from(decryptValue(row.encryption_key), "base64");
+      out.push({
+        token: row.token,
+        encryptionKey,
+        expiresAt: new Date(row.expires_at).getTime(),
+      });
+    } catch {
+      deleteSessionStatement.run(row.token);
+    }
+  }
+
+  return out;
+}
+
+export function deletePersistedSession(token) {
+  if (token) {
+    deleteSessionStatement.run(token);
+  }
+}
+
+export function clearPersistedSessions() {
+  clearSessionsStatement.run();
 }
 
 function loadOrCreateEncryptionKey() {

@@ -7,6 +7,7 @@ import { summarizeWsPacket } from "./ws-packet-summary.js";
 import { connectRemoteWebSocket } from "./ws-scrcpy-ws-proxy-connect.js";
 import {
   CLIENT_BACKLOG_DROP_BYTES,
+  isLikelyKeyframeAnnexB,
   isLikelyVideoAnnexB,
   logProxyPacket,
   toBuffer,
@@ -114,6 +115,7 @@ export async function proxyWebSocket(clientWs, remoteUrl, options = {}) {
 
     if (
       isLikelyVideoAnnexB(data) &&
+      !isLikelyKeyframeAnnexB(data) &&
       (clientWs.bufferedAmount || 0) > CLIENT_BACKLOG_DROP_BYTES
     ) {
       counters.droppedVideo = (counters.droppedVideo || 0) + 1;

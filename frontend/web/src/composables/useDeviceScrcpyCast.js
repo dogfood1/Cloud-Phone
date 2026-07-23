@@ -302,6 +302,21 @@ export function useDeviceScrcpyCast(
       const nextPlayer = audioOnly ? new WsScrcpyAudioCanvas(canvas) : new WsScrcpyAnnexBPlayer(canvas);
       player.value = nextPlayer;
       nextPlayer.onFirstFrameRendered = markFirstFrameRendered;
+      if (!audioOnly && typeof nextPlayer.onNeedKeyframe !== "undefined") {
+        let lastResetAt = 0;
+        nextPlayer.onNeedKeyframe = () => {
+          const now = Date.now();
+          if (now - lastResetAt < 2000) {
+            return;
+          }
+          lastResetAt = now;
+          try {
+            sendControl(serializeResetVideo());
+          } catch {
+            // ignore
+          }
+        };
+      }
 
       if (!audioOnly && typeof nextPlayer.onVideoFrameSize !== "undefined") {
         nextPlayer.onVideoFrameSize = applyControlVideoSize;
@@ -313,7 +328,7 @@ export function useDeviceScrcpyCast(
           ? new WsScrcpyAudioPlayback()
           : null;
 
-      socket = new WebSocket(buildCastWebSocketUrl(serial));
+      socket = new WebSocket(buildCastWebSocketUrl(serial, sessionMeta.value));
       socket.binaryType = "arraybuffer";
 
       let settled = false;
@@ -420,14 +435,6 @@ export function useDeviceScrcpyCast(
         }, 1200);
       };
 
-      const requestKeyframeSoon = () => {
-        try {
-          sendControl(serializeResetVideo());
-        } catch {
-          // ignore
-        }
-      };
-
       socket.addEventListener("open", () => {
         appendStartupLog("WebSocket 已连接");
         sendStreamParameters("ws-open");
@@ -482,8 +489,8 @@ export function useDeviceScrcpyCast(
             if (!settled && !audioOnly) {
               settleReady();
             }
-            // Always request IDR once video starts (even if beginCast already settled).
-            window.setTimeout(requestKeyframeSoon, 80);
+            // Do not RESET_VIDEO here — first IDR usually arrives with the stream;
+            // forcing a reset mid-start causes a visible hitch on multi-app VD.
           }
         }
 
@@ -713,6 +720,7 @@ export function useDeviceScrcpyCast(
   async function stopCast(options = {}) {
     const serial = serialRef.value;
     const shouldStopBackend = options.backend ?? backendSessionActive;
+    const sessionKey = sessionMeta.value?.sessionKey;
 
     await recording.stopCastRecording(true);
     closeWebSocket();
@@ -733,7 +741,10 @@ export function useDeviceScrcpyCast(
     stopRequest = new AbortController();
 
     try {
-      await stopDeviceCast(serial, { signal: stopRequest.signal });
+      await stopDeviceCast(serial, {
+        signal: stopRequest.signal,
+        sessionKey: sessionKey || undefined,
+      });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;

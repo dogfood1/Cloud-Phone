@@ -65,7 +65,11 @@ function tryAttachToLiveSession(serial, options) {
   if (!existing || existing.stopping || existing.serverExited) {
     return null;
   }
-  if (existing.starting || !existing.shellProcess) {
+  // Web cast: adb shell may detach (nohup) while server keeps running on :8886.
+  if (existing.starting) {
+    return null;
+  }
+  if (!existing.shellProcess && !existing.webCast && !existing.shellDetached) {
     return null;
   }
   return tryReuseCastSession(existing, serial, options);
@@ -128,7 +132,13 @@ export async function startScrcpyCast(serial, options = {}) {
   existing = getCastSession(serial);
   if (existing) {
     const consumers = Math.max(0, Number(existing.consumerCount) || 0);
-    if (consumers > 0 && existing.shellProcess && !existing.serverExited && !existing.stopping) {
+    const alive =
+      !existing.serverExited &&
+      !existing.stopping &&
+      (Boolean(existing.shellProcess) ||
+        Boolean(existing.webCast) ||
+        Boolean(existing.shellDetached));
+    if (consumers > 0 && alive) {
       logCastWarn(serial, "cast.start.busy_reuse_failed", {
         localPort: existing.localPort,
         consumerCount: consumers,
@@ -255,18 +265,22 @@ export async function startScrcpyCast(serial, options = {}) {
   return buildCastStartPayload(session, options);
 }
 
-export async function ensureCastVideoPipe(serial) {
-  const session = getCastSession(serial);
+export async function ensureCastVideoPipe(sessionKey) {
+  const session = getCastSession(sessionKey);
 
   if (!session) {
     throw new Error("Cast session is not active.");
   }
 
+  const serial = session.serial;
+
   // ws-scrcpy modified server streams over its own WebSocket server, no scrcpy TCP sockets.
   if (session.webCast ?? SCRCPY_WEB_CAST_MODE) {
     const { ensureServerShell } = await import("./shell-launcher.js");
     logCastInfo(serial, "video.pipe.web_cast", {
+      sessionKey,
       localPort: session.localPort,
+      deviceWsPort: session.deviceWsPort ?? 8886,
       serverExited: session.serverExited ?? false,
     });
     appendCastStartupLog(session, "后端：准备 WebSocket 视频管道");
@@ -277,7 +291,7 @@ export async function ensureCastVideoPipe(serial) {
     }
 
     const shouldAbort = () =>
-      getCastSession(serial) !== session || session.stopping || session.serverExited;
+      getCastSession(sessionKey) !== session || session.stopping || session.serverExited;
 
     await waitForLocalPortOpen(session.localPort, {
       timeoutMs: 15_000,
@@ -289,6 +303,7 @@ export async function ensureCastVideoPipe(serial) {
     }
 
     logCastInfo(serial, "video.pipe.web_cast_ready", {
+      sessionKey,
       localPort: session.localPort,
       shellPid: session.shellProcess?.pid ?? null,
       serverExited: session.serverExited ?? false,

@@ -5,6 +5,7 @@ import { logCastError, logCastInfo } from "../services/scrcpy-cast/cast-logger.j
 import {
   getCastSession,
   listCastFeatures,
+  listSessionsForSerial,
   resolveCastServerOptions,
   startScrcpyCast,
   stopScrcpyCast,
@@ -141,8 +142,10 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
     }
 
     try {
-      logCastInfo(serial, "api.cast.stop", {});
-      const stopped = await stopScrcpyCast(serial);
+      const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      const sessionKey = url.searchParams.get("sessionKey") || undefined;
+      logCastInfo(serial, "api.cast.stop", { sessionKey: sessionKey || serial });
+      const stopped = await stopScrcpyCast(serial, { sessionKey });
 
       sendProtectedJson(res, 200, {
         success: true,
@@ -173,27 +176,29 @@ export async function handleDeviceCastRoute(req, res, method, pathname) {
       return handleHarmonyCastRoute(req, res, method, pathname);
     }
 
-    const session = getCastSession(serial);
+    const sessions = listSessionsForSerial(serial);
+    const anySession = getCastSession(serial) || sessions[0] || null;
 
     sendProtectedJson(res, 200, {
       success: true,
       version: APP_VERSION,
       serial,
-      active: Boolean(session),
-      streaming: session?.streaming ?? false,
+      active: sessions.length > 0,
+      sessionCount: sessions.length,
+      streaming: anySession?.streaming ?? false,
       serverReady: isScrcpyServerReady(),
-      serverExited: session?.serverExited ?? false,
-      serverExitCode: session?.serverExitCode ?? null,
-      socketName: session?.socketName ?? null,
-      localPort: session?.localPort ?? null,
-      wsClients: session?.clients.size ?? 0,
-      controlWsClients: session?.controlClients?.size ?? 0,
-      controlConnected: Boolean(session?.controlSocket),
-      features: session
-        ? listCastFeatures(resolveCastServerOptions(session.castOptions ?? {}))
+      serverExited: anySession?.serverExited ?? false,
+      serverExitCode: anySession?.serverExitCode ?? null,
+      socketName: anySession?.socketName ?? null,
+      localPort: anySession?.localPort ?? null,
+      wsClients: anySession?.clients.size ?? 0,
+      controlWsClients: anySession?.controlClients?.size ?? 0,
+      controlConnected: Boolean(anySession?.controlSocket),
+      features: anySession
+        ? listCastFeatures(resolveCastServerOptions(anySession.castOptions ?? {}))
         : [],
-      stream: summarizeStreamStats(session?.streamStats),
-      startupLogs: getCastStartupLogs(session),
+      stream: summarizeStreamStats(anySession?.streamStats),
+      startupLogs: getCastStartupLogs(anySession),
     });
     return true;
   }

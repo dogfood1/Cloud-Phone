@@ -24,9 +24,11 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
   //   <clientVersion> web <logLevel> <port> <listenOnAllInterfaces>
   // It runs its own WebSocket server on device (default 8886), so no tunnel_forward sockets are used.
   if (SCRCPY_WEB_CAST_MODE) {
+    const deviceWsPort = Math.max(
+      1024,
+      Math.min(65535, Number(options.deviceWsPort) || 8886),
+    );
     // Keep the process running even if the adb shell session ends.
-    // Mirrors ws-scrcpy server runner:
-    //   CLASSPATH=... nohup app_process / com.genymobile.scrcpy.Server <ver> web <level> <port> <listenAll> 2>&1 > /dev/null
     return [
       `CLASSPATH=${REMOTE_JAR_PATH}`,
       "nohup",
@@ -36,7 +38,7 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
       SCRCPY_SERVER_VERSION,
       "web",
       "INFO",
-      "8886",
+      String(deviceWsPort),
       "true",
       "2>&1",
       ">",
@@ -92,5 +94,6 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
 }
 
 export function pickLocalPort() {
-  return 27_000 + Math.floor(Math.random() * 1000);
+  // Avoid Windows Hyper-V / excluded ranges that often cover 27000–28000 (WSAEACCES 10013).
+  return 37_100 + Math.floor(Math.random() * 800);
 }

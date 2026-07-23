@@ -145,23 +145,13 @@ function saveSettingsForm() {
       @change-password="handlePasswordChange"
     />
     <div
-      v-if="showPasswordChangeModal && authState.authenticated"
-      class="modal-layer"
-      @click.self="closePasswordChange"
+      v-else-if="authState.booting"
+      class="app-shell__boot"
     >
-      <section class="auth-card-shell">
-        <div class="auth-card-shell__body">
-          <AuthPasswordModal
-            :state="authState"
-            mode="voluntary"
-            @submit="handlePasswordChangeFromSettings"
-            @cancel="closePasswordChange"
-          />
-        </div>
-      </section>
+      {{ authState.sessionStateText || "…" }}
     </div>
     <ConsoleLayout
-      v-else-if="!showAuthLayer"
+      v-else-if="authState.authenticated || authState.reauthenticating"
       v-model:active-tab="activeTab"
       v-model:selected-device="selectedDevice"
       :devices="devices"
@@ -178,5 +168,21 @@ function saveSettingsForm() {
       @change-password="openPasswordChange"
       @refresh-devices="refreshDevices"
     />
+    <div
+      v-if="showPasswordChangeModal && authState.authenticated"
+      class="modal-layer"
+      @click.self="closePasswordChange"
+    >
+      <section class="auth-card-shell">
+        <div class="auth-card-shell__body">
+          <AuthPasswordModal
+            :state="authState"
+            mode="voluntary"
+            @submit="handlePasswordChangeFromSettings"
+            @cancel="closePasswordChange"
+          />
+        </div>
+      </section>
+    </div>
   </div>
 </template>

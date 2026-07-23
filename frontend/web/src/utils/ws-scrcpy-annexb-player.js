@@ -68,10 +68,13 @@ export class WsScrcpyAnnexBPlayer {
     this.videoFrameSize = { width: 0, height: 0 };
     this.onVideoFrameSize = null;
     this.onFirstFrameRendered = null;
+    /** @type {null | (() => void)} */
+    this.onNeedKeyframe = null;
     this.hasRenderedFrame = false;
     /** @type {VideoFrame | null} */
     this.pendingFrame = null;
     this.rafId = 0;
+    this._lastKeyframeRequestAt = 0;
 
     if (this.canvas) {
       this.canvas.style.width = "100%";
@@ -79,13 +82,44 @@ export class WsScrcpyAnnexBPlayer {
       this.canvas.style.objectFit = "contain";
     }
 
+    this.#createDecoder();
+  }
+
+  #createDecoder() {
     this.decoder = new VideoDecoder({
       output: (frame) => this.#queueFrame(frame),
       error: (error) => {
         this.lastError = error?.message ?? String(error);
-        this.needIdr = true;
+        this.#markNeedKeyframe(true);
       },
     });
+  }
+
+  #ensureDecoder() {
+    if (this.decoder && this.decoder.state !== "closed") {
+      return;
+    }
+    this.#createDecoder();
+    this.hadIdr = false;
+    this.accessUnit = null;
+    this.#markNeedKeyframe(true);
+  }
+
+  #markNeedKeyframe(requestImmediate = false) {
+    this.needIdr = true;
+    if (!requestImmediate) {
+      return;
+    }
+    const now = performance.now();
+    if (now - this._lastKeyframeRequestAt < 2000) {
+      return;
+    }
+    this._lastKeyframeRequestAt = now;
+    try {
+      this.onNeedKeyframe?.();
+    } catch {
+      // ignore
+    }
   }
 
   #nowUs() {
@@ -156,6 +190,7 @@ export class WsScrcpyAnnexBPlayer {
   }
 
   #configureFromSpsNal(nal) {
+    this.#ensureDecoder();
     if (!this.decoder || this.decoder.state === "closed" || this.decoder.state === "configured") {
       return;
     }
@@ -184,15 +219,13 @@ export class WsScrcpyAnnexBPlayer {
   }
 
   #flushAccessUnit(isKey) {
+    this.#ensureDecoder();
     if (!this.accessUnit || !this.decoder || this.decoder.state !== "configured") {
       this.accessUnit = null;
       return;
     }
-    if (!isKey && this.decoder.decodeQueueSize > 1) {
-      this.needIdr = true;
-      this.accessUnit = null;
-      return;
-    }
+    // Only skip P-frames after a real decode fault. Mid-GOP drops + needIdr
+    // freeze until the next IDR and look like rhythmic stutter.
     if (this.needIdr && !isKey) {
       this.accessUnit = null;
       return;
@@ -211,7 +244,7 @@ export class WsScrcpyAnnexBPlayer {
       }
     } catch (error) {
       this.lastError = error?.message ?? String(error);
-      this.needIdr = true;
+      this.#markNeedKeyframe(true);
     }
     this.accessUnit = null;
   }
@@ -236,7 +269,6 @@ export class WsScrcpyAnnexBPlayer {
 
     const isIdr = nalType === 5;
     if (!this.hadIdr && !isIdr) {
-      // Drop P/B until the first IDR after SPS/PPS.
       return;
     }
 
@@ -245,9 +277,10 @@ export class WsScrcpyAnnexBPlayer {
   }
 
   pushFrame(arrayBuffer) {
-    if (!arrayBuffer || !this.decoder || this.decoder.state === "closed") {
+    if (!arrayBuffer) {
       return;
     }
+    this.#ensureDecoder();
     const bytes = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
     if (bytes.length < 4 || !startCodeLenAt(bytes, 0)) {
       return;
@@ -280,5 +313,6 @@ export class WsScrcpyAnnexBPlayer {
     }
     this.decoder = null;
     this.accessUnit = null;
+    this.onNeedKeyframe = null;
   }
 }

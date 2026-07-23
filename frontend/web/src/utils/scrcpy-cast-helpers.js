@@ -13,15 +13,31 @@ export function isCastAudioEnabled(castOptions) {
   return castOptions?.audio === true;
 }
 
-export function buildCastWebSocketUrl(serial) {
+export function buildCastWebSocketUrl(serial, sessionKeyOrMeta) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/api/devices/${encodeURIComponent(serial)}/cast/ws`;
+  const host = window.location.host;
+
+  // Prefer backend-provided wsPath (includes sessionKey query for isolate mode).
+  if (sessionKeyOrMeta && typeof sessionKeyOrMeta === "object") {
+    const wsPath = sessionKeyOrMeta.wsPath;
+    if (typeof wsPath === "string" && wsPath.startsWith("/")) {
+      return `${protocol}//${host}${wsPath}`;
+    }
+    const key = sessionKeyOrMeta.sessionKey;
+    if (key && key !== serial) {
+      return `${protocol}//${host}/api/devices/${encodeURIComponent(serial)}/cast/ws?sessionKey=${encodeURIComponent(key)}`;
+    }
+  }
+
+  if (typeof sessionKeyOrMeta === "string" && sessionKeyOrMeta && sessionKeyOrMeta !== serial) {
+    return `${protocol}//${host}/api/devices/${encodeURIComponent(serial)}/cast/ws?sessionKey=${encodeURIComponent(sessionKeyOrMeta)}`;
+  }
+
+  return `${protocol}//${host}/api/devices/${encodeURIComponent(serial)}/cast/ws`;
 }
 
-export function buildCastWebSocketCandidates(serial) {
-  // Always use the current page origin so session cookies are included.
-  // Cross-port ws://host:3000 breaks cookie auth and wss://:3000 is not supported.
-  return [buildCastWebSocketUrl(serial)];
+export function buildCastWebSocketCandidates(serial, sessionKeyOrMeta) {
+  return [buildCastWebSocketUrl(serial, sessionKeyOrMeta)];
 }
 
 const MAGIC_INITIAL = new TextEncoder().encode("scrcpy_initial");

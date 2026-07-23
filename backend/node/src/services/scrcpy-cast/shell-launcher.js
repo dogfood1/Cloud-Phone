@@ -13,22 +13,28 @@ export async function ensureServerShell(session, options = {}) {
     return session.shellProcess;
   }
 
+  // Web cast already detached: server should still be listening on device :8886.
+  if (session.webCast && session.shellDetached && !session.serverExited) {
+    return null;
+  }
+
   if (session.serverExited) {
     session.serverExited = false;
     session.serverExitCode = null;
     session.serverExitSignal = null;
   }
 
-  const shellCommand = buildServerShellCommand(session.scid, options);
+  session.shellDetached = false;
+  const shellCommand = buildServerShellCommand(session.scid, {
+    ...options,
+    deviceWsPort: 8886,
+  });
 
-  // Web cast server listens on tcp:8886 on the device. If a previous server instance
-  // crashed or was left running, the next start fails with "Address already in use".
-  // Stop any leftover scrcpy server before launching a new one.
+  // Single shared web server — clear leftover Server before spawn.
   try {
-    await runAdb(
-      ["-s", session.serial, "shell", "pkill", "-f", "com.genymobile.scrcpy.Server"],
-      { timeout: 5000 },
-    );
+    await runAdb(["-s", session.serial, "shell", "pkill -f com.genymobile.scrcpy.Server"], {
+      timeout: 5000,
+    });
   } catch {
     // ignore
   }

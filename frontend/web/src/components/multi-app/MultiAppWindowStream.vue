@@ -41,13 +41,14 @@ const rotatorRef = ref(null);
 
 function buildOptionsFromWindow() {
   const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
+  const win = props.window || {};
   return buildMultiAppCastOptions({
-    width: props.window.vdWidth || vd.width,
-    height: props.window.vdHeight || vd.height,
-    dpi: props.window.vdDpi || vd.dpi,
-    packageName: props.window.packageName,
+    width: win.vdWidth || vd.width,
+    height: win.vdHeight || vd.height,
+    dpi: win.vdDpi || vd.dpi,
+    packageName: win.packageName,
     deviceSdk: props.device?.sdkVersion,
-    orientation: props.window.orientation,
+    orientation: win.orientation,
   });
 }
 

@@ -32,11 +32,12 @@ export function parseCastWebSocketPath(pathname) {
 /**
  * @param {import("ws").WebSocket} ws
  * @param {string} serial
- * @param {{ earlyClientMessages?: unknown[], detachEarlyMessage?: () => void }} [early]
+ * @param {{ earlyClientMessages?: unknown[], detachEarlyMessage?: () => void, sessionKey?: string }} [early]
  */
 export async function handleCastWebSocket(ws, serial, early = {}) {
   const earlyClientMessages = early.earlyClientMessages ?? [];
   const detachEarlyMessage = early.detachEarlyMessage ?? (() => {});
+  const sessionKey = early.sessionKey || serial;
 
   const releaseEarly = () => {
     try {
@@ -71,11 +72,11 @@ export async function handleCastWebSocket(ws, serial, early = {}) {
       return;
     }
 
-    const session = getCastSession(serial);
+    const session = getCastSession(sessionKey);
 
     if (!session) {
       releaseEarly();
-      logCastWarn(serial, "ws.rejected", { reason: "cast session missing" });
+      logCastWarn(serial, "ws.rejected", { reason: "cast session missing", sessionKey });
       ws.close(1008, "Cast session is not active. Call cast/start first.");
       return;
     }
@@ -89,15 +90,18 @@ export async function handleCastWebSocket(ws, serial, early = {}) {
 
     try {
       logCastInfo(serial, "ws.session.begin", {
+        sessionKey,
         webCast: Boolean(session.webCast),
         localPort: session.localPort,
+        deviceWsPort: session.deviceWsPort ?? null,
+        isolateServer: Boolean(session.isolateServer),
         serverExited: session.serverExited ?? false,
         shellPid: session.shellProcess?.pid ?? null,
         earlyPrefetched: earlyClientMessages.length,
       });
       appendCastStartupLog(session, "后端：WebSocket 客户端已接入");
 
-      await ensureCastVideoPipe(serial);
+      await ensureCastVideoPipe(sessionKey);
 
       if (ws.readyState !== 1) {
         logCastWarn(serial, "ws.session.client_closed", { readyState: ws.readyState });
@@ -105,6 +109,7 @@ export async function handleCastWebSocket(ws, serial, early = {}) {
       }
 
       logCastInfo(serial, "ws.session.pipe_ready", {
+        sessionKey,
         webCast: Boolean(session.webCast),
         serverExited: session.serverExited ?? false,
         shellPid: session.shellProcess?.pid ?? null,
@@ -114,6 +119,7 @@ export async function handleCastWebSocket(ws, serial, early = {}) {
         const remoteUrl = `ws://127.0.0.1:${session.localPort}/`;
         logCastInfo(serial, "ws.proxy.attach", {
           remoteUrl,
+          sessionKey,
           prefetchedMessages: prefetchedClientMessages.length,
         });
 
@@ -121,7 +127,7 @@ export async function handleCastWebSocket(ws, serial, early = {}) {
           ws.readyState !== 1 ||
           session.stopping ||
           session.serverExited ||
-          getCastSession(serial) !== session;
+          getCastSession(sessionKey) !== session;
 
         const proxied = await proxyWebSocket(ws, remoteUrl, {
           prefetchedClientMessages,

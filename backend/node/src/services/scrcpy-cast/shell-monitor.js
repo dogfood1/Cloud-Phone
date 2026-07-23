@@ -39,6 +39,20 @@ export function attachShellMonitor(session) {
   });
 
   shellProcess.on("exit", (code, signal) => {
+    // Web cast launches with nohup — the adb shell may exit while app_process keeps running.
+    // Do not tear down the session on shell detach.
+    if (session.webCast) {
+      logCastInfo(serial, "server.shell.detached", {
+        code,
+        signal: signal ?? null,
+        sessionKey: session.sessionKey,
+        deviceWsPort: session.deviceWsPort ?? 8886,
+      });
+      session.shellDetached = true;
+      session.shellProcess = null;
+      return;
+    }
+
     session.serverExited = true;
     session.serverExitCode = code;
     session.serverExitSignal = signal ?? null;
@@ -66,8 +80,8 @@ export function attachShellMonitor(session) {
 
     session.clients.clear();
 
-    if (getCastSession(serial) === session) {
-      deleteCastSession(serial);
+    if (getCastSession(session.sessionKey || serial) === session) {
+      deleteCastSession(session.sessionKey || serial);
     }
   });
 

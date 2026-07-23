@@ -19,9 +19,18 @@ export function buildCastStartPayload(session, options = {}) {
   const serverOptions = resolveCastServerOptions(options);
   const features = listCastFeatures(serverOptions);
   const video = resolveVideoStreamSummary(options);
+  const sessionKey = session.sessionKey || session.serial;
+  const wsQuery =
+    session.isolateServer && sessionKey !== session.serial
+      ? `?sessionKey=${encodeURIComponent(sessionKey)}`
+      : "";
 
   return {
     serial: session.serial,
+    sessionKey,
+    isolateServer: Boolean(session.isolateServer),
+    windowId: session.windowId ?? null,
+    deviceWsPort: session.deviceWsPort ?? null,
     mode: "scrcpy",
     serverVersion: session.serverVersion ?? SCRCPY_SERVER_VERSION,
     localPort: session.localPort,
@@ -34,8 +43,10 @@ export function buildCastStartPayload(session, options = {}) {
     // another window's package or display size.
     castOptions: { ...(session.castOptions ?? {}), ...options },
     video,
-    wsPath: `/api/devices/${encoded}/cast/ws`,
-    controlWsPath: serverOptions.control ? `/api/devices/${encoded}/cast/control/ws` : null,
+    wsPath: `/api/devices/${encoded}/cast/ws${wsQuery}`,
+    controlWsPath: serverOptions.control
+      ? `/api/devices/${encoded}/cast/control/ws${wsQuery}`
+      : null,
     audio: serverOptions.audio,
     control: serverOptions.control,
     startupLogs: session.startupLogs ?? [],
@@ -76,7 +87,8 @@ export function tryReuseCastSession(existing, serial, options) {
     return null;
   }
 
-  if (!existing.shellProcess) {
+  // Shared web server may have detached adb shell (nohup) but still be alive.
+  if (!existing.shellProcess && !existing.webCast && !existing.shellDetached) {
     return null;
   }
 

@@ -5,9 +5,8 @@ import { resolveVdFromContent, resolveVdSize } from "./multi-app-window-layout.j
 import { suggestDpi } from "./mirror-cast-constants.js";
 
 /**
- * Build cast options for multi-app virtual display session.
- * Target desktop-scrcpy class smoothness: 60fps + 16Mbps on a stable 1080p VD.
- * I-frame every 2s so proxy/player backlog drops recover quickly.
+ * Multi-app cast options: one shared scrcpy-server (web :8886) + per-window
+ * WebSocket / virtual display / start_app (Cloud Phone original design).
  * @param {{
  *   width?: number,
  *   height?: number,
@@ -38,10 +37,10 @@ export function buildMultiAppCastOptions(opts) {
   settings.screen.flexDisplay = true;
   settings.screen.newDisplayApp = packageName;
   settings.screen.noVdSystemDecorations = true;
+  // Match mirror defaults — aggressive 8Mbps / I=2s + client drop logic caused stutter.
   settings.video.maxFps = 60;
-  // Higher bitrate + frequent IDRs: recover quickly after proxy/player drops late frames.
-  settings.video.bitRateMbps = 16;
-  settings.video.iFrameInterval = 2;
+  settings.video.bitRateMbps = 5;
+  settings.video.iFrameInterval = 10;
   settings.video.resolution = "1080p";
   settings.audio.disabled = true;
 

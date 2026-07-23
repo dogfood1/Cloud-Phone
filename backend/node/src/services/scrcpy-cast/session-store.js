@@ -6,6 +6,10 @@ import { summarizeStreamStats } from "./stream-stats.js";
 /**
  * @typedef {object} ScrcpyCastSession
  * @property {string} serial
+ * @property {string} [sessionKey]
+ * @property {boolean} [isolateServer]
+ * @property {string} [windowId]
+ * @property {number} [deviceWsPort]
  * @property {number} scid
  * @property {string} tunnelMode
  * @property {Record<string, unknown>} castOptions
@@ -26,27 +30,41 @@ import { summarizeStreamStats } from "./stream-stats.js";
  */
 
 /** @type {Map<string, ScrcpyCastSession>} */
-const sessionsBySerial = new Map();
+const sessionsByKey = new Map();
 
-export function getCastSession(serial) {
-  return sessionsBySerial.get(serial) ?? null;
+export function getCastSession(sessionKey) {
+  if (!sessionKey) {
+    return null;
+  }
+  return sessionsByKey.get(sessionKey) ?? null;
 }
 
-export function setCastSession(serial, session) {
-  sessionsBySerial.set(serial, session);
+export function setCastSession(sessionKey, session) {
+  session.sessionKey = sessionKey;
+  sessionsByKey.set(sessionKey, session);
 }
 
-export function deleteCastSession(serial) {
-  sessionsBySerial.delete(serial);
+export function deleteCastSession(sessionKey) {
+  if (sessionKey) {
+    sessionsByKey.delete(sessionKey);
+  }
+}
+
+export function listCastSessionKeys() {
+  return [...sessionsByKey.keys()];
 }
 
 export function listCastSerials() {
-  return [...sessionsBySerial.keys()];
+  return [...new Set([...sessionsByKey.values()].map((s) => s.serial))];
 }
 
 export function listCastSessions() {
-  return [...sessionsBySerial.values()].map((session) => ({
+  return [...sessionsByKey.values()].map((session) => ({
     serial: session.serial,
+    sessionKey: session.sessionKey,
+    isolateServer: Boolean(session.isolateServer),
+    windowId: session.windowId ?? null,
+    deviceWsPort: session.deviceWsPort ?? null,
     localPort: session.localPort,
     scid: session.scid,
     socketName: session.socketName,
@@ -55,4 +73,9 @@ export function listCastSessions() {
     serverExited: session.serverExited ?? false,
     stream: summarizeStreamStats(session.streamStats),
   }));
+}
+
+/** @param {string} serial */
+export function listSessionsForSerial(serial) {
+  return [...sessionsByKey.values()].filter((session) => session.serial === serial);
 }
