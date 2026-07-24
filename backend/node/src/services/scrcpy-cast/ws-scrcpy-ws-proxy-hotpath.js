@@ -25,32 +25,6 @@ function peekByte(data, index) {
   return undefined;
 }
 
-function asByteView(data) {
-  if (Buffer.isBuffer(data) || data instanceof Uint8Array) {
-    return data;
-  }
-  if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-  }
-  if (data instanceof ArrayBuffer) {
-    return new Uint8Array(data);
-  }
-  return null;
-}
-
-function startCodeLenAt(bytes, offset) {
-  if (offset + 3 > bytes.length || bytes[offset] !== 0x00 || bytes[offset + 1] !== 0x00) {
-    return 0;
-  }
-  if (bytes[offset + 2] === 0x01) {
-    return 3;
-  }
-  if (offset + 4 <= bytes.length && bytes[offset + 2] === 0x00 && bytes[offset + 3] === 0x01) {
-    return 4;
-  }
-  return 0;
-}
-
 export function isLikelyVideoAnnexB(data) {
   const b0 = peekByte(data, 0);
   const b1 = peekByte(data, 1);
@@ -64,35 +38,29 @@ export function isLikelyVideoAnnexB(data) {
   return b2 === 0x00 && peekByte(data, 3) === 0x01;
 }
 
-/** SPS / PPS / IDR — never drop under backlog or recovery stalls forever. */
+/**
+ * Fast keyframe peek: only the first NAL header (O(1)).
+ * Do not byte-scan the whole MediaCodec buffer on the hot path.
+ */
 export function isLikelyKeyframeAnnexB(data) {
   if (!isLikelyVideoAnnexB(data)) {
     return false;
   }
-  const bytes = asByteView(data);
-  if (!bytes || bytes.length < 5) {
+  const b2 = peekByte(data, 2);
+  const nalOffset = b2 === 0x01 ? 3 : 4;
+  const header = peekByte(data, nalOffset);
+  if (header == null) {
     return false;
   }
-  let i = 0;
-  while (i + 4 < bytes.length) {
-    const sc = startCodeLenAt(bytes, i);
-    if (!sc) {
-      i += 1;
-      continue;
-    }
-    const nalType = bytes[i + sc] & 0x1f;
-    if (nalType === 5 || nalType === 7 || nalType === 8) {
-      return true;
-    }
-    i += sc + 1;
-  }
-  return false;
+  const nalType = header & 0x1f;
+  return nalType === 5 || nalType === 7 || nalType === 8;
 }
 
 export function logProxyPacket(serial, direction, data, counters) {
   if (direction === "remote_to_client" && isLikelyVideoAnnexB(data)) {
     counters.remoteVideo = (counters.remoteVideo ?? 0) + 1;
     const count = counters.remoteVideo;
+    // Log ~1/sec at 60fps — never summarize every frame.
     if (count > 2 && count % 600 !== 0) {
       return;
     }
@@ -106,5 +74,8 @@ export function logProxyPacket(serial, direction, data, counters) {
   logCastInfo(serial, `ws.proxy.${direction}`, summary);
 }
 
-/** Drop late non-key video only under severe browser WS backlog (~2MB). */
-export const CLIENT_BACKLOG_DROP_BYTES = 2 * 1024 * 1024;
+/**
+ * Official scrcpy never drops mid-GOP on the socket.
+ * Keep this huge so the proxy only sheds under catastrophic browser stall.
+ */
+export const CLIENT_BACKLOG_DROP_BYTES = 16 * 1024 * 1024;

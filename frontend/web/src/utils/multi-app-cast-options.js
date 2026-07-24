@@ -39,9 +39,9 @@ export function buildMultiAppCastOptions(opts) {
   settings.screen.noVdSystemDecorations = true;
   // Keep app content across VD resize / soft reset (avoid blank→exit-watch close).
   settings.screen.noVdDestroyContent = true;
-  // Match mirror defaults — aggressive 8Mbps / I=2s + client drop logic caused stutter.
+  // Align with official scrcpy server defaults (8Mbps / I=10s), not mirror UI 5Mbps.
   settings.video.maxFps = 60;
-  settings.video.bitRateMbps = 5;
+  settings.video.bitRateMbps = 8;
   settings.video.iFrameInterval = 10;
   settings.video.resolution = "1080p";
   settings.audio.disabled = true;

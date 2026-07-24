@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.2 - 2026-07-24
+
+- **多应用流畅度对齐原版 scrcpy**：代理关键帧检测改为 O(1) 只看首 NAL（避免大 IDR 逐字节扫描卡住 Node）；传输层几乎不丢 P 帧（阈值 16MB，贴近原版不丢编码包）
+- **Annex-B 播放器**：一个 MediaCodec 缓冲一次 `decode()`；显示层只保留最新帧（同桌面 `sc_frame_buffer`）；多应用码率对齐原版默认 **8Mbps / 60fps / I=10s**
+
 ## 1.15.1 - 2026-07-23
 
 - **修复多应用卡住「正在创建虚拟屏」**：web 模式 nohup 后 `waitForCastSessionReady` 误判失败导致空等；`cast/start` 前端 45s 超时

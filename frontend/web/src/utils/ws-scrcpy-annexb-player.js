@@ -1,6 +1,7 @@
 /**
- * ws-scrcpy compatible WebCodecs player (Annex-B H.264).
- * Splits multi-NAL packets (SPS+PPS+IDR often arrive in one MediaCodec buffer).
+ * ws-scrcpy / WebCodecs Annex-B player aligned with upstream WebCodecsPlayer:
+ * feed each MediaCodec buffer as one EncodedVideoChunk when possible.
+ * Display keeps only the latest frame (same idea as desktop sc_frame_buffer).
  */
 
 import { codecFromSps } from "./h264-nal-utils.js";
@@ -18,35 +19,35 @@ function startCodeLenAt(bytes, offset) {
   return 0;
 }
 
-/** @param {Uint8Array} bytes */
-function splitAnnexBNals(bytes) {
-  const nals = [];
+function nalTypeAt(bytes, offset) {
+  const sc = startCodeLenAt(bytes, offset);
+  if (!sc || offset + sc >= bytes.length) {
+    return null;
+  }
+  return bytes[offset + sc] & 0x1f;
+}
+
+function packetHasIdr(bytes) {
   let i = 0;
-  while (i < bytes.length) {
+  while (i + 4 < bytes.length) {
     const sc = startCodeLenAt(bytes, i);
     if (!sc) {
       i += 1;
       continue;
     }
+    if ((bytes[i + sc] & 0x1f) === 5) {
+      return true;
+    }
     let next = bytes.length;
-    for (let j = i + sc; j < bytes.length; j += 1) {
+    for (let j = i + sc + 1; j + 3 < bytes.length; j += 1) {
       if (startCodeLenAt(bytes, j)) {
         next = j;
         break;
       }
     }
-    nals.push(bytes.subarray(i, next));
     i = next;
   }
-  return nals;
-}
-
-function nalTypeOf(nal) {
-  const sc = startCodeLenAt(nal, 0);
-  if (!sc || nal.length <= sc) {
-    return null;
-  }
-  return nal[sc] & 0x1f;
+  return false;
 }
 
 export class WsScrcpyAnnexBPlayer {
@@ -60,10 +61,9 @@ export class WsScrcpyAnnexBPlayer {
       canvas.getContext("2d", { alpha: false, desynchronized: true }) ||
       canvas.getContext("2d");
     this.decoder = null;
-    this.accessUnit = null;
     this.hadIdr = false;
     this.needIdr = false;
-    this.baseTimeUs = 0;
+    this.frameIndex = 0;
     this.lastError = "";
     this.videoFrameSize = { width: 0, height: 0 };
     this.onVideoFrameSize = null;
@@ -101,7 +101,6 @@ export class WsScrcpyAnnexBPlayer {
     }
     this.#createDecoder();
     this.hadIdr = false;
-    this.accessUnit = null;
     this.#markNeedKeyframe(true);
   }
 
@@ -122,14 +121,8 @@ export class WsScrcpyAnnexBPlayer {
     }
   }
 
-  #nowUs() {
-    if (!this.baseTimeUs) {
-      this.baseTimeUs = Math.round(performance.now() * 1000);
-    }
-    return Math.round(performance.now() * 1000) - this.baseTimeUs;
-  }
-
   #queueFrame(frame) {
+    // Same as desktop sc_frame_buffer: keep only the latest decoded frame.
     if (this.pendingFrame) {
       this.pendingFrame.close();
     }
@@ -178,38 +171,34 @@ export class WsScrcpyAnnexBPlayer {
     this.lastError = "";
   }
 
-  #appendAu(nal) {
-    if (this.accessUnit) {
-      const merged = new Uint8Array(this.accessUnit.length + nal.length);
-      merged.set(this.accessUnit);
-      merged.set(nal, this.accessUnit.length);
-      this.accessUnit = merged;
-    } else {
-      this.accessUnit = nal.slice();
-    }
-  }
-
-  #configureFromSpsNal(nal) {
+  #configureFromSps(spsNal) {
     this.#ensureDecoder();
-    if (!this.decoder || this.decoder.state === "closed" || this.decoder.state === "configured") {
+    if (!this.decoder || this.decoder.state === "closed") {
       return;
     }
-    const sc = startCodeLenAt(nal, 0);
-    if (!sc || nal.length < sc + 4) {
+    if (this.decoder.state === "configured") {
+      try {
+        this.decoder.reset();
+      } catch {
+        this.#createDecoder();
+      }
+    }
+    const sc = startCodeLenAt(spsNal, 0);
+    if (!sc || spsNal.length < sc + 4) {
       return;
     }
-    const spsRbsp = nal.subarray(sc);
+    const spsRbsp = spsNal.subarray(sc);
+    const config = {
+      codec: codecFromSps(spsRbsp),
+      optimizeForLatency: true,
+      hardwareAcceleration: "prefer-hardware",
+    };
     try {
-      this.decoder.configure({
-        codec: codecFromSps(spsRbsp),
-        optimizeForLatency: true,
-        hardwareAcceleration: "prefer-hardware",
-      });
-    } catch (error) {
+      this.decoder.configure(config);
+    } catch {
       try {
         this.decoder.configure({
-          codec: codecFromSps(spsRbsp),
-          optimizeForLatency: true,
+          ...config,
           hardwareAcceleration: "prefer-software",
         });
       } catch (error2) {
@@ -218,26 +207,31 @@ export class WsScrcpyAnnexBPlayer {
     }
   }
 
-  #flushAccessUnit(isKey) {
+  /**
+   * @param {Uint8Array} bytes whole MediaCodec Annex-B buffer
+   * @param {boolean} isKey
+   */
+  #decodePacket(bytes, isKey) {
     this.#ensureDecoder();
-    if (!this.accessUnit || !this.decoder || this.decoder.state !== "configured") {
-      this.accessUnit = null;
+    if (!this.decoder || this.decoder.state !== "configured") {
       return;
     }
-    // Only skip P-frames after a real decode fault. Mid-GOP drops + needIdr
-    // freeze until the next IDR and look like rhythmic stutter.
     if (this.needIdr && !isKey) {
-      this.accessUnit = null;
+      return;
+    }
+    if (!this.hadIdr && !isKey) {
       return;
     }
     try {
       this.decoder.decode(
         new EncodedVideoChunk({
           type: isKey ? "key" : "delta",
-          timestamp: this.#nowUs(),
-          data: this.accessUnit,
+          // Monotonic us timestamps (upstream uses 0; wall-clock bursts hurt pacing).
+          timestamp: this.frameIndex * 16_666,
+          data: bytes,
         }),
       );
+      this.frameIndex += 1;
       if (isKey) {
         this.needIdr = false;
         this.hadIdr = true;
@@ -246,53 +240,38 @@ export class WsScrcpyAnnexBPlayer {
       this.lastError = error?.message ?? String(error);
       this.#markNeedKeyframe(true);
     }
-    this.accessUnit = null;
-  }
-
-  /** @param {Uint8Array} nal */
-  #pushNal(nal) {
-    const nalType = nalTypeOf(nal);
-    if (nalType == null) {
-      return;
-    }
-
-    if (nalType === 7) {
-      this.#configureFromSpsNal(nal);
-      this.accessUnit = null;
-      this.#appendAu(nal);
-      return;
-    }
-    if (nalType === 8 || nalType === 6 || nalType === 9) {
-      this.#appendAu(nal);
-      return;
-    }
-
-    const isIdr = nalType === 5;
-    if (!this.hadIdr && !isIdr) {
-      return;
-    }
-
-    this.#appendAu(nal);
-    this.#flushAccessUnit(isIdr);
   }
 
   pushFrame(arrayBuffer) {
     if (!arrayBuffer) {
       return;
     }
-    this.#ensureDecoder();
     const bytes = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
     if (bytes.length < 4 || !startCodeLenAt(bytes, 0)) {
       return;
     }
 
-    const nals = splitAnnexBNals(bytes);
-    if (!nals.length) {
-      return;
+    const firstType = nalTypeAt(bytes, 0);
+    if (firstType === 7) {
+      // First NAL is SPS — configure from it without scanning the whole IDR.
+      let next = bytes.length;
+      const sc = startCodeLenAt(bytes, 0) || 4;
+      for (let j = sc + 1; j + 3 < bytes.length; j += 1) {
+        if (startCodeLenAt(bytes, j)) {
+          next = j;
+          break;
+        }
+      }
+      this.#configureFromSps(bytes.subarray(0, next));
     }
-    for (const nal of nals) {
-      this.#pushNal(nal);
-    }
+
+    // P-frames (type 1) are never keys — skip O(n) IDR scan on the hot path.
+    const isKey =
+      firstType === 5 ||
+      firstType === 7 ||
+      (firstType !== 1 && firstType !== 9 && packetHasIdr(bytes));
+    // One MediaCodec buffer → one decode() (matches device encoder + upstream player).
+    this.#decodePacket(bytes, isKey);
   }
 
   destroy() {
@@ -312,7 +291,6 @@ export class WsScrcpyAnnexBPlayer {
       // ignore
     }
     this.decoder = null;
-    this.accessUnit = null;
     this.onNeedKeyframe = null;
   }
 }
