@@ -6,6 +6,10 @@
   overflow: hidden;
 }
 
+.logs-page > .page-header {
+  flex-shrink: 0;
+}
+
 .logs-page__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -21,16 +25,19 @@
 }
 
 .logs-page__list {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   padding-right: 0.15rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .logs-page__entry {
+  flex: 0 0 auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -152,6 +159,7 @@
 }
 
 .logs-page__empty {
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
