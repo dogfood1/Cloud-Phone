@@ -6,6 +6,7 @@ export const PUBLIC_API_PATHS = new Set([
   "/api/auth/session",
   "/api/auth/login",
   "/api/ping",
+  "/api/public/preferences",
 ]);
 
 export function isPublicApiPath(pathname, method) {

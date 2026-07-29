@@ -119,7 +119,25 @@ async function fetchWithLanFallback(url, options) {
 }
 
 async function parseResponseBody(response) {
-  const envelope = await response.json();
+  const rawText = await response.text();
+  if (!rawText?.trim()) {
+    throw new Error(
+      response.ok
+        ? "服务器返回了空响应。"
+        : `服务器错误 (${response.status})，请确认后端已启动且无崩溃。`,
+    );
+  }
+
+  let envelope;
+  try {
+    envelope = JSON.parse(rawText);
+  } catch {
+    throw new Error(
+      response.ok
+        ? "服务器返回了无效 JSON。"
+        : `服务器错误 (${response.status})，请确认后端已启动且无崩溃。`,
+    );
+  }
 
   if (!envelope?.encrypted) {
     return envelope;

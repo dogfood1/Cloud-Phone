@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.18.2 - 2026-07-29
+
+- **修复启动与图标加载异常**：`/health` 改为匿名就绪探针，`/api/public/preferences` 允许未登录访问；前端遇到空响应/坏 JSON 时给出明确错误，不再直接抛 `Unexpected end of JSON input`
+
 ## 1.18.1 - 2026-07-29
 
 - **修复多应用拉伸/最大化虚拟屏不同步**：窗口尺寸变化后改为对比「上次已发送」的 VD 尺寸再发 `RESIZE_DISPLAY`，避免被提前更新的 window.vd* 误判跳过

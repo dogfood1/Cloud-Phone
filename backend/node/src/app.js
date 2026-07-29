@@ -82,15 +82,8 @@ export function createApp() {
     }
 
     if (method === "GET" && pathname === "/health") {
-      const session = await requireApiSession(sessionToken);
-
-      if (!session) {
-        sendUnauthorized(res);
-        return;
-      }
-
-      attachResponseEncryption(res, session.encryptionKey);
-      sendProtectedJson(res, 200, {
+      // Unauthenticated readiness probe (dev launcher / docker / load balancers).
+      sendJson(res, 200, {
         status: "ok",
         service: "cloud-phone-node",
         version: APP_VERSION,
