@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.19.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.19.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -249,6 +249,7 @@ Source: `frontend/android/`. Uses the same Node backend and session model as the
 - **Long-press a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
 - **+** add device: USB guide, wireless **pairing code**, **QR** pairing; also **HarmonyOS USB** and **Apple WDA** connection flows
 - **Community Material** icons (Android-Iconics), consistent with web MDI
+- Uses a **Material 3** theme with a fixed bottom navigation bar and gesture-safe insets
 
 ### Group control (bottom tab · Group)
 

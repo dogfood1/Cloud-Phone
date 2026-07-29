@@ -10,4 +10,7 @@
     <color name="auth_primary_text">#DCFCE7</color>
     <color name="auth_accent_soft">#14532D</color>
     <color name="auth_preview_bg">#020617</color>
+    <color name="m3_surface_container">#1E293B</color>
+    <color name="m3_surface_container_high">#334155</color>
+    <color name="m3_nav_indicator">#14532D</color>
 </resources>

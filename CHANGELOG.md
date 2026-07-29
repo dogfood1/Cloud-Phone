@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.19.2 - 2026-07-29
+
+- **Android Material 3 UI 升级**：控制台与登录等页面统一使用 Material 3 主题色板与组件样式（Surface / OnSurface / Outlined 输入框）
+- **底部导航栏优化**：控制台导航固定底部，采用 Material 3 `BottomNavigationView` 样式、激活指示器与分隔线，适配手势区 inset 与旋转后 Tab 保持
+- **Android App 版本**：`0.13.2`（versionCode 1215）
+
 ## 1.19.1 - 2026-07-29
 
 - **修复 Android 群控图标缺失**：底部导航群控 Tab 改用有效 MDI 图标 `account-group`；群控操作栏（电源/音量/应用/批量模式）与添加设备按钮补齐图标；设备槽位无截图时显示占位图标

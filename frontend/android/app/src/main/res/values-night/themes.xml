@@ -1,10 +1,24 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+<resources>
     <style name="Base.Theme.CloudPhone" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/auth_primary</item>
+        <item name="colorOnPrimary">@color/auth_primary_text</item>
+        <item name="colorPrimaryContainer">@color/auth_accent_soft</item>
+        <item name="colorOnPrimaryContainer">@color/auth_primary</item>
+        <item name="colorSecondary">@color/auth_primary</item>
+        <item name="colorOnSecondary">@color/auth_primary_text</item>
+        <item name="colorSurface">@color/auth_surface</item>
+        <item name="colorOnSurface">@color/auth_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/auth_text_secondary</item>
+        <item name="colorOutline">@color/auth_line</item>
+        <item name="colorOutlineVariant">@color/auth_line</item>
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_surface_container_high</item>
+        <item name="android:colorBackground">@color/auth_background</item>
         <item name="android:statusBarColor">@color/auth_background</item>
-        <item name="android:navigationBarColor">@color/auth_background</item>
+        <item name="android:navigationBarColor">@color/m3_surface_container</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <item name="materialButtonStyle">@style/Widget.Material3.Button</item>
+        <item name="textInputStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
     </style>
 </resources>

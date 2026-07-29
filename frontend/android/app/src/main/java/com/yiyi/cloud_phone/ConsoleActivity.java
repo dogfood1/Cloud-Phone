@@ -10,11 +10,13 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.yiyi.cloud_phone.group.GroupControlFragment;
 import com.yiyi.cloud_phone.logs.LogsFragment;
 
 public class ConsoleActivity extends AppCompatActivity {
+    private static final String KEY_SELECTED_NAV = "selected_nav";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,43 +27,60 @@ public class ConsoleActivity extends AppCompatActivity {
         }
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_console);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.consoleRoot), (view, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+        NavigationBarView bottomNav = findViewById(R.id.bottomNav);
         bottomNav.getMenu().findItem(R.id.nav_devices).setIcon(AppIcons.tabDevices(this));
         bottomNav.getMenu().findItem(R.id.nav_group).setIcon(AppIcons.tabGroup(this));
         bottomNav.getMenu().findItem(R.id.nav_logs).setIcon(AppIcons.tabLogs(this));
         bottomNav.getMenu().findItem(R.id.nav_settings).setIcon(AppIcons.tabSettings(this));
+
         ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (view, insets) -> {
             Insets navBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(), navBars.bottom);
             return insets;
         });
+
         bottomNav.setOnItemSelectedListener(item -> {
-            Fragment fragment;
-            int itemId = item.getItemId();
-            if (itemId == R.id.nav_settings) {
-                fragment = new SettingsFragment();
-            } else if (itemId == R.id.nav_group) {
-                fragment = new GroupControlFragment();
-            } else if (itemId == R.id.nav_logs) {
-                fragment = new LogsFragment();
-            } else {
-                fragment = new DevicesFragment();
-            }
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragmentContainer, fragment)
-                    .commit();
+            showTab(item.getItemId());
             return true;
         });
 
         if (savedInstanceState == null) {
             bottomNav.setSelectedItemId(R.id.nav_devices);
+        } else {
+            bottomNav.setSelectedItemId(
+                    savedInstanceState.getInt(KEY_SELECTED_NAV, R.id.nav_devices)
+            );
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        NavigationBarView bottomNav = findViewById(R.id.bottomNav);
+        outState.putInt(KEY_SELECTED_NAV, bottomNav.getSelectedItemId());
+    }
+
+    private void showTab(int itemId) {
+        Fragment fragment;
+        if (itemId == R.id.nav_settings) {
+            fragment = new SettingsFragment();
+        } else if (itemId == R.id.nav_group) {
+            fragment = new GroupControlFragment();
+        } else if (itemId == R.id.nav_logs) {
+            fragment = new LogsFragment();
+        } else {
+            fragment = new DevicesFragment();
+        }
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit();
     }
 }

@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.19.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.19.2** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -243,6 +243,7 @@ images/readme/
 - **长按设备卡片**：查看设备详细信息、断开无线设备（USB 连接不支持断开）
 - 右上角 **「+」**：USB 连接引导、无线 **配对码**、**二维码** 配对；另支持 **鸿蒙 USB**、**苹果 WDA** 连接流程
 - 图标使用 **Community Material**（Android-Iconics），风格与 Web MDI 一致
+- 界面采用 **Material 3** 主题，主导航固定底部并适配手势区安全边距
 
 ### 群控（底部 Tab · 群控）
 

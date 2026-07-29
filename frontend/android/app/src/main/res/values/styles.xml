@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.CloudPhone.NavigationBar" parent="Widget.Material3.BottomNavigationView">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.CloudPhone.NavigationBar</item>
+        <item name="android:background">?attr/colorSurfaceContainer</item>
+        <item name="itemIconTint">@color/console_nav_item</item>
+        <item name="itemTextColor">@color/console_nav_item</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.CloudPhone.NavigationBar.ActiveIndicator</item>
+        <item name="itemRippleColor">@color/m3_nav_indicator</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <item name="elevation">@dimen/m3_nav_bar_elevation</item>
+    </style>
+
+    <style name="Widget.CloudPhone.NavigationBar.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/m3_nav_indicator</item>
+    </style>
+
+    <style name="ThemeOverlay.CloudPhone.NavigationBar" parent="ThemeOverlay.Material3.BottomNavigationView">
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+    </style>
+</resources>

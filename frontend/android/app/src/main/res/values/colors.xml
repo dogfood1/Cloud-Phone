@@ -14,4 +14,7 @@
     <color name="auth_preview_bg">#0B1220</color>
     <color name="auth_primary_light">#E3F2FD</color>
     <color name="auth_border">#D7E0EA</color>
+    <color name="m3_surface_container">#FFFFFF</color>
+    <color name="m3_surface_container_high">#F8FAFC</color>
+    <color name="m3_nav_indicator">#E8F7EE</color>
 </resources>
