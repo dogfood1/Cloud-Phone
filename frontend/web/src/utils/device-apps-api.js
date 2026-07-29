@@ -41,6 +41,13 @@ export async function setDeviceAppFrozen(serial, packageName, frozen) {
   );
 }
 
+export async function forceStopDeviceApp(serial, packageName) {
+  return requestJson(
+    `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}/force-stop`,
+    { method: "POST" },
+  );
+}
+
 export async function downloadDeviceAppApk(serial, packageName, filenameHint) {
   const url = `/api/devices/${encodeURIComponent(serial)}/apps/${encodeURIComponent(packageName)}/apk`;
   const blob = await fetchEncryptedBinary(url, {

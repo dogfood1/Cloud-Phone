@@ -61,6 +61,29 @@ export async function uninstallPackage(serial, packageName) {
 }
 
 /**
+ * Force-stop a package process (am force-stop). Used when closing multi-app windows.
+ * @param {string} serial
+ * @param {string} packageName
+ */
+export async function forceStopPackage(serial, packageName) {
+  const pkg = String(packageName || "").trim();
+  if (!pkg) {
+    const err = new Error("包名无效。");
+    err.code = "invalid_package";
+    throw err;
+  }
+
+  return runWithAdbLock(async () => {
+    const { stdout, stderr } = await runAdb(
+      ["-s", serial, "shell", "am", "force-stop", pkg],
+      { timeout: 20_000 },
+    );
+    const out = `${stdout}\n${stderr}`.trim();
+    return { ok: true, message: out || "ok" };
+  }, { lockKey: serial });
+}
+
+/**
  * @param {string} serial
  * @param {string} packageName
  * @param {boolean} freeze true = disable-user, false = enable

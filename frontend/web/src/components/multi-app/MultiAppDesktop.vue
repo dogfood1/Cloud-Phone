@@ -7,7 +7,7 @@ import WindowsTaskbar from "./WindowsTaskbar.vue";
 import IconHelperGatePanel from "../IconHelperGatePanel.vue";
 import { useMultiAppIconWarm } from "../../composables/useMultiAppIconWarm.js";
 import { useMultiAppWindows } from "../../composables/useMultiAppWindows.js";
-import { fetchAppOrientation } from "../../utils/device-apps-api.js";
+import { fetchAppOrientation, forceStopDeviceApp } from "../../utils/device-apps-api.js";
 
 const props = defineProps({
   device: {
@@ -118,7 +118,15 @@ function handleMaximize(id) {
 }
 
 function handleClose(id) {
+  const win = windows.value.find((item) => item.id === id);
+  const serial = String(props.device?.serial || "").trim();
+  const packageName = String(win?.packageName || "").trim();
   closeWindow(id);
+  // Tear down cast via unmount; also kill the app process so it does not linger
+  // on the device after the virtual display is released.
+  if (serial && packageName) {
+    void forceStopDeviceApp(serial, packageName).catch(() => {});
+  }
 }
 
 function handleMove(id, bounds) {
