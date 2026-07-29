@@ -577,6 +577,7 @@ async function handleViewportFullscreenChange(isFullscreen) {
         class="device-workspace__pane device-workspace__pane--right device-workspace__pane--multi-app"
         :device="device"
         @switch-mirror="workspaceCastMode = 'mirror'"
+        @fullscreen-change="handleViewportFullscreenChange"
       />
       <DeviceCastViewport
         v-show="!isMultiAppMode && (!isMobileLayout || !mobileCastOptionsOpen)"

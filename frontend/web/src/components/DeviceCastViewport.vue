@@ -2,6 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, ref, toRef, unref, watch } from "vue";
 
 import { useDeviceCast } from "../composables/useDeviceCast.js";
+import {
+  getFullscreenElement,
+  toggleBrowserFullscreen,
+} from "../utils/browser-fullscreen.js";
 
 const props = defineProps({
   device: {
@@ -61,40 +65,30 @@ const hasError = computed(() => status.value === "error");
 const screenshotFlashActive = ref(false);
 const isFullscreen = ref(false);
 
-function getFullscreenElement() {
-  return document.fullscreenElement ?? null;
-}
-
 function syncFullscreenState() {
   const viewportEl = viewportRef.value;
   const workspaceEl = viewportEl?.closest(".device-workspace") ?? null;
   const fullscreenEl = getFullscreenElement();
   const nextFullscreen =
-    fullscreenEl === viewportEl || (workspaceEl != null && fullscreenEl === workspaceEl);
+    fullscreenEl === viewportEl ||
+    (workspaceEl != null &&
+      (fullscreenEl === workspaceEl ||
+        fullscreenEl === document.documentElement ||
+        fullscreenEl === document.body));
 
   isFullscreen.value = nextFullscreen;
   emit("fullscreen-change", nextFullscreen);
 }
 
-async function toggleFullscreen() {
+function toggleFullscreen() {
   const viewportEl = viewportRef.value;
   const workspaceEl = viewportEl?.closest(".device-workspace") ?? null;
   const targetEl = workspaceEl ?? viewportEl;
-
   if (!targetEl) {
     return;
   }
-
-  try {
-    const fullscreenEl = getFullscreenElement();
-    if (fullscreenEl === targetEl || fullscreenEl === viewportEl) {
-      await document.exitFullscreen();
-    } else {
-      await targetEl.requestFullscreen();
-    }
-  } catch {
-    // Ignore gesture/permission errors from Fullscreen API.
-  }
+  // Same API as multi-app: hide browser chrome (address bar).
+  void toggleBrowserFullscreen(targetEl);
 }
 
 function playScreenshotFlash() {

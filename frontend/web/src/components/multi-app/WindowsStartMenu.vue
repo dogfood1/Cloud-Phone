@@ -5,8 +5,9 @@ import { Icon } from "@iconify/vue";
 
 import IconHelperGatePanel from "../IconHelperGatePanel.vue";
 import { useStartMenuApps } from "../../composables/useStartMenuApps.js";
+import { toggleBrowserFullscreen } from "../../utils/browser-fullscreen.js";
 
-const emit = defineEmits(["launch"]);
+const emit = defineEmits(["launch", "toggle-fullscreen"]);
 
 const props = defineProps({
   serial: {
@@ -14,6 +15,10 @@ const props = defineProps({
     default: "",
   },
   active: {
+    type: Boolean,
+    default: false,
+  },
+  isFullscreen: {
     type: Boolean,
     default: false,
   },
@@ -48,6 +53,17 @@ const {
 
 function launchApp(app) {
   emit("launch", launchPayload(app));
+}
+
+/**
+ * Must run Fullscreen API in this gesture handler (Popover emit chain drops activation).
+ */
+function onToggleFullscreen(event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const workspace = document.querySelector(".device-workspace");
+  void toggleBrowserFullscreen(workspace || document.documentElement);
+  emit("toggle-fullscreen");
 }
 </script>
 
@@ -124,5 +140,23 @@ function launchApp(app) {
         </div>
       </template>
     </div>
+
+    <footer class="win11-start-menu__footer">
+      <button
+        type="button"
+        class="win11-start-menu__power"
+        :title="isFullscreen ? '取消全屏 (Esc)' : '全屏'"
+        :aria-label="isFullscreen ? '取消全屏' : '全屏'"
+        @pointerdown="onToggleFullscreen"
+        @click.prevent.stop
+      >
+        <Icon
+          :icon="isFullscreen ? 'lucide:minimize' : 'lucide:maximize'"
+          :width="18"
+          :height="18"
+        />
+        <span>{{ isFullscreen ? "取消全屏" : "全屏" }}</span>
+      </button>
+    </footer>
   </div>
 </template>

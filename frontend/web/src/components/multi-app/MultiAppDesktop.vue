@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import MultiAppWindow from "./MultiAppWindow.vue";
 import MultiAppWindowStream from "./MultiAppWindowStream.vue";
@@ -8,6 +8,10 @@ import IconHelperGatePanel from "../IconHelperGatePanel.vue";
 import { useMultiAppIconWarm } from "../../composables/useMultiAppIconWarm.js";
 import { useMultiAppWindows } from "../../composables/useMultiAppWindows.js";
 import { fetchAppOrientation, forceStopDeviceApp } from "../../utils/device-apps-api.js";
+import {
+  isBrowserFullscreenFor,
+  toggleBrowserFullscreen,
+} from "../../utils/browser-fullscreen.js";
 
 const props = defineProps({
   device: {
@@ -16,7 +20,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["switch-mirror"]);
+const emit = defineEmits(["switch-mirror", "fullscreen-change"]);
 
 const {
   consentDialogOpen,
@@ -29,6 +33,7 @@ const {
 
 const desktopRef = ref(null);
 const canvasSize = ref({ width: 1280, height: 720 });
+const isDesktopFullscreen = ref(false);
 /** @type {import("vue").Ref<Record<string, object>>} */
 const streamRefs = ref({});
 
@@ -141,6 +146,30 @@ function handleBack(id) {
   streamRefs.value[id]?.sendBack?.();
 }
 
+function getWorkspaceEl() {
+  return (
+    desktopRef.value?.closest?.(".device-workspace") ||
+    document.querySelector(".device-workspace") ||
+    null
+  );
+}
+
+function syncDesktopFullscreen() {
+  const workspaceEl = getWorkspaceEl();
+  const next = isBrowserFullscreenFor(workspaceEl);
+  if (isDesktopFullscreen.value === next) {
+    return;
+  }
+  isDesktopFullscreen.value = next;
+  emit("fullscreen-change", next);
+}
+
+/** Fallback if Start menu did not fire; prefer Start menu pointerdown path. */
+function toggleDesktopFullscreen() {
+  const workspaceEl = getWorkspaceEl();
+  void toggleBrowserFullscreen(workspaceEl || document.documentElement);
+}
+
 function contentSize(win) {
   return getContentSize(win);
 }
@@ -151,10 +180,13 @@ onMounted(() => {
   if (desktopRef.value) {
     desktopObserver.observe(desktopRef.value);
   }
+  document.addEventListener("fullscreenchange", syncDesktopFullscreen);
+  syncDesktopFullscreen();
 });
 
 onBeforeUnmount(() => {
   desktopObserver?.disconnect();
+  document.removeEventListener("fullscreenchange", syncDesktopFullscreen);
 });
 
 watch(
@@ -200,8 +232,10 @@ watch(
       :serial="device.serial"
       :windows="taskbarWindows"
       :focused-id="focusedId"
+      :is-fullscreen="isDesktopFullscreen"
       @launch="handleLaunch"
       @focus-window="handleFocus"
+      @toggle-fullscreen="toggleDesktopFullscreen"
     />
 
     <IconHelperGatePanel

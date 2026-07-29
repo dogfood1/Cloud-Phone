@@ -21,9 +21,13 @@ defineProps({
     type: String,
     default: "",
   },
+  isFullscreen: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["launch", "focus-window"]);
+const emit = defineEmits(["launch", "focus-window", "toggle-fullscreen"]);
 
 const now = ref(new Date());
 const startOpen = ref(false);
@@ -82,6 +86,11 @@ function onLaunch(app) {
   emit("launch", app);
 }
 
+function onToggleFullscreen() {
+  // Fullscreen is requested in Start menu (user gesture). Here only close the panel.
+  startOpen.value = false;
+}
+
 function initialsFor(win) {
   const source = win.label || win.packageName || "?";
   return String(source).trim().slice(0, 1).toUpperCase();
@@ -121,7 +130,13 @@ onBeforeUnmount(() => {
             <Win11TaskbarIcon name="start" :size="26" />
           </button>
         </template>
-        <WindowsStartMenu :serial="serial" :active="startOpen" @launch="onLaunch" />
+        <WindowsStartMenu
+          :serial="serial"
+          :active="startOpen"
+          :is-fullscreen="isFullscreen"
+          @launch="onLaunch"
+          @toggle-fullscreen="onToggleFullscreen"
+        />
       </NPopover>
 
       <div class="win11-taskbar__apps" aria-label="打开的应用">
