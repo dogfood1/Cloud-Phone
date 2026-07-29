@@ -27,7 +27,8 @@ export async function warmDeviceAppsBrowserCache(serial, options = {}) {
   try {
     await Promise.all([
       fetchAndCacheLauncherApps(key, { packageNamesOnly: true, light: true }),
-      fetchAndCacheInstalledApps(key, { packageNamesOnly: true }),
+      // Keep scrcpy/ADB labels in App Manager cache (icons still need Helper).
+      fetchAndCacheInstalledApps(key, { packageNamesOnly: false }),
     ]);
     adbOk = true;
   } catch {

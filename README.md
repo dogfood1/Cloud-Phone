@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.17.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.17.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -202,7 +202,7 @@ images/readme/
 
 ![应用管理](images/readme/apps.png)
 
-- 列表：应用名（经 scrcpy-server `PackageManager` 取 label）、包名、系统/冻结标记；设备上线后浏览器缓存优先展示，后台可经 Icon Helper（需授权）补全名称与图标
+- 列表：应用名（经 scrcpy-server `PackageManager` 取 label）、包名、系统/冻结标记；**优先读设备上线写入的浏览器 IndexedDB 缓存**，后台软刷新；经授权后 Icon Helper 可补全图标
 - 详情弹窗：版本、SDK、数据目录等
 - 卸载（二次确认）、用户级冻结/解冻、导出 APK、在文件管理中打开 `dataDir`
 - 本地上传 APK 安装：`PUT .../apps/install`

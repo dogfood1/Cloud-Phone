@@ -7,6 +7,7 @@ import DeviceAppManagerDialogs from "./DeviceAppManagerDialogs.vue";
 import IconHelperGatePanel from "./IconHelperGatePanel.vue";
 import PanelAlert from "./ui/PanelAlert.vue";
 import { useAppFeedback } from "../composables/useAppFeedback.js";
+import { installedAppsCacheLooksRich } from "../composables/device-app-manager-list.js";
 import { useDeviceAppManager } from "../composables/useDeviceAppManager.js";
 import { useIconHelperGate } from "../composables/useIconHelperGate.js";
 import { isIconHelperFirstSetupDone } from "../utils/icon-helper-consent.js";
@@ -27,6 +28,7 @@ const { t } = useI18n();
 
 const {
   listLoading,
+  apps,
   listError,
   query,
   selected,
@@ -106,19 +108,27 @@ watch(
     }
 
     const serial = props.device.serial;
-    // Cache-first (filled on device connect); then soft-refresh in background.
-    void loadList({ packageNamesOnly: true, preferCache: true });
+    // Instant paint from IndexedDB (filled on device connect).
+    const first = await loadList({ preferCache: true, cacheOnly: true });
+    const painted = Boolean(first?.painted) || apps.value.length > 0;
+    if (painted) {
+      packageNamesOnly.value = !installedAppsCacheLooksRich(apps.value);
+    }
 
     gateBusy.value = true;
     try {
-      const forceFirst = !isIconHelperFirstSetupDone(serial);
+      // Do not wipe connect-time cache on first open.
+      const forceFirst = !isIconHelperFirstSetupDone(serial) && !painted;
       const result = await prepareIconHelper(serial, {
         silent: !forceFirst,
         force: forceFirst,
       });
+      packageNamesOnly.value = Boolean(result.packageNamesOnly);
+      // Soft refresh when cache already painted; otherwise full network load.
       await loadList({
-        packageNamesOnly: result.packageNamesOnly,
-        preferCache: false,
+        packageNamesOnly: packageNamesOnly.value,
+        preferCache: painted,
+        quiet: painted,
       });
     } finally {
       gateBusy.value = false;
@@ -207,7 +217,7 @@ watch(
 
         <PanelAlert v-if="listError" type="error" :message="listError" />
 
-        <div v-if="listLoading" class="device-apps__progress" role="status">
+        <div v-if="listLoading && !filteredApps.length" class="device-apps__progress" role="status">
           <div class="device-apps__progress-row">
             <span class="device-apps__progress-label">
               正在获取应用列表…
@@ -223,7 +233,9 @@ watch(
 
         <div class="device-apps__body">
           <div class="device-apps__list-wrap">
-            <p v-if="listLoading" class="device-files__status">正在加载应用…</p>
+            <p v-if="listLoading && !filteredApps.length" class="device-files__status">
+              正在加载应用…
+            </p>
             <p v-else-if="!filteredApps.length" class="device-files__status">无匹配应用</p>
             <ul v-else class="device-apps__list" role="list">
               <li v-for="row in filteredApps" :key="row.packageName">
@@ -233,9 +245,18 @@ watch(
                   :class="{ 'device-apps__row--active': selectedPackage === row.packageName }"
                   @click="openDetail(row)"
                 >
+                  <span class="device-apps__icon-wrap" aria-hidden="true">
+                    <img
+                      v-if="row.iconDataUrl && !packageNamesOnly"
+                      class="device-apps__icon"
+                      :src="row.iconDataUrl"
+                      alt=""
+                    />
+                    <AppIcon v-else name="apps" />
+                  </span>
                   <span class="device-apps__row-text">
                     <span class="device-apps__name">{{
-                      packageNamesOnly ? row.packageName : row.label || "—"
+                      packageNamesOnly ? row.packageName : row.label || row.packageName || "—"
                     }}</span>
                     <span v-if="!packageNamesOnly" class="device-apps__pkg">{{
                       row.packageName

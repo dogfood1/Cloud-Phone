@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.17.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.17.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -208,7 +208,7 @@ Images are embedded in the corresponding feature sections below.
 
 ![App manager](images/readme/apps.png)
 
-- App label via scrcpy-server `PackageManager` (`list_all_apps`), plus package name and system/frozen badges; browser cache is preferred after device online warm-up, with optional Icon Helper (consent) for labels/icons
+- App label via scrcpy-server `PackageManager` (`list_all_apps`), plus package name and system/frozen badges; **opens from IndexedDB cache first** (warmed on device online) with quiet background refresh; optional Icon Helper (consent) for icons
 - Detail modal: version, SDK, data directory, etc.
 - Uninstall (with confirmation), user-level freeze/unfreeze, export APK, open `dataDir` in the file explorer
 - Install from a local APK: `PUT .../apps/install`

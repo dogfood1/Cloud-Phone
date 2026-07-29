@@ -63,9 +63,26 @@ export async function fetchAndCacheInstalledApps(serial, options = {}) {
   }
   const rows = await fetchDeviceApps(key);
   const namesOnly = Boolean(options.packageNamesOnly);
-  let apps = namesOnly
-    ? rows.map((row) => ({ ...row, label: row.packageName }))
-    : rows;
+  const previous = namesOnly ? await loadCachedInstalledApps(key) : null;
+  const prevByPkg = new Map(
+    (previous?.apps || []).map((row) => [String(row.packageName || ""), row]),
+  );
+
+  let apps = rows.map((row) => {
+    const pkg = String(row.packageName || "");
+    if (!namesOnly) {
+      return { ...row };
+    }
+    const old = prevByPkg.get(pkg);
+    // Keep previously cached labels/icons when doing a names-only soft refresh.
+    const keepLabel =
+      old?.label && String(old.label) !== pkg ? String(old.label) : pkg;
+    return {
+      ...row,
+      label: keepLabel,
+      iconDataUrl: old?.iconDataUrl || null,
+    };
+  });
   apps = await mergeLauncherIcons(apps, key);
   const fingerprint = `apps:${apps.length}:${apps.filter((a) => a.iconDataUrl).length}`;
   if (apps.length) {
