@@ -24,6 +24,14 @@ public final class ServerEndpointStore {
     private ServerEndpointStore() {
     }
 
+    public static String host(Context context) {
+        return read(context).host;
+    }
+
+    public static int port(Context context) {
+        return read(context).port;
+    }
+
     public static Endpoint read(Context context) {
         String host = context.getSharedPreferences(AppPrefs.NAME, Context.MODE_PRIVATE)
                 .getString(AppPrefs.KEY_SERVER_HOST, "");

@@ -2,19 +2,20 @@ package com.yiyi.cloud_phone;
 
 import org.json.JSONObject;
 
-final class DeviceItem {
-    final String serial;
-    final String state;
-    final boolean connected;
-    final String product;
-    final String model;
-    final String device;
-    final String manufacturer;
-    final String androidVersion;
-    final String sdkVersion;
-    final String ipAddress;
-    final String displayName;
-    final boolean wireless;
+public final class DeviceItem {
+    public final String serial;
+    public final String state;
+    public final boolean connected;
+    public final String product;
+    public final String model;
+    public final String device;
+    public final String manufacturer;
+    public final String androidVersion;
+    public final String sdkVersion;
+    public final String ipAddress;
+    public final String displayName;
+    public final boolean wireless;
+    public final String platform;
 
     DeviceItem(JSONObject json) {
         serial = json.optString("serial", "");
@@ -31,5 +32,6 @@ final class DeviceItem {
         wireless = json.has("wireless")
                 ? json.optBoolean("wireless", false)
                 : DeviceTransport.isWirelessSerial(serial);
+        platform = json.optString("platform", "android");
     }
 }

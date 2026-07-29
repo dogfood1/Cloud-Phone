@@ -38,8 +38,11 @@ import com.google.android.material.tabs.TabLayout;
 
 import com.google.android.material.tabs.TabLayoutMediator;
 
+import com.yiyi.cloud_phone.apps.DeviceAppManagerActivity;
 import com.yiyi.cloud_phone.cast.CastFullscreenActivity;
 import com.yiyi.cloud_phone.cast.CastViewportController;
+import com.yiyi.cloud_phone.files.DeviceFileExplorerActivity;
+import com.yiyi.cloud_phone.terminal.DeviceTerminalActivity;
 
 import com.yiyi.cloud_phone.workspace.CastMode;
 
@@ -67,9 +70,13 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
     public static final String EXTRA_STATE = "device_state";
 
+    public static final String EXTRA_PLATFORM = "device_platform";
+
 
 
     private String deviceSerial = "";
+
+    private String devicePlatform = "android";
 
     private String deviceDisplayName = "";
 
@@ -117,6 +124,8 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         intent.putExtra(EXTRA_STATE, device.state);
 
+        intent.putExtra(EXTRA_PLATFORM, device.platform);
+
         context.startActivity(intent);
 
     }
@@ -151,11 +160,60 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         buttonBack.setOnClickListener(v -> finish());
 
+        ImageButton buttonFiles = findViewById(R.id.buttonFiles);
+        buttonFiles.setImageDrawable(AppIcons.workspaceFiles(this));
+        buttonFiles.setOnClickListener(v -> {
+            Intent filesIntent = new Intent(this, com.yiyi.cloud_phone.files.DeviceFileExplorerActivity.class);
+            filesIntent.putExtra(EXTRA_SERIAL, deviceSerial);
+            filesIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
+            startActivity(filesIntent);
+        });
 
+        ImageButton buttonApps = findViewById(R.id.buttonApps);
+        buttonApps.setImageDrawable(AppIcons.workspaceApps(this));
+        buttonApps.setOnClickListener(v -> {
+            Intent appsIntent = new Intent(this, com.yiyi.cloud_phone.apps.DeviceAppManagerActivity.class);
+            appsIntent.putExtra(EXTRA_SERIAL, deviceSerial);
+            appsIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
+            startActivity(appsIntent);
+        });
+
+        ImageButton buttonTerminal = findViewById(R.id.buttonTerminal);
+        buttonTerminal.setImageDrawable(AppIcons.workspaceTerminal(this));
+        buttonTerminal.setOnClickListener(v -> {
+            Intent termIntent = new Intent(this, com.yiyi.cloud_phone.terminal.DeviceTerminalActivity.class);
+            termIntent.putExtra(EXTRA_SERIAL, deviceSerial);
+            termIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
+            startActivity(termIntent);
+        });
 
         TextView textDeviceName = findViewById(R.id.textDeviceName);
 
         textDeviceName.setText(deviceDisplayName);
+
+
+
+        ImageButton btnFiles = findViewById(R.id.buttonWorkspaceFiles);
+
+        btnFiles.setImageDrawable(AppIcons.workspaceFiles(this));
+
+        btnFiles.setOnClickListener(v -> DeviceFileExplorerActivity.open(this, deviceSerial, deviceDisplayName, null));
+
+
+
+        ImageButton btnApps = findViewById(R.id.buttonWorkspaceApps);
+
+        btnApps.setImageDrawable(AppIcons.workspaceApps(this));
+
+        btnApps.setOnClickListener(v -> DeviceAppManagerActivity.open(this, deviceSerial, deviceDisplayName));
+
+
+
+        ImageButton btnTerminal = findViewById(R.id.buttonWorkspaceTerminal);
+
+        btnTerminal.setImageDrawable(AppIcons.workspaceTerminal(this));
+
+        btnTerminal.setOnClickListener(v -> DeviceTerminalActivity.open(this, deviceSerial, deviceDisplayName));
 
 
 
@@ -324,6 +382,10 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
         deviceConnected = intent.getBooleanExtra(EXTRA_CONNECTED, false);
 
         deviceSdk = intent.getIntExtra(EXTRA_SDK, 0);
+
+        String plat = intent.getStringExtra(EXTRA_PLATFORM);
+
+        devicePlatform = plat != null ? plat : "android";
 
     }
 

@@ -16,11 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-final class CloudPhoneApiClient {
+public final class CloudPhoneApiClient {
     private CloudPhoneApiClient() {
     }
 
-    static List<DeviceItem> fetchDevices(Context context, String host, int port) throws Exception {
+    public static List<DeviceItem> fetchDevices(Context context, String host, int port) throws Exception {
         JSONObject body = requestProtectedJson(context, host, port, "/api/devices", "GET");
         if (!body.optBoolean("success", false)) {
             throw new IOException(body.optString("message", "设备列表加载失败"));
@@ -81,7 +81,7 @@ final class CloudPhoneApiClient {
         return postProtectedJson(context, host, port, "/api/devices/connect", body);
     }
 
-    static byte[] fetchScreenshot(
+    public static byte[] fetchScreenshot(
             Context context,
             String host,
             int port,
@@ -143,7 +143,117 @@ final class CloudPhoneApiClient {
         postProtectedJson(context, host, port, "/api/auth/logout", new JSONObject());
     }
 
-    private static JSONObject requestProtectedJson(
+    // ---- File Explorer ----
+
+    public static JSONObject listFiles(Context context, String host, int port, String serial, String path) throws Exception {
+        String encoded = Uri.encode(path, StandardCharsets.UTF_8.name());
+        String apiPath = "/api/devices/" + encSerial(serial) + "/files?path=" + encoded;
+        return requestProtectedJson(context, host, port, apiPath, "GET");
+    }
+
+    public static byte[] downloadFile(Context context, String host, int port, String serial, String path) throws Exception {
+        String encoded = Uri.encode(path, StandardCharsets.UTF_8.name());
+        String apiPath = "/api/devices/" + encSerial(serial) + "/files/download?path=" + encoded;
+        return requestProtectedRaw(context, host, port, apiPath);
+    }
+
+    public static JSONObject uploadFile(
+            Context context, String host, int port, String serial,
+            String devicePath, java.io.InputStream bodyStream
+    ) throws Exception {
+        String encoded = Uri.encode(devicePath, StandardCharsets.UTF_8.name());
+        String apiPath = "/api/devices/" + encSerial(serial) + "/files/upload?path=" + encoded;
+        return requestProtectedUploadJson(context, host, port, apiPath, bodyStream);
+    }
+
+    // ---- App Manager ----
+
+    public static JSONObject listApps(Context context, String host, int port, String serial) throws Exception {
+        return requestProtectedJson(context, host, port, "/api/devices/" + encSerial(serial) + "/apps", "GET");
+    }
+
+    public static JSONObject getAppDetail(Context context, String host, int port, String serial, String pkg) throws Exception {
+        return requestProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()), "GET");
+    }
+
+    public static JSONObject uninstallApp(Context context, String host, int port, String serial, String pkg) throws Exception {
+        return requestProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "?confirm=1",
+                "DELETE", null);
+    }
+
+    public static JSONObject installApp(
+            Context context, String host, int port, String serial, java.io.InputStream apkStream
+    ) throws Exception {
+        return requestProtectedUploadJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/install", apkStream);
+    }
+
+    public static JSONObject setAppFrozen(
+            Context context, String host, int port, String serial, String pkg, boolean frozen
+    ) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("frozen", frozen);
+        return postProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "/state",
+                body);
+    }
+
+    public static byte[] extractApk(Context context, String host, int port, String serial, String pkg) throws Exception {
+        return requestProtectedRaw(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "/apk");
+    }
+
+    public static JSONObject forceStopApp(Context context, String host, int port, String serial, String pkg) throws Exception {
+        return postProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "/force-stop",
+                new JSONObject());
+    }
+
+    // ---- iOS device management ----
+
+    public static JSONObject discoverIosDevices(Context context, String host, int port) throws Exception {
+        return requestProtectedJson(context, host, port, "/api/devices/ios/discover", "GET");
+    }
+
+    public static JSONObject connectIosDevice(Context context, String host, int port, String serial) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("serial", serial);
+        return postProtectedJson(context, host, port, "/api/devices/ios/connect", body);
+    }
+
+    public static JSONObject disconnectIosDevice(Context context, String host, int port, String serial) throws Exception {
+        return requestProtectedJson(context, host, port,
+                "/api/devices/ios/" + Uri.encode(serial, StandardCharsets.UTF_8.name()), "DELETE", null);
+    }
+
+    public static JSONObject checkIosWdaPrepare(Context context, String host, int port) throws Exception {
+        return requestProtectedJson(context, host, port, "/api/devices/ios/wda/prepare", "GET");
+    }
+
+    public static JSONObject startIosWdaPipeline(
+            Context context, String host, int port,
+            String appleId, String password, boolean skipSign, boolean skipInstall
+    ) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("appleId", appleId);
+        body.put("password", password);
+        body.put("skipSign", skipSign);
+        body.put("skipInstall", skipInstall);
+        return postProtectedJson(context, host, port, "/api/devices/ios/wda/pipeline", body);
+    }
+
+    public static JSONObject getIosWdaPipelineStatus(Context context, String host, int port, String jobId) throws Exception {
+        return requestProtectedJson(context, host, port,
+                "/api/devices/ios/wda/pipeline/" + Uri.encode(jobId, StandardCharsets.UTF_8.name()), "GET");
+    }
+
+    public static String encSerial(String serial) {
+        return Uri.encode(serial, StandardCharsets.UTF_8.name());
+    }
+
+    public static JSONObject requestProtectedJson(
             Context context,
             String host,
             int port,
@@ -153,7 +263,7 @@ final class CloudPhoneApiClient {
         return requestProtectedJson(context, host, port, path, method, null);
     }
 
-    private static JSONObject postProtectedJson(
+    public static JSONObject postProtectedJson(
             Context context,
             String host,
             int port,
@@ -163,7 +273,7 @@ final class CloudPhoneApiClient {
         return requestProtectedJson(context, host, port, path, "POST", body);
     }
 
-    private static JSONObject requestProtectedJson(
+    public static JSONObject requestProtectedJson(
             Context context,
             String host,
             int port,
@@ -219,6 +329,102 @@ final class CloudPhoneApiClient {
                 connection.disconnect();
             }
         }
+    }
+
+    public static byte[] requestProtectedRaw(
+            Context context, String host, int port, String path
+    ) throws Exception {
+        String sessionKey = SessionKeyStore.load(context);
+        if (sessionKey.isEmpty()) throw new IOException("missing_session_key");
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL("http://" + host + ":" + port + path).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(30000);
+            int code = conn.getResponseCode();
+            if (code >= 400) {
+                String body = readStream(code >= 400 ? conn.getErrorStream() : conn.getInputStream());
+                throw new IOException(new JSONObject(body).optString("message", "HTTP " + code));
+            }
+            return readBytes(conn.getInputStream());
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    static byte[] requestProtectedBinary(
+            Context context, String host, int port, String path,
+            String method, InputStream bodyStream
+    ) throws Exception {
+        String sessionKey = SessionKeyStore.load(context);
+        if (sessionKey.isEmpty()) throw new IOException("missing_session_key");
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL("http://" + host + ":" + port + path).openConnection();
+            conn.setRequestMethod(method);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(120000);
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/octet-stream");
+            conn.setChunkedStreamingMode(8192);
+            try (java.io.OutputStream out = conn.getOutputStream()) {
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = bodyStream.read(buf)) != -1) out.write(buf, 0, len);
+            }
+            int code = conn.getResponseCode();
+            String resp = readStream(code >= 400 ? conn.getErrorStream() : conn.getInputStream());
+            if (code >= 400) throw new IOException(new JSONObject(resp).optString("message", "HTTP " + code));
+            return resp.getBytes(StandardCharsets.UTF_8);
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    public static JSONObject requestProtectedUploadJson(
+            Context context, String host, int port, String path, InputStream bodyStream
+    ) throws Exception {
+        String sessionKey = SessionKeyStore.load(context);
+        if (sessionKey.isEmpty()) throw new IOException("missing_session_key");
+        byte[] keyBytes = ApiCrypto.keyFromBase64(sessionKey);
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL("http://" + host + ":" + port + path).openConnection();
+            conn.setRequestMethod("PUT");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(120000);
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/octet-stream");
+            conn.setChunkedStreamingMode(8192);
+            try (java.io.OutputStream out = conn.getOutputStream()) {
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = bodyStream.read(buf)) != -1) out.write(buf, 0, len);
+            }
+            int code = conn.getResponseCode();
+            JSONObject envelope = new JSONObject(readStream(
+                    code >= 400 ? conn.getErrorStream() : conn.getInputStream()));
+            if (envelope.optBoolean("encrypted")) {
+                JSONObject dec = ApiCrypto.decryptPayload(envelope, keyBytes);
+                if (code >= 400 && !dec.optBoolean("success", false))
+                    throw new IOException(dec.optString("message", "HTTP " + code));
+                return dec;
+            }
+            if (code >= 400) throw new IOException(envelope.optString("message", "HTTP " + code));
+            return envelope;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static byte[] readBytes(InputStream stream) throws IOException {
+        if (stream == null) return new byte[0];
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int len;
+        while ((len = stream.read(buf)) != -1) bos.write(buf, 0, len);
+        return bos.toByteArray();
     }
 
     private static String readStream(InputStream stream) throws IOException {

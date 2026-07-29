@@ -9,7 +9,7 @@ import androidx.core.content.ContextCompat;
 
 import com.mikepenz.iconics.IconicsDrawable;
 
-final class AppIcons {
+public final class AppIcons {
     private AppIcons() {
     }
 
@@ -27,7 +27,7 @@ final class AppIcons {
         drawable.setSizeYPx(px);
     }
 
-    private static IconicsDrawable drawable(
+    public static IconicsDrawable drawable(
             Context context,
             String iconKey,
             @ColorRes int colorRes,
@@ -46,63 +46,146 @@ final class AppIcons {
         return drawable;
     }
 
-    static IconicsDrawable addDevice(Context context) {
+    public static IconicsDrawable addDevice(Context context) {
         return drawable(context, "cmd_plus", R.color.auth_primary_text, 22);
     }
 
-    static IconicsDrawable close(Context context) {
+    public static IconicsDrawable close(Context context) {
         return drawable(context, "cmd_close", R.color.auth_text_secondary, 22);
     }
 
-    static IconicsDrawable devicePlaceholder(Context context) {
+    public static IconicsDrawable devicePlaceholder(Context context) {
         return drawable(context, "cmd_cellphone", R.color.auth_text_secondary, 28);
     }
 
-    static IconicsDrawable tabDevices(Context context) {
+    public static IconicsDrawable tabDevices(Context context) {
         return navIcon(context, "cmd_cellphone_link");
     }
 
-    static IconicsDrawable tabSettings(Context context) {
+    public static IconicsDrawable tabGroup(Context context) {
+        return navIcon(context, "cmd_cellphone_multiple");
+    }
+
+    public static IconicsDrawable tabLogs(Context context) {
+        return navIcon(context, "cmd_format_list_bulleted");
+    }
+
+    public static IconicsDrawable tabSettings(Context context) {
         return navIcon(context, "cmd_cog");
     }
 
-    static IconicsDrawable androidPlatform(Context context) {
+    public static IconicsDrawable androidPlatform(Context context) {
         return drawable(context, "cmd_android", R.color.auth_text_primary, 28);
     }
 
-    static IconicsDrawable modeUsb(Context context) {
+    public static IconicsDrawable harmonyPlatform(Context context) {
+        return drawable(context, "cmd_cellphone", R.color.auth_text_primary, 28);
+    }
+
+    public static IconicsDrawable iosPlatform(Context context) {
+        return drawable(context, "cmd_apple", R.color.auth_text_primary, 28);
+    }
+
+    public static IconicsDrawable modeUsb(Context context) {
         return drawable(context, "cmd_usb", R.color.auth_text_primary, 20);
     }
 
-    static IconicsDrawable modePairCode(Context context) {
+    public static IconicsDrawable modePairCode(Context context) {
         return drawable(context, "cmd_key_variant", R.color.auth_text_primary, 20);
     }
 
-    static IconicsDrawable modeQr(Context context) {
+    public static IconicsDrawable modeQr(Context context) {
         return drawable(context, "cmd_qrcode", R.color.auth_text_primary, 20);
     }
 
-    static IconicsDrawable modeDirect(Context context) {
+    public static IconicsDrawable modeDirect(Context context) {
         return drawable(context, "cmd_lan_connect", R.color.auth_text_primary, 20);
     }
 
-    static IconicsDrawable back(Context context) {
+    public static IconicsDrawable back(Context context) {
         return drawable(context, "cmd_arrow_left", R.color.auth_text_primary, 24);
     }
 
-    static IconicsDrawable settingsAccount(Context context) {
+    public static IconicsDrawable settingsAccount(Context context) {
         return drawable(context, "cmd_account_circle", R.color.auth_primary, 20);
     }
 
-    static IconicsDrawable settingsAppearance(Context context) {
+    public static IconicsDrawable settingsAppearance(Context context) {
         return drawable(context, "cmd_palette", R.color.auth_primary, 20);
     }
 
-    static IconicsDrawable settingsRefresh(Context context) {
+    public static IconicsDrawable settingsRefresh(Context context) {
         return drawable(context, "cmd_refresh", R.color.auth_primary, 20);
     }
 
-    static IconicsDrawable settingsServer(Context context) {
+    public static IconicsDrawable settingsServer(Context context) {
         return drawable(context, "cmd_server", R.color.auth_primary, 20);
+    }
+
+    // File Explorer icons
+    public static IconicsDrawable fileFolder(Context context) {
+        return drawable(context, "cmd_folder", R.color.auth_text_secondary, 20);
+    }
+
+    public static IconicsDrawable fileFile(Context context) {
+        return drawable(context, "cmd_file_outline", R.color.auth_text_secondary, 20);
+    }
+
+    public static IconicsDrawable fileSymlink(Context context) {
+        return drawable(context, "cmd_link_variant", R.color.auth_text_secondary, 20);
+    }
+
+    public static IconicsDrawable navBack(Context context) {
+        return drawable(context, "cmd_arrow_left", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable navForward(Context context) {
+        return drawable(context, "cmd_arrow_right", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable navUp(Context context) {
+        return drawable(context, "cmd_arrow_up_bold", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable navRefresh(Context context) {
+        return drawable(context, "cmd_refresh", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable navUpload(Context context) {
+        return drawable(context, "cmd_upload", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable download(Context context) {
+        return drawable(context, "cmd_download", R.color.auth_primary, 18);
+    }
+
+    public static IconicsDrawable install(Context context) {
+        return drawable(context, "cmd_package_down", R.color.auth_primary, 20);
+    }
+
+    // App Manager icons
+    public static IconicsDrawable workspaceFiles(Context context) {
+        return drawable(context, "cmd_folder_outline", R.color.auth_text_primary, 20);
+    }
+
+    public static IconicsDrawable workspaceApps(Context context) {
+        return drawable(context, "cmd_apps", R.color.auth_text_primary, 20);
+    }
+
+    public static IconicsDrawable workspaceTerminal(Context context) {
+        return drawable(context, "cmd_console", R.color.auth_text_primary, 20);
+    }
+
+    // Group Control icons
+    public static IconicsDrawable powerIcon(Context context) {
+        return drawable(context, "cmd_power", R.color.auth_text_primary, 20);
+    }
+
+    public static IconicsDrawable volumeIcon(Context context) {
+        return drawable(context, "cmd_volume_high", R.color.auth_text_primary, 20);
+    }
+
+    public static IconicsDrawable groupAppsIcon(Context context) {
+        return drawable(context, "cmd_application_cog", R.color.auth_text_primary, 20);
     }
 }

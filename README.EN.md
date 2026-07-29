@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.18.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.19.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -149,7 +149,7 @@ Images are embedded in the corresponding feature sections below.
 - Session login (default password `admin`, please change it); AES-GCM on JSON APIs after login
 - **Backend local data**: `backend/node/data/` holds `auth.key` and `cloud-phone.db` on disk only—never commit this directory
 
-> **Note:** Files, app manager, and ADB terminal are **web workspace** features today. The Android app focuses on discovery, cast settings, and fullscreen remote control — see [Android app](#android-app).
+> **Note:** File explorer, app manager, and ADB terminal are available in both the **web and Android device workspaces**. The Android app also adds Group control and Activity log tabs — see [Android app](#android-app).
 
 ### Device workspace · Mirror cast (default)
 
@@ -247,8 +247,19 @@ Source: `frontend/android/`. Uses the same Node backend and session model as the
 - Horizontal cards with model, online state, and live screenshots (default ~5 s refresh, configurable in Settings)
 - Device list polls about every **1 s**; pull-to-refresh; keeps the previous screenshot frame to reduce flicker
 - **Long-press a device card**: view device details or disconnect wireless devices (USB connections cannot be disconnected)
-- **+** add device: USB guide, wireless **pairing code**, **QR** pairing (aligned with the web Add Device modal)
+- **+** add device: USB guide, wireless **pairing code**, **QR** pairing; also **HarmonyOS USB** and **Apple WDA** connection flows
 - **Community Material** icons (Android-Iconics), consistent with web MDI
+
+### Group control (bottom tab · Group)
+
+- Pick online devices into a control grid with screenshot previews and cast status
+- Batch actions: power (screen on/off), volume (mute/up/down), uninstall by package name
+- **Batch control mode:** designate a master device; followers mirror touch input
+
+### Activity log (bottom tab · Logs)
+
+- In-app event log (auth, device, cast, files, apps, terminal, group, settings, etc.)
+- Filter by level/category, search, and clear
 
 ### Settings (bottom tab · Settings)
 
@@ -265,8 +276,8 @@ Settings use a hero header and section icon cards; web and Android share a green
 
 ### Device workspace
 
-- Tap a card: back, device name, **Start**
-- **Cast mode:** mirror (default) or camera (Android 12+)
+- Tap a card: back, device name, **Files / Apps / Terminal** shortcuts, **Start**
+- **Cast mode:** mirror (default) or camera (Android 12+); HarmonyOS/iOS devices use JPEG/MJPEG cast
 - **Tabbed parameters** (same shape as the web left panel, persisted per device serial):
   - Mirror: video, audio, device, screen (virtual display presets, `__main__`/`__custom__`, suggested DPI, `start_app` package)
   - Camera: camera, video, audio (`audioCode`, buffer fields, stream extras aligned with web)
@@ -283,6 +294,12 @@ Settings use a hero header and section icon cards; web and Android share a green
 - **Camera:** torch, zoom out, zoom in, stop; no canvas touch injection
 - Chrome **auto-hides** (~3.5 s); tap video to toggle; enter/exit fades and live-status dot animation
 - Stream extras (`codecOptions`, virtual display, `audioDup` min SDK 33+, etc.) follow the **same rules** as web/desktop
+
+### File explorer / App manager / ADB terminal
+
+- **Files:** browse device directories, download to local Downloads, upload to the current path
+- **Apps:** search installed apps, install APK, detail actions (uninstall/freeze/extract APK/force stop/open data dir)
+- **Terminal:** WebSocket `adb shell -tt` with ANSI colors and reconnect
 
 ### Build & install
 
@@ -303,11 +320,12 @@ The phone must reach the backend on your LAN. Cleartext HTTP is allowed for loca
 | Device gallery / screenshot polling | Yes | Yes |
 | Settings (account / appearance / refresh) | Yes | Yes |
 | Add device (USB / pair / QR) | Yes | Yes |
+| Group control / activity log | Yes | Yes |
 | Cast settings workspace | Yes | Yes |
 | Fullscreen cast + touch / toolbar | Yes | Yes |
-| File explorer | Yes | — |
-| App manager | Yes | — |
-| ADB terminal | Yes | — |
+| File explorer | Yes | Yes |
+| App manager | Yes | Yes |
+| ADB terminal | Yes | Yes |
 | Clipboard / record / browser screenshot download | Yes | — |
 
 ---

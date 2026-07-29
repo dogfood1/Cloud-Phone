@@ -12,4 +12,6 @@
     <color name="auth_primary_text">#052E16</color>
     <color name="auth_accent_soft">#E8F7EE</color>
     <color name="auth_preview_bg">#0B1220</color>
+    <color name="auth_primary_light">#E3F2FD</color>
+    <color name="auth_border">#D7E0EA</color>
 </resources>

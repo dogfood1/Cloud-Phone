@@ -38,6 +38,54 @@
             android:textSize="17sp"
             android:textStyle="bold" />
 
+        <ImageButton
+            android:id="@+id/buttonFiles"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_files"
+            android:scaleType="center" />
+
+        <ImageButton
+            android:id="@+id/buttonApps"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_apps"
+            android:scaleType="center" />
+
+        <ImageButton
+            android:id="@+id/buttonTerminal"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_terminal"
+            android:scaleType="center" />
+
+        <ImageButton
+            android:id="@+id/buttonWorkspaceFiles"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_open_files"
+            android:scaleType="center" />
+
+        <ImageButton
+            android:id="@+id/buttonWorkspaceApps"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_open_apps"
+            android:scaleType="center" />
+
+        <ImageButton
+            android:id="@+id/buttonWorkspaceTerminal"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/workspace_open_terminal"
+            android:scaleType="center" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonStartCast"
             style="@style/Widget.Material3.Button"

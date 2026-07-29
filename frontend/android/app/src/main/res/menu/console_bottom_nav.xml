@@ -4,6 +4,12 @@
         android:id="@+id/nav_devices"
         android:title="@string/tab_devices" />
     <item
+        android:id="@+id/nav_group"
+        android:title="@string/tab_group" />
+    <item
+        android:id="@+id/nav_logs"
+        android:title="@string/tab_logs" />
+    <item
         android:id="@+id/nav_settings"
         android:title="@string/tab_settings" />
 </menu>

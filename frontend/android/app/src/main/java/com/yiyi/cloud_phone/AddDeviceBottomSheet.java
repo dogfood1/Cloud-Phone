@@ -39,6 +39,8 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
     private static final int STEP_PAIR = 2;
     private static final int STEP_QR = 3;
     private static final int STEP_DIRECT = 4;
+    private static final int STEP_HARMONY_USB = 5;
+    private static final int STEP_IOS = 6;
 
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -55,6 +57,9 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
     private View stepPairCode;
     private View stepQr;
     private View stepDirect;
+    private View stepHarmonyUsb;
+    private View stepIos;
+    private TextView textIosPipelineStatus;
     private LinearLayout usbDeviceList;
     private TextView textUsbSummary;
     private TextView textUsbEmpty;
@@ -119,6 +124,9 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         stepPairCode = view.findViewById(R.id.stepPairCode);
         stepQr = view.findViewById(R.id.stepQr);
         stepDirect = view.findViewById(R.id.stepDirect);
+        stepHarmonyUsb = view.findViewById(R.id.stepHarmonyUsb);
+        stepIos = view.findViewById(R.id.stepIos);
+        textIosPipelineStatus = view.findViewById(R.id.textIosPipelineStatus);
         usbDeviceList = view.findViewById(R.id.usbDeviceList);
         textUsbSummary = view.findViewById(R.id.textUsbSummary);
         textUsbEmpty = view.findViewById(R.id.textUsbEmpty);
@@ -143,6 +151,27 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
 
         ImageView platformIcon = view.findViewById(R.id.imagePlatformAndroid);
         platformIcon.setImageDrawable(AppIcons.androidPlatform(requireContext()));
+
+        ImageView harmonyIcon = view.findViewById(R.id.imagePlatformHarmony);
+        if (harmonyIcon != null) harmonyIcon.setImageDrawable(AppIcons.harmonyPlatform(requireContext()));
+
+        ImageView iosIcon = view.findViewById(R.id.imagePlatformIos);
+        if (iosIcon != null) iosIcon.setImageDrawable(AppIcons.iosPlatform(requireContext()));
+
+        MaterialButton buttonHarmonyUsb = view.findViewById(R.id.buttonHarmonyUsb);
+        if (buttonHarmonyUsb != null) {
+            buttonHarmonyUsb.setIcon(AppIcons.modeUsb(requireContext()));
+            buttonHarmonyUsb.setOnClickListener(v -> showStep(STEP_HARMONY_USB));
+        }
+
+        MaterialButton buttonIosConnect = view.findViewById(R.id.buttonIosConnect);
+        if (buttonIosConnect != null) {
+            buttonIosConnect.setOnClickListener(v -> showStep(STEP_IOS));
+        }
+
+        view.findViewById(R.id.buttonHarmonyUsbBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
+        view.findViewById(R.id.buttonIosBack).setOnClickListener(v -> showStep(STEP_PLATFORMS));
+        view.findViewById(R.id.buttonIosPipelineStart).setOnClickListener(v -> startIosPipeline(view));
 
         MaterialButton buttonModeUsb = view.findViewById(R.id.buttonModeUsb);
         MaterialButton buttonModePairCode = view.findViewById(R.id.buttonModePairCode);
@@ -199,6 +228,8 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
         stepPairCode.setVisibility(nextStep == STEP_PAIR ? View.VISIBLE : View.GONE);
         stepQr.setVisibility(nextStep == STEP_QR ? View.VISIBLE : View.GONE);
         stepDirect.setVisibility(nextStep == STEP_DIRECT ? View.VISIBLE : View.GONE);
+        if (stepHarmonyUsb != null) stepHarmonyUsb.setVisibility(nextStep == STEP_HARMONY_USB ? View.VISIBLE : View.GONE);
+        if (stepIos != null) stepIos.setVisibility(nextStep == STEP_IOS ? View.VISIBLE : View.GONE);
 
         if (nextStep == STEP_PLATFORMS) {
             textSheetTitle.setText(R.string.add_device_title);
@@ -214,6 +245,12 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
             textSheetTitle.setText(R.string.add_device_direct_title);
             textSheetDesc.setText(R.string.add_device_direct_desc);
             textDirectResult.setVisibility(View.GONE);
+        } else if (nextStep == STEP_HARMONY_USB) {
+            textSheetTitle.setText(R.string.add_device_harmony_usb_title);
+            textSheetDesc.setText(R.string.add_device_harmony_usb_desc);
+        } else if (nextStep == STEP_IOS) {
+            textSheetTitle.setText(R.string.add_device_ios_title);
+            textSheetDesc.setText(R.string.add_device_ios_desc);
         } else {
             textSheetTitle.setText(R.string.add_device_qr_title);
             textSheetDesc.setText(R.string.add_device_pair_desc);
@@ -526,6 +563,46 @@ public class AddDeviceBottomSheet extends BottomSheetDialogFragment {
             return null;
         }
         return new ServerEndpoint(host, port);
+    }
+
+    private void startIosPipeline(View view) {
+        TextInputEditText editAppleId = view.findViewById(R.id.editAppleId);
+        TextInputEditText editApplePassword = view.findViewById(R.id.editApplePassword);
+        String appleId = valueOf(editAppleId);
+        String password = valueOf(editApplePassword);
+        if (appleId.isEmpty() || password.isEmpty()) {
+            if (textIosPipelineStatus != null) {
+                textIosPipelineStatus.setVisibility(View.VISIBLE);
+                textIosPipelineStatus.setText("Please enter Apple ID and password");
+            }
+            return;
+        }
+        if (textIosPipelineStatus != null) {
+            textIosPipelineStatus.setVisibility(View.VISIBLE);
+            textIosPipelineStatus.setText(R.string.add_device_ios_step_prepare);
+        }
+        ServerEndpoint ep = readServerEndpoint();
+        networkExecutor.execute(() -> {
+            try {
+                JSONObject result = CloudPhoneApiClient.startIosWdaPipeline(
+                        requireContext(), ep.host, ep.port, appleId, password, false, false);
+                String jobId = result.optString("jobId", "");
+                mainHandler.post(() -> {
+                    if (textIosPipelineStatus != null) {
+                        textIosPipelineStatus.setText(
+                                result.optBoolean("success", false)
+                                        ? getString(R.string.add_device_ios_step_connect) + " (job: " + jobId + ")"
+                                        : result.optString("message", "Pipeline failed"));
+                    }
+                });
+            } catch (Exception e) {
+                mainHandler.post(() -> {
+                    if (textIosPipelineStatus != null) {
+                        textIosPipelineStatus.setText(getString(R.string.add_device_ios_pipeline_failed, e.getMessage()));
+                    }
+                });
+            }
+        });
     }
 
     private String valueOf(TextInputEditText input) {

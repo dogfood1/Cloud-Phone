@@ -11,6 +11,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.yiyi.cloud_phone.group.GroupControlFragment;
+import com.yiyi.cloud_phone.logs.LogsFragment;
 
 public class ConsoleActivity extends AppCompatActivity {
     @Override
@@ -31,6 +33,8 @@ public class ConsoleActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
         bottomNav.getMenu().findItem(R.id.nav_devices).setIcon(AppIcons.tabDevices(this));
+        bottomNav.getMenu().findItem(R.id.nav_group).setIcon(AppIcons.tabGroup(this));
+        bottomNav.getMenu().findItem(R.id.nav_logs).setIcon(AppIcons.tabLogs(this));
         bottomNav.getMenu().findItem(R.id.nav_settings).setIcon(AppIcons.tabSettings(this));
         ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (view, insets) -> {
             Insets navBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -42,6 +46,10 @@ public class ConsoleActivity extends AppCompatActivity {
             int itemId = item.getItemId();
             if (itemId == R.id.nav_settings) {
                 fragment = new SettingsFragment();
+            } else if (itemId == R.id.nav_group) {
+                fragment = new GroupControlFragment();
+            } else if (itemId == R.id.nav_logs) {
+                fragment = new LogsFragment();
             } else {
                 fragment = new DevicesFragment();
             }
