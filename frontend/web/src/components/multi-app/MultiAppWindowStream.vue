@@ -63,6 +63,8 @@ let backendConsumerHeld = false;
 let backendPayload = null;
 let unmounted = false;
 let reconnectAttempts = 0;
+/** Last VD size actually sent to scrcpy (do not compare against window.vd* — that is updated earlier). */
+let lastSentVd = { width: 0, height: 0 };
 
 const statusText = computed(() => {
   if (starting.value) return "正在创建虚拟屏…";
@@ -162,6 +164,10 @@ async function startWindowCast({ force = false, keepBackend = false } = {}) {
     await cast.beginCast(payload);
     ready.value = true;
     reconnectAttempts = 0;
+    lastSentVd = {
+      width: Number(props.window?.vdWidth) || 0,
+      height: Number(props.window?.vdHeight) || 0,
+    };
     exitWatch.bumpGrace(10_000);
   } catch (error) {
     ready.value = false;
@@ -196,29 +202,45 @@ function scheduleReconnect(reason) {
   }, 400);
 }
 
+function applyResizeNow() {
+  if (unmounted || !started || !ready.value) {
+    return;
+  }
+  const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
+  const prevW = lastSentVd.width || 0;
+  const prevH = lastSentVd.height || 0;
+  if (Math.abs(vd.width - prevW) < 24 && Math.abs(vd.height - prevH) < 24) {
+    return;
+  }
+  // Pause exit-watch during encoder reset (dumpsys can flap).
+  exitWatch.bumpGrace(12_000);
+  if (props.window) {
+    props.window.vdWidth = vd.width;
+    props.window.vdHeight = vd.height;
+    props.window.vdDpi = vd.dpi;
+  }
+  lastSentVd = { width: vd.width, height: vd.height };
+  try {
+    cast.sendResizeDisplay?.(vd.width, vd.height);
+  } catch {
+    scheduleReconnect("resize_send_failed");
+  }
+}
+
 function scheduleResize() {
-  if (!started || !ready.value || Date.now() < resizeReadyAt) return;
-  if (resizeTimer) window.clearTimeout(resizeTimer);
+  if (!started || !ready.value) {
+    return;
+  }
+  if (resizeTimer) {
+    window.clearTimeout(resizeTimer);
+  }
+  // Defer until past startup grace, then debounce rapid drag-resizes.
+  const untilReady = Math.max(0, resizeReadyAt - Date.now());
+  const delay = untilReady > 0 ? untilReady + 40 : 350;
   resizeTimer = window.setTimeout(() => {
-    const vd = vdOptionsFromContent(props.contentWidth, props.contentHeight);
-    const prevW = Number(props.window?.vdWidth) || 0;
-    const prevH = Number(props.window?.vdHeight) || 0;
-    if (Math.abs(vd.width - prevW) < 48 && Math.abs(vd.height - prevH) < 48) {
-      return;
-    }
-    // Pause exit-watch during encoder reset (dumpsys can flap).
-    exitWatch.bumpGrace(12_000);
-    if (props.window) {
-      props.window.vdWidth = vd.width;
-      props.window.vdHeight = vd.height;
-      props.window.vdDpi = vd.dpi;
-    }
-    try {
-      cast.sendResizeDisplay?.(vd.width, vd.height);
-    } catch {
-      scheduleReconnect("resize_send_failed");
-    }
-  }, 600);
+    resizeTimer = null;
+    applyResizeNow();
+  }, delay);
 }
 
 function sendBack() {
