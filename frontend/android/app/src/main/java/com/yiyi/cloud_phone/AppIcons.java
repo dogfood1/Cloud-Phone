@@ -63,7 +63,7 @@ public final class AppIcons {
     }
 
     public static IconicsDrawable tabGroup(Context context) {
-        return navIcon(context, "cmd_cellphone_multiple");
+        return navIcon(context, "cmd_account_group");
     }
 
     public static IconicsDrawable tabLogs(Context context) {
@@ -186,6 +186,10 @@ public final class AppIcons {
     }
 
     public static IconicsDrawable groupAppsIcon(Context context) {
-        return drawable(context, "cmd_application_cog", R.color.auth_text_primary, 20);
+        return drawable(context, "cmd_apps", R.color.auth_text_primary, 20);
+    }
+
+    public static IconicsDrawable groupBatchIcon(Context context) {
+        return drawable(context, "cmd_account_group", R.color.auth_text_primary, 20);
     }
 }

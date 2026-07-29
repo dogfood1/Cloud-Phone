@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.19.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.19.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -247,6 +247,7 @@ images/readme/
 ### 群控（底部 Tab · 群控）
 
 - 从在线设备中选择加入群控网格，展示截图预览与投屏状态
+- 底部导航与操作栏图标与 Web 对齐（电源、音量、应用、批量模式、添加设备）
 - 批量操作：电源（亮屏/息屏）、音量（静音/加减）、按包名批量卸载
 - **批量控制模式**：指定主控设备，其余设备跟随触控同步
 

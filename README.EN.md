@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.19.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.19.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -253,6 +253,7 @@ Source: `frontend/android/`. Uses the same Node backend and session model as the
 ### Group control (bottom tab · Group)
 
 - Pick online devices into a control grid with screenshot previews and cast status
+- Bottom nav and action bar icons match the web (power, volume, apps, batch mode, add device)
 - Batch actions: power (screen on/off), volume (mute/up/down), uninstall by package name
 - **Batch control mode:** designate a master device; followers mirror touch input
 

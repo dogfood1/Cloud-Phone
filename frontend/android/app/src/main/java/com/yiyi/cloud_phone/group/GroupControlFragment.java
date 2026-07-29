@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +20,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
+import com.yiyi.cloud_phone.AppIcons;
 import com.yiyi.cloud_phone.CloudPhoneApiClient;
 import com.yiyi.cloud_phone.DeviceItem;
 import com.yiyi.cloud_phone.R;
@@ -41,7 +42,7 @@ public class GroupControlFragment extends Fragment {
     private final List<GroupDevice> groupDevices = new ArrayList<>();
     private boolean batchMode = false;
     private String masterSerial = null;
-    private Button batchModeBtn;
+    private MaterialButton batchModeBtn;
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Nullable
@@ -62,6 +63,9 @@ public class GroupControlFragment extends Fragment {
         recycler.setAdapter(adapter);
         adapter.setDevices(groupDevices);
 
+        batchModeBtn = view.findViewById(R.id.buttonBatchMode);
+        setupActionIcons(view);
+
         view.findViewById(R.id.buttonAddGroupDevice).setOnClickListener(v -> showDevicePicker());
         view.findViewById(R.id.buttonGroupSelectAll).setOnClickListener(v -> {
             for (GroupDevice d : groupDevices) d.active = true;
@@ -72,7 +76,6 @@ public class GroupControlFragment extends Fragment {
             adapter.setDevices(groupDevices);
         });
 
-        batchModeBtn = view.findViewById(R.id.buttonBatchMode);
         batchModeBtn.setOnClickListener(v -> toggleBatchMode());
 
         view.findViewById(R.id.buttonGroupPower).setOnClickListener(v -> showPowerMenu(v));
@@ -80,6 +83,22 @@ public class GroupControlFragment extends Fragment {
         view.findViewById(R.id.buttonGroupApps).setOnClickListener(v -> showAppBatchDialog());
 
         updateEmptyState(view);
+    }
+
+    private void setupActionIcons(View view) {
+        MaterialButton addDevice = view.findViewById(R.id.buttonAddGroupDevice);
+        addDevice.setIcon(AppIcons.addDevice(requireContext()));
+
+        MaterialButton power = view.findViewById(R.id.buttonGroupPower);
+        power.setIcon(AppIcons.powerIcon(requireContext()));
+
+        MaterialButton volume = view.findViewById(R.id.buttonGroupVolume);
+        volume.setIcon(AppIcons.volumeIcon(requireContext()));
+
+        MaterialButton apps = view.findViewById(R.id.buttonGroupApps);
+        apps.setIcon(AppIcons.groupAppsIcon(requireContext()));
+
+        batchModeBtn.setIcon(AppIcons.groupBatchIcon(requireContext()));
     }
 
     private void updateEmptyState(View view) {

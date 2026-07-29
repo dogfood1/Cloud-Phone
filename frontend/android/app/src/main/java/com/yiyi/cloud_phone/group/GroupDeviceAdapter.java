@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.yiyi.cloud_phone.AppIcons;
 import com.yiyi.cloud_phone.R;
 
 import java.util.ArrayList;
@@ -89,7 +90,7 @@ class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.ViewHol
             if (ss != null) {
                 screenshotView.setImageBitmap(ss);
             } else {
-                screenshotView.setImageDrawable(null);
+                screenshotView.setImageDrawable(AppIcons.devicePlaceholder(itemView.getContext()));
             }
 
             switch (device.castState) {
