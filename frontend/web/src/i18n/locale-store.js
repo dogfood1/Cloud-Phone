@@ -1,5 +1,10 @@
-export const LOCALE_STORAGE_KEY = "cloud-phone-locale";
 export const DEFAULT_LOCALE = "zh-CN";
+
+import {
+  getCachedSettings,
+  hydratePublicPreferencesFromCache,
+  persistPublicPreferences,
+} from "../utils/local-persistence-state.js";
 
 /** @type {{ code: string; label: string }[]} */
 export const LOCALE_OPTIONS = [
@@ -17,15 +22,10 @@ export function isSupportedLocale(locale) {
 }
 
 export function getStoredLocale() {
-  try {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored && isSupportedLocale(stored)) {
-      return stored;
-    }
-  } catch {
-    // ignore
+  const stored = hydratePublicPreferencesFromCache().locale ?? getCachedSettings().locale;
+  if (stored && isSupportedLocale(stored)) {
+    return stored;
   }
-
   return DEFAULT_LOCALE;
 }
 
@@ -33,8 +33,7 @@ export function saveLocale(locale) {
   if (!isSupportedLocale(locale)) {
     return;
   }
-
-  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  void persistPublicPreferences({ locale });
 }
 
 export function applyDocumentLocale(locale) {

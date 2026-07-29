@@ -106,9 +106,8 @@ watch(
     }
 
     const serial = props.device.serial;
-    // Always load the package list first so the dialog is never stuck empty
-    // while Icon Helper consent / extract is running.
-    void loadList({ packageNamesOnly: true });
+    // Cache-first (filled on device connect); then soft-refresh in background.
+    void loadList({ packageNamesOnly: true, preferCache: true });
 
     gateBusy.value = true;
     try {
@@ -117,7 +116,10 @@ watch(
         silent: !forceFirst,
         force: forceFirst,
       });
-      await loadList({ packageNamesOnly: result.packageNamesOnly });
+      await loadList({
+        packageNamesOnly: result.packageNamesOnly,
+        preferCache: false,
+      });
     } finally {
       gateBusy.value = false;
     }

@@ -1,54 +1,15 @@
 /**
- * ws-scrcpy / WebCodecs Annex-B player aligned with upstream WebCodecsPlayer:
- * feed each MediaCodec buffer as one EncodedVideoChunk when possible.
- * Display keeps only the latest frame (same idea as desktop sc_frame_buffer).
+ * ws-scrcpy / WebCodecs Annex-B player: one MediaCodec buffer → one EncodedVideoChunk.
  */
 
-import { codecFromSps } from "./h264-nal-utils.js";
-
-function startCodeLenAt(bytes, offset) {
-  if (offset + 3 > bytes.length || bytes[offset] !== 0x00 || bytes[offset + 1] !== 0x00) {
-    return 0;
-  }
-  if (bytes[offset + 2] === 0x01) {
-    return 3;
-  }
-  if (offset + 4 <= bytes.length && bytes[offset + 2] === 0x00 && bytes[offset + 3] === 0x01) {
-    return 4;
-  }
-  return 0;
-}
-
-function nalTypeAt(bytes, offset) {
-  const sc = startCodeLenAt(bytes, offset);
-  if (!sc || offset + sc >= bytes.length) {
-    return null;
-  }
-  return bytes[offset + sc] & 0x1f;
-}
-
-function packetHasIdr(bytes) {
-  let i = 0;
-  while (i + 4 < bytes.length) {
-    const sc = startCodeLenAt(bytes, i);
-    if (!sc) {
-      i += 1;
-      continue;
-    }
-    if ((bytes[i + sc] & 0x1f) === 5) {
-      return true;
-    }
-    let next = bytes.length;
-    for (let j = i + sc + 1; j + 3 < bytes.length; j += 1) {
-      if (startCodeLenAt(bytes, j)) {
-        next = j;
-        break;
-      }
-    }
-    i = next;
-  }
-  return false;
-}
+import {
+  annexBHasNalType,
+  annexBNalTypeAt,
+  codecFromSps,
+  ensureAnnexBKeyWithParams,
+  forEachAnnexBNal,
+  startCodeLenAt,
+} from "./h264-nal-utils.js";
 
 export class WsScrcpyAnnexBPlayer {
   static isSupported() {
@@ -68,13 +29,14 @@ export class WsScrcpyAnnexBPlayer {
     this.videoFrameSize = { width: 0, height: 0 };
     this.onVideoFrameSize = null;
     this.onFirstFrameRendered = null;
-    /** @type {null | (() => void)} */
     this.onNeedKeyframe = null;
     this.hasRenderedFrame = false;
-    /** @type {VideoFrame | null} */
     this.pendingFrame = null;
     this.rafId = 0;
     this._lastKeyframeRequestAt = 0;
+    this._keyframeWaitTimer = 0;
+    this._spsUnit = null;
+    this._ppsUnit = null;
 
     if (this.canvas) {
       this.canvas.style.width = "100%";
@@ -104,6 +66,13 @@ export class WsScrcpyAnnexBPlayer {
     this.#markNeedKeyframe(true);
   }
 
+  #clearKeyframeWait() {
+    if (this._keyframeWaitTimer) {
+      clearTimeout(this._keyframeWaitTimer);
+      this._keyframeWaitTimer = 0;
+    }
+  }
+
   #markNeedKeyframe(requestImmediate = false) {
     this.needIdr = true;
     if (!requestImmediate) {
@@ -114,6 +83,7 @@ export class WsScrcpyAnnexBPlayer {
       return;
     }
     this._lastKeyframeRequestAt = now;
+    this.#clearKeyframeWait();
     try {
       this.onNeedKeyframe?.();
     } catch {
@@ -121,8 +91,30 @@ export class WsScrcpyAnnexBPlayer {
     }
   }
 
+  #scheduleKeyframeWait(delayMs = 1500) {
+    this.needIdr = true;
+    if (this._keyframeWaitTimer || this.hadIdr) {
+      return;
+    }
+    this._keyframeWaitTimer = setTimeout(() => {
+      this._keyframeWaitTimer = 0;
+      if (!this.hadIdr) {
+        this.#markNeedKeyframe(true);
+      }
+    }, delayMs);
+  }
+
+  #cacheParameterSets(bytes) {
+    forEachAnnexBNal(bytes, (nal, type) => {
+      if (type === 7) {
+        this._spsUnit = nal.slice();
+      } else if (type === 8) {
+        this._ppsUnit = nal.slice();
+      }
+    });
+  }
+
   #queueFrame(frame) {
-    // Same as desktop sc_frame_buffer: keep only the latest decoded frame.
     if (this.pendingFrame) {
       this.pendingFrame.close();
     }
@@ -145,7 +137,6 @@ export class WsScrcpyAnnexBPlayer {
       frame.close();
       return;
     }
-
     const frameWidth = frame.displayWidth;
     const frameHeight = frame.displayHeight;
     if (frameWidth > 0 && frameHeight > 0) {
@@ -161,7 +152,6 @@ export class WsScrcpyAnnexBPlayer {
         this.onVideoFrameSize?.(this.videoFrameSize);
       }
     }
-
     this.ctx.drawImage(frame, 0, 0);
     frame.close();
     if (!this.hasRenderedFrame) {
@@ -187,9 +177,8 @@ export class WsScrcpyAnnexBPlayer {
     if (!sc || spsNal.length < sc + 4) {
       return;
     }
-    const spsRbsp = spsNal.subarray(sc);
     const config = {
-      codec: codecFromSps(spsRbsp),
+      codec: codecFromSps(spsNal.subarray(sc)),
       optimizeForLatency: true,
       hardwareAcceleration: "prefer-hardware",
     };
@@ -197,44 +186,41 @@ export class WsScrcpyAnnexBPlayer {
       this.decoder.configure(config);
     } catch {
       try {
-        this.decoder.configure({
-          ...config,
-          hardwareAcceleration: "prefer-software",
-        });
+        this.decoder.configure({ ...config, hardwareAcceleration: "prefer-software" });
       } catch (error2) {
         this.lastError = error2?.message ?? String(error2);
       }
     }
   }
 
-  /**
-   * @param {Uint8Array} bytes whole MediaCodec Annex-B buffer
-   * @param {boolean} isKey
-   */
   #decodePacket(bytes, isKey) {
     this.#ensureDecoder();
     if (!this.decoder || this.decoder.state !== "configured") {
       return;
     }
-    if (this.needIdr && !isKey) {
+    if ((this.needIdr || !this.hadIdr) && !isKey) {
       return;
     }
-    if (!this.hadIdr && !isKey) {
+    const payload = isKey
+      ? ensureAnnexBKeyWithParams(bytes, this._spsUnit, this._ppsUnit)
+      : bytes;
+    if (isKey && !annexBHasNalType(payload, 8)) {
+      this.#scheduleKeyframeWait(800);
       return;
     }
     try {
       this.decoder.decode(
         new EncodedVideoChunk({
           type: isKey ? "key" : "delta",
-          // Monotonic us timestamps (upstream uses 0; wall-clock bursts hurt pacing).
           timestamp: this.frameIndex * 16_666,
-          data: bytes,
+          data: payload,
         }),
       );
       this.frameIndex += 1;
       if (isKey) {
         this.needIdr = false;
         this.hadIdr = true;
+        this.#clearKeyframeWait();
       }
     } catch (error) {
       this.lastError = error?.message ?? String(error);
@@ -251,9 +237,10 @@ export class WsScrcpyAnnexBPlayer {
       return;
     }
 
-    const firstType = nalTypeAt(bytes, 0);
+    this.#cacheParameterSets(bytes);
+    const firstType = annexBNalTypeAt(bytes, 0);
+
     if (firstType === 7) {
-      // First NAL is SPS — configure from it without scanning the whole IDR.
       let next = bytes.length;
       const sc = startCodeLenAt(bytes, 0) || 4;
       for (let j = sc + 1; j + 3 < bytes.length; j += 1) {
@@ -263,18 +250,24 @@ export class WsScrcpyAnnexBPlayer {
         }
       }
       this.#configureFromSps(bytes.subarray(0, next));
+      if (!annexBHasNalType(bytes, 5)) {
+        this.#scheduleKeyframeWait(1500);
+        return;
+      }
     }
 
-    // P-frames (type 1) are never keys — skip O(n) IDR scan on the hot path.
+    if (firstType === 8) {
+      return;
+    }
+
     const isKey =
       firstType === 5 ||
-      firstType === 7 ||
-      (firstType !== 1 && firstType !== 9 && packetHasIdr(bytes));
-    // One MediaCodec buffer → one decode() (matches device encoder + upstream player).
+      (firstType !== 1 && firstType !== 9 && annexBHasNalType(bytes, 5));
     this.#decodePacket(bytes, isKey);
   }
 
   destroy() {
+    this.#clearKeyframeWait();
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
       this.rafId = 0;
@@ -292,5 +285,7 @@ export class WsScrcpyAnnexBPlayer {
     }
     this.decoder = null;
     this.onNeedKeyframe = null;
+    this._spsUnit = null;
+    this._ppsUnit = null;
   }
 }

@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.15.2** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.16.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -69,14 +69,14 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **交互更统一** | Naive UI 外壳统一；手机端底部 Tab 导航，退出登录与主题切换在设置页；Lucide 线稿图标 |
 | **操作日志** | 左侧 Tab「日志」：Debug / Info / Warn / Error 分级，认证/导航/设备/投屏/串流/设置/界面分类；可搜索、筛选、展开 JSON 详情 |
 | **一键开发** | 根目录 `npm run dev` 先等后端 `/health` 再起 Vite，代理失败有明确提示 |
-| **主题** | 左下角浅色/深色切换，偏好写本地 |
-| **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换 |
+| **主题** | 左下角浅色/深色切换；偏好经后端 SQLite 本地持久化同步 |
+| **多语言** | 设置页切换界面语言（简中 / English / 繁中 / 日本語 / 한국어），核心界面即时切换；语言偏好同样本地持久化 |
 | **API 安全** | 登录后会话 Cookie（约 **150 天**）写入 SQLite，服务重启可恢复；修改密码立即失效全部会话；401 时先 Cookie、再记住密码静默恢复，失败才显示登录页；JSON 接口 AES-GCM；WebSocket 需有效会话 |
 | **设备入口** | 画廊右上角「添加设备」：安卓 USB / 配对码 / 二维码 / **直接连接**（IP+端口，适用 ReDroid 等）；**鸿蒙 USB/HDC**；**苹果 WDA**：Windows USB 向导（签名/安装/连接），或 Mac 运行 `tools/ios-wda-bridge.mjs` 后局域网发现 |
 | **Termux 宿主** | 在 Android 手机 Termux 中按 Linux 运行后端（`scripts/install-termux.sh`）；仓库已含 `backend/bin/scrcpy/linux/scrcpy-server`，无需本机 Gradle |
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送 |
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
-| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；**每设备一个 scrcpy-server**，每窗独立 WebSocket / 虚拟屏 + `start_app`；编码对齐原版 **60fps/8Mbps**；代理热路径 O(1)、几乎不丢编码包；开始菜单点击秒开窗；缩放断流同窗重连；Annex-B 整包解码；应用退出自动关窗；开始菜单图标缓存秒开；Icon Helper / 快速设置 / 通知中心 |
+| **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；**每设备一个 scrcpy-server**，每窗独立 WebSocket / 虚拟屏 + `start_app`（对齐原版 `--new-display`）；编码 **60fps/8Mbps**；CSD 出码 + 前端 SPS/PPS 内联保证 WebCodecs 出画；设备上线预热包名/图标到浏览器缓存；开始菜单与应用管理优先读缓存；Icon Helper / 快速设置 / 通知中心 |
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
@@ -142,7 +142,7 @@ images/readme/
 
 - 设置页横向布局，左侧二级菜单：**账号**、**外观**、**刷新**
 - **账号**：密码状态（默认 / 已更新）、会话到期时间、修改密码
-- **外观**：界面语言（简中 / English / 繁中 / 日本語 / 한국어）、浅色/深色主题；偏好写入浏览器 `localStorage`
+- **外观**：界面语言（简中 / English / 繁中 / 日本語 / 한국어）、浅色/深色主题；偏好经后端本地持久化（SQLite）同步
 - **刷新**：设备列表与截图自动刷新间隔（1–120 秒，默认 1s / 5s），保存后立即生效
 - 会话登录（默认密码 `admin`，首次使用请改密）；JSON API 登录后 AES-GCM 加密
 - **后端本地数据**：`backend/node/data/` 存放 `auth.key` 与 `cloud-phone.db`，仅本机使用，勿提交到 Git
@@ -202,7 +202,7 @@ images/readme/
 
 ![应用管理](images/readme/apps.png)
 
-- 列表：应用名（经 scrcpy-server `PackageManager` 取 label）、包名、系统/冻结标记
+- 列表：应用名（经 scrcpy-server `PackageManager` 取 label）、包名、系统/冻结标记；设备上线后浏览器缓存优先展示，后台可经 Icon Helper（需授权）补全名称与图标
 - 详情弹窗：版本、SDK、数据目录等
 - 卸载（二次确认）、用户级冻结/解冻、导出 APK、在文件管理中打开 `dataDir`
 - 本地上传 APK 安装：`PUT .../apps/install`

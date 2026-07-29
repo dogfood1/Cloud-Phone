@@ -75,7 +75,7 @@ export function useAppEventLog() {
   }
 
   function clearLog() {
-    clearAppEventLog();
+    void clearAppEventLog();
     expandedIds.value = new Set();
   }
 

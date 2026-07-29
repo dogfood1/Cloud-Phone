@@ -104,3 +104,90 @@ export function concatAvccSamples(samples) {
 
   return merged;
 }
+
+export function startCodeLenAt(bytes, offset) {
+  if (offset + 3 > bytes.length || bytes[offset] !== 0x00 || bytes[offset + 1] !== 0x00) {
+    return 0;
+  }
+  if (bytes[offset + 2] === 0x01) {
+    return 3;
+  }
+  if (offset + 4 <= bytes.length && bytes[offset + 2] === 0x00 && bytes[offset + 3] === 0x01) {
+    return 4;
+  }
+  return 0;
+}
+
+/** Walk Annex-B NALs; callback receives (nalWithStartCode, type). */
+export function forEachAnnexBNal(bytes, callback) {
+  let i = 0;
+  while (i + 4 < bytes.length) {
+    const sc = startCodeLenAt(bytes, i);
+    if (!sc) {
+      i += 1;
+      continue;
+    }
+    let next = bytes.length;
+    for (let j = i + sc + 1; j + 3 < bytes.length; j += 1) {
+      if (startCodeLenAt(bytes, j)) {
+        next = j;
+        break;
+      }
+    }
+    callback(bytes.subarray(i, next), bytes[i + sc] & 0x1f);
+    i = next;
+  }
+}
+
+export function annexBHasNalType(bytes, type) {
+  let found = false;
+  forEachAnnexBNal(bytes, (_nal, nalType) => {
+    if (nalType === type) {
+      found = true;
+    }
+  });
+  return found;
+}
+
+export function annexBNalTypeAt(bytes, offset = 0) {
+  const sc = startCodeLenAt(bytes, offset);
+  if (!sc || offset + sc >= bytes.length) {
+    return null;
+  }
+  return bytes[offset + sc] & 0x1f;
+}
+
+export function concatUint8(parts) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+/**
+ * WebCodecs annexb keyframes must carry SPS/PPS in-band.
+ * Prepend cached parameter sets when the encoder sent them as separate buffers.
+ */
+export function ensureAnnexBKeyWithParams(bytes, spsUnit, ppsUnit) {
+  const hasSps = annexBHasNalType(bytes, 7);
+  const hasPps = annexBHasNalType(bytes, 8);
+  if (hasSps && hasPps) {
+    return bytes;
+  }
+  const parts = [];
+  if (!hasSps && spsUnit?.length) {
+    parts.push(spsUnit);
+  }
+  if (!hasPps && ppsUnit?.length) {
+    parts.push(ppsUnit);
+  }
+  if (!parts.length) {
+    return bytes;
+  }
+  parts.push(bytes);
+  return concatUint8(parts);
+}

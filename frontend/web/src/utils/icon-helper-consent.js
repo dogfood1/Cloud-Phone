@@ -1,3 +1,5 @@
+import { getCachedRuntimeState, persistLocalStatePatch } from "./local-persistence-state.js";
+
 const CONSENT_PREFIX = "cloud-phone.icon-helper.consent.";
 const DENY_COUNT_PREFIX = "cloud-phone.icon-helper.deny-count.";
 const FIRST_SETUP_PREFIX = "cloud-phone.icon-helper.first-setup.";
@@ -31,7 +33,8 @@ function firstSetupKey(serial) {
  * @returns {"ask" | "allow" | "never"}
  */
 export function getIconHelperPreference() {
-  const value = localStorage.getItem(PREFERENCE_KEY);
+  const rt = getCachedRuntimeState();
+  const value = rt[PREFERENCE_KEY];
   if (value === "allow" || value === "never" || value === "ask") {
     return value;
   }
@@ -45,8 +48,11 @@ export function setIconHelperPreference(preference) {
   if (preference !== "ask" && preference !== "allow" && preference !== "never") {
     return;
   }
-
-  localStorage.setItem(PREFERENCE_KEY, preference);
+  void persistLocalStatePatch({
+    runtimeState: {
+      [PREFERENCE_KEY]: preference,
+    },
+  });
 
   if (preference === "ask") {
     clearAllSerialDenials();
@@ -61,7 +67,8 @@ export function getSerialIconHelperConsent(serial) {
   if (!serial) {
     return null;
   }
-  const value = localStorage.getItem(consentKey(serial));
+  const rt = getCachedRuntimeState();
+  const value = rt[consentKey(serial)];
   if (value === "allowed" || value === "denied") {
     return value;
   }
@@ -91,8 +98,12 @@ export function setSerialIconHelperAllowed(serial) {
   if (!serial) {
     return;
   }
-  localStorage.setItem(consentKey(serial), "allowed");
-  localStorage.removeItem(denyCountKey(serial));
+  void persistLocalStatePatch({
+    runtimeState: {
+      [consentKey(serial)]: "allowed",
+      [denyCountKey(serial)]: null,
+    },
+  });
 }
 
 /**
@@ -106,14 +117,24 @@ export function recordSerialIconHelperDenial(serial) {
   }
 
   const next = Math.min(MAX_DENY_PROMPTS, getSerialDenyCount(serial) + 1);
-  localStorage.setItem(denyCountKey(serial), String(next));
 
   if (next >= MAX_DENY_PROMPTS) {
-    localStorage.setItem(consentKey(serial), "denied");
+    void persistLocalStatePatch({
+      runtimeState: {
+        [denyCountKey(serial)]: next,
+        [consentKey(serial)]: "denied",
+      },
+    });
     return { denyCount: next, permanentlyDenied: true };
   }
 
-  localStorage.removeItem(consentKey(serial));
+  void persistLocalStatePatch({
+    runtimeState: {
+      [denyCountKey(serial)]: next,
+      [consentKey(serial)]: null,
+    },
+  });
+
   return { denyCount: next, permanentlyDenied: false };
 }
 
@@ -124,8 +145,10 @@ export function getSerialDenyCount(serial) {
   if (!serial) {
     return 0;
   }
-  const raw = Number.parseInt(localStorage.getItem(denyCountKey(serial)) || "0", 10);
-  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+  const rt = getCachedRuntimeState();
+  const raw = rt[denyCountKey(serial)];
+  const next = typeof raw === "number" ? raw : Number.parseInt(String(raw ?? "0"), 10);
+  return Number.isFinite(next) && next > 0 ? next : 0;
 }
 
 /**
@@ -136,7 +159,8 @@ export function isIconHelperFirstSetupDone(serial) {
   if (!serial) {
     return false;
   }
-  return localStorage.getItem(firstSetupKey(serial)) === "1";
+  const rt = getCachedRuntimeState();
+  return rt[firstSetupKey(serial)] === "1" || rt[firstSetupKey(serial)] === 1 || rt[firstSetupKey(serial)] === true;
 }
 
 /**
@@ -146,25 +170,25 @@ export function markIconHelperFirstSetupDone(serial) {
   if (!serial) {
     return;
   }
-  localStorage.setItem(firstSetupKey(serial), "1");
+  void persistLocalStatePatch({
+    runtimeState: {
+      [firstSetupKey(serial)]: "1",
+    },
+  });
 }
 
 function clearAllSerialDenials() {
-  const keysToRemove = [];
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (!key) {
-      continue;
+  const rt = getCachedRuntimeState();
+  const updates = {};
+  for (const key of Object.keys(rt)) {
+    if (key.startsWith(CONSENT_PREFIX) || key.startsWith(DENY_COUNT_PREFIX)) {
+      updates[key] = null;
     }
-    if (
-      key.startsWith(CONSENT_PREFIX)
-      || key.startsWith(DENY_COUNT_PREFIX)
-      || key.startsWith(FIRST_SETUP_PREFIX)
-    ) {
-      keysToRemove.push(key);
-    }
+    // Do not clear first-setup completion; keep the progress modal only once.
   }
-  for (const key of keysToRemove) {
-    localStorage.removeItem(key);
+  const hasUpdates = Object.keys(updates).length > 0;
+  if (!hasUpdates) {
+    return;
   }
+  void persistLocalStatePatch({ runtimeState: updates });
 }

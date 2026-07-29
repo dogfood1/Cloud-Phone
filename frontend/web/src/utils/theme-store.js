@@ -1,18 +1,14 @@
-const THEME_STORAGE_KEY = "cloud-phone-theme";
 export const THEMES = ["dark", "light"];
 
+import {
+  getCachedSettings,
+  hydratePublicPreferencesFromCache,
+  persistPublicPreferences,
+} from "./local-persistence-state.js";
+
 export function getStoredTheme() {
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-
-    if (THEMES.includes(stored)) {
-      return stored;
-    }
-  } catch {
-    // Ignore storage errors and fall back to light mode.
-  }
-
-  return "light";
+  const stored = hydratePublicPreferencesFromCache().theme ?? getCachedSettings().theme;
+  return THEMES.includes(stored) ? stored : "light";
 }
 
 export function applyTheme(theme) {
@@ -22,7 +18,7 @@ export function applyTheme(theme) {
 }
 
 export function saveTheme(theme) {
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  void persistPublicPreferences({ theme });
 }
 
 export function initTheme() {

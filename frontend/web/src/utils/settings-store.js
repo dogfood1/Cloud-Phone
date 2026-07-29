@@ -1,36 +1,30 @@
-const SETTINGS_STORAGE_KEY = "cloud-phone-settings";
 const DEFAULT_DEVICE_INTERVAL_SECONDS = 1;
 const DEFAULT_SCREENSHOT_INTERVAL_SECONDS = 5;
 const MIN_INTERVAL_SECONDS = 1;
 const MAX_INTERVAL_SECONDS = 120;
 
-export function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
+import {
+  getCachedSettings,
+  persistLocalStatePatch,
+} from "./local-persistence-state.js";
 
-    return {
-      deviceListIntervalSeconds: normalizeInterval(
-        Number(parsed.deviceListIntervalSeconds),
-        DEFAULT_DEVICE_INTERVAL_SECONDS,
-      ),
-      screenshotIntervalSeconds: normalizeInterval(
-        Number(parsed.screenshotIntervalSeconds),
-        DEFAULT_SCREENSHOT_INTERVAL_SECONDS,
-      ),
-    };
-  } catch {
-    return {
-      deviceListIntervalSeconds: DEFAULT_DEVICE_INTERVAL_SECONDS,
-      screenshotIntervalSeconds: DEFAULT_SCREENSHOT_INTERVAL_SECONDS,
-    };
-  }
+export function loadSettings() {
+  const settings = getCachedSettings();
+  return {
+    deviceListIntervalSeconds: normalizeInterval(
+      Number(settings.deviceListIntervalSeconds),
+      DEFAULT_DEVICE_INTERVAL_SECONDS,
+    ),
+    screenshotIntervalSeconds: normalizeInterval(
+      Number(settings.screenshotIntervalSeconds),
+      DEFAULT_SCREENSHOT_INTERVAL_SECONDS,
+    ),
+  };
 }
 
-export function saveSettings(settings) {
-  localStorage.setItem(
-    SETTINGS_STORAGE_KEY,
-    JSON.stringify({
+export async function saveSettings(settings) {
+  const result = await persistLocalStatePatch({
+    settings: {
       deviceListIntervalSeconds: normalizeInterval(
         settings.deviceListIntervalSeconds,
         DEFAULT_DEVICE_INTERVAL_SECONDS,
@@ -38,8 +32,18 @@ export function saveSettings(settings) {
       screenshotIntervalSeconds: normalizeScreenshotInterval(
         settings.screenshotIntervalSeconds,
       ),
-    }),
-  );
+    },
+  });
+  return {
+    deviceListIntervalSeconds: normalizeInterval(
+      Number(result.settings.deviceListIntervalSeconds),
+      DEFAULT_DEVICE_INTERVAL_SECONDS,
+    ),
+    screenshotIntervalSeconds: normalizeInterval(
+      Number(result.settings.screenshotIntervalSeconds),
+      DEFAULT_SCREENSHOT_INTERVAL_SECONDS,
+    ),
+  };
 }
 
 export function normalizeScreenshotInterval(value) {

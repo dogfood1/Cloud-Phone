@@ -1,8 +1,15 @@
 # Changelog
 
+## 1.16.0 - 2026-07-29
+
+- **多应用出画（华为等）**：scrcpy-server 在 `INFO_OUTPUT_FORMAT_CHANGED` 时把 CSD（SPS/PPS）写入码流；前端缓存参数集并在关键帧前内联，避免 WebCodecs 黑窗（画布停在 300×150）
+- **对齐原版 scrcpy**：多应用路径注释与选项与 `--new-display` + `--start-app` 对齐；H.264 解码错误仅在已出画后升级提示
+- **设备上线预热应用缓存**：在线即用 ADB 拉包名写入浏览器 IndexedDB；经同意后 Icon Helper 补全名称/图标；开始菜单与应用管理优先读缓存
+- **本地持久化**：主题、语言、设置、操作日志、Icon Helper 授权等经后端 SQLite（`/api/local-persistence`）同步，减少纯 localStorage 依赖
+
 ## 1.15.3 - 2026-07-28
 
-- **????????**???????????????????? flex ????????????????
+- **修复日志面板滚动**：长列表不再被 flex 布局挤压，可正常滚动查看
 
 ## 1.15.2 - 2026-07-24
 

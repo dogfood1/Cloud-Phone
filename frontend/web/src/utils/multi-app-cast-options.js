@@ -5,8 +5,13 @@ import { resolveVdFromContent, resolveVdSize } from "./multi-app-window-layout.j
 import { suggestDpi } from "./mirror-cast-constants.js";
 
 /**
- * Multi-app cast options: one shared scrcpy-server (web :8886) + per-window
- * WebSocket / virtual display / start_app (Cloud Phone original design).
+ * Build cast options equivalent to official scrcpy:
+ *   scrcpy --new-display=<W>x<H>/<dpi> --start-app=<pkg> --flex-display
+ *           --no-vd-system-decorations --no-vd-destroy-content
+ *
+ * One device-wide scrcpy-server (web :8886); each window sends its own
+ * type-101 new_display + start_app over a dedicated WebSocket.
+ *
  * @param {{
  *   width?: number,
  *   height?: number,
@@ -28,18 +33,20 @@ export function buildMultiAppCastOptions(opts) {
   );
   const packageName = String(opts.packageName || "").trim();
 
+  // --new-display=WxH/dpi
   settings.screen.useNewDisplay = true;
   settings.screen.newDisplaySelect = NEW_DISPLAY_CUSTOM;
   settings.screen.newDisplayWidth = width;
   settings.screen.newDisplayHeight = height;
   settings.screen.newDisplayDpi = dpi;
   settings.screen.newDisplayDpiManual = true;
-  settings.screen.flexDisplay = true;
+  // --start-app=<pkg> (launched when VD id is known)
   settings.screen.newDisplayApp = packageName;
+  // --flex-display / --no-vd-system-decorations / --no-vd-destroy-content
+  settings.screen.flexDisplay = true;
   settings.screen.noVdSystemDecorations = true;
-  // Keep app content across VD resize / soft reset (avoid blank→exit-watch close).
   settings.screen.noVdDestroyContent = true;
-  // Align with official scrcpy server defaults (8Mbps / I=10s), not mirror UI 5Mbps.
+  // Official server defaults (not mirror UI 5Mbps)
   settings.video.maxFps = 60;
   settings.video.bitRateMbps = 8;
   settings.video.iFrameInterval = 10;

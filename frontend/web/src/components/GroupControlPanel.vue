@@ -26,14 +26,10 @@ import GroupControlDevicePickerModal from "./GroupControlDevicePickerModal.vue";
 import GroupControlMasterModal from "./GroupControlMasterModal.vue";
 
 import GroupControlResultModal from "./GroupControlResultModal.vue";
-
-
-
-const GRID_STORAGE_KEY = "cloud-phone.group-control.grid";
-
-const ACTIVE_STORAGE_KEY = "cloud-phone.group-control.active";
-
-const LEGACY_STORAGE_KEY = "cloud-phone.group-control.serials";
+import {
+  getCachedRuntimeState,
+  persistLocalStatePatch,
+} from "../utils/local-persistence-state.js";
 
 
 
@@ -177,54 +173,22 @@ const {
 
 
 
-function readStoredSerials(key) {
-
-  try {
-
-    const raw = localStorage.getItem(key);
-
-    if (raw === null) {
-
-      return null;
-
-    }
-
-
-
-    const parsed = JSON.parse(raw);
-
-    if (!Array.isArray(parsed)) {
-
-      return null;
-
-    }
-
-
-
-    return parsed.filter(Boolean);
-
-  } catch {
-
-    return null;
-
-  }
-
-}
-
-
-
 function persistGridSerials(serials) {
-
-  localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(serials));
-
+  void persistLocalStatePatch({
+    runtimeState: {
+      groupControlGridSerials: serials,
+    },
+  });
 }
 
 
 
 function persistActiveSerials(serials) {
-
-  localStorage.setItem(ACTIVE_STORAGE_KEY, JSON.stringify(serials));
-
+  void persistLocalStatePatch({
+    runtimeState: {
+      groupControlActiveSerials: serials,
+    },
+  });
 }
 
 
@@ -280,75 +244,35 @@ function syncActiveWithGrid(grid, previousGrid) {
 
 
 function initializeState() {
-
   const available = onlineSerialSet.value;
+  const persisted = getCachedRuntimeState();
+  let grid = Array.isArray(persisted.groupControlGridSerials)
+    ? persisted.groupControlGridSerials.filter(Boolean)
+    : null;
+  let active = Array.isArray(persisted.groupControlActiveSerials)
+    ? persisted.groupControlActiveSerials.filter(Boolean)
+    : null;
 
-  let grid = readStoredSerials(GRID_STORAGE_KEY);
-
-  let active = readStoredSerials(ACTIVE_STORAGE_KEY);
-
-
-
-  if (grid === null) {
-
-    const legacy = readStoredSerials(LEGACY_STORAGE_KEY);
-
-    if (legacy !== null) {
-
-      grid = legacy.filter((serial) => available.has(serial));
-
-    }
-
-  }
-
-
-
-  if (grid === null) {
-
+  if (!grid?.length) {
     grid = defaultGridSerials();
-
   } else {
-
     grid = grid.filter(
-
       (serial) =>
-
         available.has(serial) || props.devices.some((device) => device.serial === serial),
-
     );
-
   }
-
-
-
   gridSerials.value = grid;
-
   previousGridSerials = new Set(grid);
-
   persistGridSerials(grid);
-
-
-
-  if (active === null) {
-
+  if (!active?.length) {
     active = grid.filter((serial) => available.has(serial));
-
   } else {
-
     const gridSet = new Set(grid);
-
     active = active.filter((serial) => gridSet.has(serial));
-
   }
-
-
-
   activeSerials.value = active;
-
   persistActiveSerials(active);
-
   stateInitialized.value = true;
-
 }
 
 

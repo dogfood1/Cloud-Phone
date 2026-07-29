@@ -1,16 +1,10 @@
 import { onBeforeUnmount, watch } from "vue";
 
 import { useIconHelperGate } from "./useIconHelperGate.js";
-import { isIconHelperFirstSetupDone } from "../utils/icon-helper-consent.js";
-import {
-  prefetchLauncherAppsToBrowserCache,
-  readLauncherAppsBrowserCache,
-} from "../utils/launcher-apps-browser-resolve.js";
-import { clearLauncherAppsCache } from "../utils/launcher-icon-browser-cache.js";
+import { warmDeviceAppsBrowserCache } from "../utils/warm-device-apps-cache.js";
 
 /**
- * Warm Icon Helper when multi-app desktop mounts.
- * First enter (no first-setup / no browser icons): show progress + force reload.
+ * Warm caches when multi-app desktop mounts (complements connect-time warm).
  * @param {import("vue").Ref | import("vue").ComputedRef | (() => string)} serialSource
  */
 export function useMultiAppIconWarm(serialSource) {
@@ -41,14 +35,6 @@ export function useMultiAppIconWarm(serialSource) {
     }, 12_000);
   }
 
-  async function shouldForceFirstLoad(serial) {
-    if (!isIconHelperFirstSetupDone(serial)) {
-      return true;
-    }
-    const cached = await readLauncherAppsBrowserCache(serial);
-    return !cached.fromCache || !cached.apps.some((item) => item.iconDataUrl);
-  }
-
   watch(
     () => resolveSerial(),
     (serial) => {
@@ -57,14 +43,12 @@ export function useMultiAppIconWarm(serialSource) {
         return;
       }
       void (async () => {
-        const force = await shouldForceFirstLoad(serial);
-        if (force) {
-          await clearLauncherAppsCache(serial);
-        }
-        const result = await gate.warmIconHelper(serial, { force });
-        if (result?.ok && !result.packageNamesOnly) {
-          await prefetchLauncherAppsToBrowserCache(serial);
-        }
+        await warmDeviceAppsBrowserCache(serial, {
+          prepareIconHelper: (s, opts) => gate.prepareIconHelper(s, opts),
+          // Desktop already has its own Start-menu consent UI; stay silent here
+          // when consent is undecided (ADB cache is enough until user opens Start).
+          promptConsent: false,
+        });
         startSync(serial);
       })();
     },

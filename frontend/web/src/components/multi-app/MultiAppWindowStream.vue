@@ -60,6 +60,7 @@ let reconnectTimer = null;
 let started = false;
 let resizeReadyAt = 0;
 let backendConsumerHeld = false;
+let backendPayload = null;
 let unmounted = false;
 let reconnectAttempts = 0;
 
@@ -94,6 +95,7 @@ function presentError(raw) {
 async function releaseBackendConsumer() {
   if (!backendConsumerHeld) return;
   backendConsumerHeld = false;
+  backendPayload = null;
   const serial = props.device?.serial;
   if (!serial) return;
   try {
@@ -103,7 +105,7 @@ async function releaseBackendConsumer() {
   }
 }
 
-async function startWindowCast({ force = false } = {}) {
+async function startWindowCast({ force = false, keepBackend = false } = {}) {
   if (unmounted) return;
   if ((!force && started) || starting.value) return;
 
@@ -117,8 +119,10 @@ async function startWindowCast({ force = false } = {}) {
     return;
   }
 
+  // force reconnect: tear down client WS; keepBackend reuses scrcpy-server + VD
+  // (same idea as keeping one `scrcpy --new-display --start-app` process alive).
   if (force && (started || backendConsumerHeld)) {
-    await stopWindowCast();
+    await stopWindowCast({ releaseBackend: !keepBackend });
   }
 
   starting.value = true;
@@ -133,12 +137,18 @@ async function startWindowCast({ force = false } = {}) {
     if (!canvasRef.value) await nextTick();
     if (!canvasRef.value) throw new Error("投屏画布未就绪");
 
-    // VD is created after type-101 new_display (not --list-displays).
-    const payload = await withTimeout(
-      startDeviceCast(serial, castOptions.value),
-      45_000,
-      "创建虚拟屏超时（cast/start），请重试",
-    );
+    let payload = null;
+    if (keepBackend && backendConsumerHeld && backendPayload?.success) {
+      payload = backendPayload;
+    } else {
+      // cast/start pushes server; VD + start_app apply on type-101 after WS connect
+      payload = await withTimeout(
+        startDeviceCast(serial, castOptions.value),
+        45_000,
+        "创建虚拟屏超时（cast/start），请重试",
+      );
+      backendPayload = payload;
+    }
     if (unmounted) {
       backendConsumerHeld = true;
       await releaseBackendConsumer();
@@ -181,7 +191,8 @@ function scheduleReconnect(reason) {
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = null;
     errorMessage.value = "";
-    void startWindowCast({ force: true });
+    // keepBackend=true: 重连时不要释放后端 consumer，避免 scrcpy-server 被提前杀掉
+    void startWindowCast({ force: true, keepBackend: true });
   }, 400);
 }
 
@@ -214,7 +225,7 @@ function sendBack() {
   cast.sendNavigation?.("back");
 }
 
-async function stopWindowCast() {
+async function stopWindowCast({ releaseBackend = true } = {}) {
   if (resizeTimer) {
     window.clearTimeout(resizeTimer);
     resizeTimer = null;
@@ -232,7 +243,9 @@ async function stopWindowCast() {
   } catch {
     // ignore
   }
-  await releaseBackendConsumer();
+  if (releaseBackend) {
+    await releaseBackendConsumer();
+  }
 }
 
 watch(() => [props.contentWidth, props.contentHeight], () => scheduleResize());

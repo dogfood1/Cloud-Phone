@@ -43,8 +43,9 @@ export async function fetchAndCacheLauncherApps(serial, options = {}) {
   });
   const fingerprint = result.fingerprint || "";
 
-  if (!packageNamesOnly && result.apps.length) {
-    await saveLauncherAppsCache(key, fingerprint, result.apps);
+  // Always persist (ADB package-name path too) so Start menu can open offline-from-cache.
+  if (result.apps.length) {
+    await saveLauncherAppsCache(key, fingerprint || `adb:${result.apps.length}`, result.apps);
   }
 
   return {

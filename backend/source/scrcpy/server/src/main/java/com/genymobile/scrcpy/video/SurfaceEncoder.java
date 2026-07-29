@@ -247,15 +247,29 @@ public class SurfaceEncoder implements AsyncProcessor {
 
     private void encode(MediaCodec codec, VideoSink streamer) throws IOException {
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+        boolean csdFromFormatWritten = false;
 
         boolean eos;
         do {
             int outputBufferId = codec.dequeueOutputBuffer(bufferInfo, -1);
             try {
+                if (outputBufferId == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    // Some OEM encoders (e.g. Huawei) emit SPS-only CODEC_CONFIG buffers.
+                    // WebCodecs annexb keys need SPS+PPS in-band — prefer MediaFormat csd-*.
+                    csdFromFormatWritten = writeCodecSpecificData(codec.getOutputFormat(), streamer)
+                            || csdFromFormatWritten;
+                    eos = false;
+                    continue;
+                }
+
                 eos = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
                 // On EOS, there might be data or not, depending on bufferInfo.size
                 if (outputBufferId >= 0 && bufferInfo.size > 0) {
                     boolean isConfig = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
+                    if (isConfig && csdFromFormatWritten) {
+                        // Already sent complete SPS+PPS from MediaFormat.
+                        continue;
+                    }
                     if (!isConfig) {
                         // If this is not a config packet, then it contains a frame
                         firstFrameSent = true;
@@ -264,6 +278,11 @@ public class SurfaceEncoder implements AsyncProcessor {
 
                     ByteBuffer codecBuffer = codec.getOutputBuffer(outputBufferId);
                     streamer.writePacket(codecBuffer, bufferInfo);
+                    if (isConfig && !csdFromFormatWritten) {
+                        // Supplement PPS if the config buffer was SPS-only.
+                        csdFromFormatWritten = writeMissingPpsFromFormat(codec.getOutputFormat(), streamer)
+                                || csdFromFormatWritten;
+                    }
                 }
             } finally {
                 if (outputBufferId >= 0) {
@@ -271,6 +290,90 @@ public class SurfaceEncoder implements AsyncProcessor {
                 }
             }
         } while (!eos);
+    }
+
+    /** Write csd-0 + csd-1 as one Annex-B config packet for web / desktop clients. */
+    private static boolean writeCodecSpecificData(MediaFormat format, VideoSink streamer)
+            throws IOException {
+        if (format == null) {
+            return false;
+        }
+        ByteBuffer csd0 = format.getByteBuffer("csd-0");
+        ByteBuffer csd1 = format.getByteBuffer("csd-1");
+        if (csd0 == null) {
+            return false;
+        }
+        byte[] annexB = mergeCsdToAnnexB(csd0, csd1);
+        if (annexB.length == 0) {
+            return false;
+        }
+        MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+        info.size = annexB.length;
+        info.flags = MediaCodec.BUFFER_FLAG_CODEC_CONFIG;
+        streamer.writePacket(ByteBuffer.wrap(annexB), info);
+        Ln.i("Emitted encoder CSD (" + annexB.length + "B, pps=" + (csd1 != null) + ")");
+        return true;
+    }
+
+    /** If CODEC_CONFIG was SPS-only, append PPS from MediaFormat csd-1. */
+    private static boolean writeMissingPpsFromFormat(MediaFormat format, VideoSink streamer)
+            throws IOException {
+        if (format == null) {
+            return false;
+        }
+        ByteBuffer csd1 = format.getByteBuffer("csd-1");
+        if (csd1 == null) {
+            return false;
+        }
+        byte[] pps = csdToAnnexB(csd1.duplicate());
+        if (pps.length == 0) {
+            return false;
+        }
+        MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+        info.size = pps.length;
+        info.flags = MediaCodec.BUFFER_FLAG_CODEC_CONFIG;
+        streamer.writePacket(ByteBuffer.wrap(pps), info);
+        Ln.i("Emitted supplemental PPS from MediaFormat (" + pps.length + "B)");
+        return true;
+    }
+
+    private static byte[] mergeCsdToAnnexB(ByteBuffer csd0, ByteBuffer csd1) {
+        byte[] sps = csdToAnnexB(csd0.duplicate());
+        if (csd1 == null) {
+            return sps;
+        }
+        byte[] pps = csdToAnnexB(csd1.duplicate());
+        byte[] out = new byte[sps.length + pps.length];
+        System.arraycopy(sps, 0, out, 0, sps.length);
+        System.arraycopy(pps, 0, out, sps.length, pps.length);
+        return out;
+    }
+
+    private static byte[] csdToAnnexB(ByteBuffer csd) {
+        if (csd == null || !csd.hasRemaining()) {
+            return new byte[0];
+        }
+        int pos = csd.position();
+        int remaining = csd.remaining();
+        if (remaining >= 4) {
+            byte b0 = csd.get(pos);
+            byte b1 = csd.get(pos + 1);
+            byte b2 = csd.get(pos + 2);
+            byte b3 = csd.get(pos + 3);
+            if (b0 == 0 && b1 == 0 && (b2 == 1 || (b2 == 0 && b3 == 1))) {
+                byte[] raw = new byte[remaining];
+                csd.get(raw);
+                return raw;
+            }
+        }
+        // Raw NAL without start code (common for MediaFormat csd-*).
+        byte[] out = new byte[4 + remaining];
+        out[0] = 0;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 1;
+        csd.get(out, 4, remaining);
+        return out;
     }
 
     private static MediaCodec createMediaCodec(Codec codec, String encoderName) throws IOException, ConfigurationException {

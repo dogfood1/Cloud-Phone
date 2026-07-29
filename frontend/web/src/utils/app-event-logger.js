@@ -1,4 +1,9 @@
 import { reactive, readonly } from "vue";
+import {
+  clearAllPersistedLogs,
+  persistLogEntry,
+  replaceCachedLogs,
+} from "./local-persistence-state.js";
 
 /** @typedef {"debug" | "info" | "warn" | "error"} LogLevel */
 /** @typedef {"auth" | "navigation" | "device" | "cast" | "stream" | "settings" | "ui"} LogCategory */
@@ -80,6 +85,8 @@ export function logAppEvent({
     state.entries.length = MAX_ENTRIES;
   }
 
+  void persistLogEntry(entry);
+
   return entry;
 }
 
@@ -99,8 +106,17 @@ export function logError(category, event, message, options = {}) {
   return logAppEvent({ level: "error", category, event, message, ...options });
 }
 
-export function clearAppEventLog() {
+export async function clearAppEventLog() {
   state.entries.length = 0;
+  await clearAllPersistedLogs();
+}
+
+export function replaceAppEventLog(entries) {
+  const nextEntries = Array.isArray(entries) ? [...entries] : [];
+  state.entries.splice(0, state.entries.length, ...nextEntries);
+  replaceCachedLogs(nextEntries);
+  const maxId = nextEntries.reduce((max, entry) => Math.max(max, Number(entry?.id) || 0), 0);
+  nextId = Math.max(nextId, maxId + 1);
 }
 
 export function getAppEventLogState() {

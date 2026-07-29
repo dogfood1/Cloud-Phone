@@ -141,12 +141,35 @@ export function useStartMenuApps(options) {
     await refreshFromNetwork({ packageNamesOnly: packageNamesOnly.value });
   }
 
+  async function paintFromBrowserCache(generation) {
+    try {
+      const cached = await readLauncherAppsBrowserCache(resolveString(options.serial));
+      // Accept package-name-only cache (ADB warm); icons enrich later.
+      if (generation !== loadGeneration || !cached.fromCache || !cached.apps.length) {
+        return false;
+      }
+      apps.value = cached.apps;
+      cacheFingerprint.value = cached.fingerprint || "";
+      errorMessage.value = "";
+      hasLoadedOnce.value = true;
+      loading.value = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function needsForcedFirstLoad(serial) {
     if (!isIconHelperFirstSetupDone(serial)) {
+      const cached = await readLauncherAppsBrowserCache(serial);
+      // Connect-time ADB warm already filled cache — do not wipe it.
+      if (cached.fromCache && cached.apps.length) {
+        return false;
+      }
       return true;
     }
     const cached = await readLauncherAppsBrowserCache(serial);
-    return !cached.fromCache || !cached.apps.some((item) => item.iconDataUrl);
+    return !cached.fromCache || !cached.apps.length;
   }
 
   async function bootstrapAndLoad() {
@@ -193,28 +216,6 @@ export function useStartMenuApps(options) {
         gateBusy.value = false;
         loading.value = false;
       }
-    }
-  }
-
-  async function paintFromBrowserCache(generation) {
-    try {
-      const cached = await readLauncherAppsBrowserCache(resolveString(options.serial));
-      if (
-        generation !== loadGeneration ||
-        !cached.fromCache ||
-        !cached.apps.length ||
-        !cached.apps.some((item) => item.iconDataUrl)
-      ) {
-        return false;
-      }
-      apps.value = cached.apps;
-      cacheFingerprint.value = cached.fingerprint || "";
-      errorMessage.value = "";
-      hasLoadedOnce.value = true;
-      loading.value = false;
-      return true;
-    } catch {
-      return false;
     }
   }
 

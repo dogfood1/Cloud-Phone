@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.15.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.16.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -72,8 +72,9 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
 - **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
-- **Multi-app cast**: Windows-style desktop; **one scrcpy-server per device**, per-window WebSocket / virtual display; encode aligned with official scrcpy (**60fps / 8Mbps**); O(1) proxy hot path, almost never drops encoded packets; Start menu opens windows immediately; resize/stream drops reconnect in-window; Annex-B whole-buffer decode; soft session restore after restart; browser-cached Start menu icons; Icon Helper / Quick Settings / notification center
+- **Multi-app cast**: Windows-style desktop; **one scrcpy-server per device**, per-window WebSocket / virtual display + `start_app` (aligned with official `--new-display`); encode **60fps / 8Mbps**; server CSD + client SPS/PPS inlining for reliable WebCodecs paint; on device online, prefetch package/icons into browser cache; Start menu and App Manager are cache-first; Icon Helper / Quick Settings / notification center
 - **Auth session**: HttpOnly cookie ~**150 days**; sessions persisted in SQLite (survive backend restart); password change revokes all sessions; silent recover via cookie → remembered password before showing the login UI
+- **Local persistence**: theme, locale, settings, activity log, and Icon Helper consent sync via backend SQLite (`/api/local-persistence`)
 - **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; place `wda.ipa` in `backend/bin/wda/` for the Windows sign/install wizard, or use Mac `iproxy` + `ios-wda-bridge.mjs` for LAN bridge; browser cast with nav keys
 - **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
@@ -143,7 +144,7 @@ Images are embedded in the corresponding feature sections below.
 
 - Horizontal settings page with secondary nav: **Account**, **Appearance**, **Refresh**
 - **Account**: password status (default / updated), session expiry, change password
-- **Appearance**: UI language (zh-CN, en-US, zh-TW, ja-JP, ko-KR), light/dark theme; stored in browser `localStorage`
+- **Appearance**: UI language (zh-CN, en-US, zh-TW, ja-JP, ko-KR), light/dark theme; synced via backend local persistence (SQLite)
 - **Refresh**: device list and screenshot poll intervals (1–120 s, defaults 1 s / 5 s); takes effect immediately after save
 - Session login (default password `admin`, please change it); AES-GCM on JSON APIs after login
 - **Backend local data**: `backend/node/data/` holds `auth.key` and `cloud-phone.db` on disk only—never commit this directory
@@ -207,7 +208,7 @@ Images are embedded in the corresponding feature sections below.
 
 ![App manager](images/readme/apps.png)
 
-- App label via scrcpy-server `PackageManager` (`list_all_apps`), plus package name and system/frozen badges
+- App label via scrcpy-server `PackageManager` (`list_all_apps`), plus package name and system/frozen badges; browser cache is preferred after device online warm-up, with optional Icon Helper (consent) for labels/icons
 - Detail modal: version, SDK, data directory, etc.
 - Uninstall (with confirmation), user-level freeze/unfreeze, export APK, open `dataDir` in the file explorer
 - Install from a local APK: `PUT .../apps/install`

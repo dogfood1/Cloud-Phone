@@ -5,10 +5,18 @@ import { useI18n } from "vue-i18n";
 import AuthLayer from "./AuthLayer.vue";
 import AuthPasswordModal from "./AuthPasswordModal.vue";
 import ConsoleLayout from "./ConsoleLayout.vue";
+import IconHelperGatePanel from "./IconHelperGatePanel.vue";
 import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { useAuth } from "../composables/useAuth.js";
 import { useDevices } from "../composables/useDevices.js";
-import { logInfo } from "../utils/app-event-logger.js";
+import { useOnlineDevicesAppsWarm } from "../composables/useOnlineDevicesAppsWarm.js";
+import { logInfo, replaceAppEventLog } from "../utils/app-event-logger.js";
+import {
+  getCachedRuntimeState,
+  hydrateLocalPersistence,
+  migrateLegacyBrowserPersistence,
+  persistLocalStatePatch,
+} from "../utils/local-persistence-state.js";
 import {
   loadSettings,
   normalizeDeviceInterval,
@@ -55,41 +63,99 @@ const {
   () => authState.authenticated && activeTab.value === "devices" && !selectedDevice.value,
 );
 
+const {
+  consentDialogOpen,
+  phase,
+  progress,
+  progressPercent,
+  showProgressUi,
+  answerConsent,
+} = useOnlineDevicesAppsWarm(devices);
+
+function applySettingsToForm(settings) {
+  settingsForm.deviceListIntervalSeconds = normalizeDeviceInterval(
+    settings.deviceListIntervalSeconds,
+  );
+  settingsForm.screenshotIntervalSeconds = normalizeScreenshotInterval(
+    settings.screenshotIntervalSeconds,
+  );
+}
+
+function applyRuntimeStateToUi(runtimeState) {
+  activeTab.value = runtimeState.activeTab || "devices";
+  const serial = String(runtimeState.selectedDeviceSerial || "");
+  selectedDevice.value = serial
+    ? devices.value.find((device) => device.serial === serial) ?? null
+    : null;
+}
+
+async function hydrateAuthenticatedPersistence() {
+  try {
+    await migrateLegacyBrowserPersistence();
+    const payload = await hydrateLocalPersistence();
+    applySettingsToForm(payload.settings);
+    applyRuntimeStateToUi(payload.runtimeState);
+    replaceAppEventLog(payload.logs);
+  } catch {
+    applyRuntimeStateToUi(getCachedRuntimeState());
+  }
+}
+
+async function bootAuthenticatedConsole() {
+  await hydrateAuthenticatedPersistence();
+  startDevices();
+}
+
 onMounted(async () => {
   const authenticated = await loadSession();
-
   if (authenticated) {
-    startDevices();
+    await bootAuthenticatedConsole();
   }
 });
 
 watch(
   () => authState.authenticated,
   (authenticated) => {
-    if (authenticated) {
-      startDevices();
-      return;
+    if (!authenticated) {
+      stopDevices();
     }
-
-    stopDevices();
   },
 );
 
 watch(selectedDevice, (device, previousDevice) => {
+  if (authState.authenticated) {
+    void persistLocalStatePatch({
+      runtimeState: {
+        selectedDeviceSerial: device?.serial ?? "",
+      },
+    });
+  }
   if (!device && previousDevice) {
     refreshDevices();
   }
 });
 
+watch(activeTab, (tab) => {
+  if (!authState.authenticated) {
+    return;
+  }
+  void persistLocalStatePatch({
+    runtimeState: {
+      activeTab: tab,
+      selectedDeviceSerial: tab === "devices" ? selectedDevice.value?.serial ?? "" : "",
+    },
+  });
+});
+
 async function handleLogin() {
   if (await submitLogin()) {
-    startDevices();
+    await bootAuthenticatedConsole();
   }
 }
 
 async function handlePasswordChange() {
   if (await submitPasswordChange()) {
-    startDevices();
+    await bootAuthenticatedConsole();
   }
 }
 
@@ -103,17 +169,18 @@ async function handleLogout() {
   stopDevices();
 }
 
-function saveSettingsForm() {
+async function saveSettingsForm() {
   settingsForm.deviceListIntervalSeconds = normalizeDeviceInterval(
     settingsForm.deviceListIntervalSeconds,
   );
   settingsForm.screenshotIntervalSeconds = normalizeScreenshotInterval(
     settingsForm.screenshotIntervalSeconds,
   );
-  saveSettings({
+  const saved = await saveSettings({
     deviceListIntervalSeconds: settingsForm.deviceListIntervalSeconds,
     screenshotIntervalSeconds: settingsForm.screenshotIntervalSeconds,
   });
+  applySettingsToForm(saved);
   feedback.success(
     t("settings.savedFeedback", {
       device: settingsForm.deviceListIntervalSeconds,
@@ -184,5 +251,18 @@ function saveSettingsForm() {
         </div>
       </section>
     </div>
+    <IconHelperGatePanel
+      v-if="authState.authenticated"
+      :consent-open="consentDialogOpen"
+      :busy="showProgressUi"
+      :progress-percent="progressPercent"
+      :progress-label="
+        phase === 'ensuring' ? t('iconHelper.installing') : t('iconHelper.extracting')
+      "
+      :current-package="progress.current"
+      :denied-hint="false"
+      @allow="answerConsent(true)"
+      @deny="answerConsent(false)"
+    />
   </div>
 </template>

@@ -77,7 +77,14 @@ export function handleWsScrcpyBinary(ctx, data) {
     if (typeof nextPlayer.pushFrame === "function") {
       nextPlayer.pushFrame(bytes);
     }
-    if (nextPlayer.lastError && status.value === "streaming") {
+    // Only escalate persistent decode faults after we have rendered at least once.
+    // Mid-GOP / SPS-only faults request a keyframe; treating them as hard errors
+    // closes the WS and prevents virtual-display first paint.
+    if (
+      nextPlayer.lastError &&
+      status.value === "streaming" &&
+      nextPlayer.hasRenderedFrame
+    ) {
       status.value = "error";
       errorMessage.value = `H.264 解码失败：${nextPlayer.lastError}`;
     }
