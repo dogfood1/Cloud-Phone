@@ -5,14 +5,27 @@
         <item name="android:background">?attr/colorSurfaceContainer</item>
         <item name="itemIconTint">@color/console_nav_item</item>
         <item name="itemTextColor">@color/console_nav_item</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.CloudPhone.BottomNav</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.CloudPhone.BottomNav</item>
+        <item name="itemIconSize">22dp</item>
+        <item name="itemPaddingTop">6dp</item>
+        <item name="itemPaddingBottom">6dp</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.CloudPhone.NavigationBar.ActiveIndicator</item>
         <item name="itemRippleColor">@color/m3_nav_indicator</item>
         <item name="labelVisibilityMode">labeled</item>
         <item name="elevation">@dimen/m3_nav_bar_elevation</item>
     </style>
 
+    <style name="TextAppearance.CloudPhone.BottomNav" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">10sp</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
     <style name="Widget.CloudPhone.NavigationBar.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@color/m3_nav_indicator</item>
+        <item name="android:width">48dp</item>
+        <item name="android:height">28dp</item>
     </style>
 
     <style name="ThemeOverlay.CloudPhone.NavigationBar" parent="ThemeOverlay.Material3.BottomNavigationView">

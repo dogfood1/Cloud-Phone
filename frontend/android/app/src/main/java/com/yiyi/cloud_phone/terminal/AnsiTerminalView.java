@@ -9,15 +9,12 @@ import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 /**
@@ -243,39 +240,39 @@ public class AnsiTerminalView extends View {
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-        outAttrs.inputType = android.text.InputType.TYPE_NULL;
-        return new BaseInputConnection(this, false) {
-            @Override
-            public boolean commitText(CharSequence text, int newCursorPosition) {
-                if (inputListener != null) {
-                    inputListener.onInput(text.toString().getBytes(StandardCharsets.UTF_8));
-                }
-                return true;
-            }
+        TerminalInputConnection.applyEditorInfo(outAttrs);
+        return new TerminalInputConnection(this, inputListener);
+    }
 
-            @Override
-            public boolean sendKeyEvent(KeyEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    byte[] data = null;
-                    switch (event.getKeyCode()) {
-                        case KeyEvent.KEYCODE_ENTER: data = new byte[]{'\r'}; break;
-                        case KeyEvent.KEYCODE_DEL: data = new byte[]{127}; break;
-                        case KeyEvent.KEYCODE_TAB: data = new byte[]{'\t'}; break;
-                        case KeyEvent.KEYCODE_DPAD_UP: data = new byte[]{'\u001B', '[', 'A'}; break;
-                        case KeyEvent.KEYCODE_DPAD_DOWN: data = new byte[]{'\u001B', '[', 'B'}; break;
-                        case KeyEvent.KEYCODE_DPAD_RIGHT: data = new byte[]{'\u001B', '[', 'C'}; break;
-                        case KeyEvent.KEYCODE_DPAD_LEFT: data = new byte[]{'\u001B', '[', 'D'}; break;
-                        default:
-                            int unicode = event.getUnicodeChar(event.getMetaState());
-                            if (unicode > 0) {
-                                data = String.valueOf((char) unicode).getBytes(StandardCharsets.UTF_8);
-                            }
-                    }
-                    if (data != null && inputListener != null) inputListener.onInput(data);
-                }
+    @Override
+    public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BACK) {
+            return super.onKeyPreIme(keyCode, event);
+        }
+        if (event.getAction() == KeyEvent.ACTION_DOWN && inputListener != null) {
+            int unicode = event.getUnicodeChar(event.getMetaState());
+            if (unicode > 0) {
+                inputListener.onInput(new String(Character.toChars(unicode)).getBytes(StandardCharsets.UTF_8));
                 return true;
             }
-        };
+        }
+        return super.onKeyPreIme(keyCode, event);
+    }
+
+    public void showSoftKeyboard() {
+        requestFocus();
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    public void toggleSoftKeyboard() {
+        requestFocus();
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+        }
     }
 
     @Override

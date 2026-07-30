@@ -1,30 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/taskbarRoot"
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:background="@drawable/bg_win11_taskbar"
     android:paddingStart="6dp"
     android:paddingEnd="4dp">
 
+    <!-- Match_parent + symmetric end/start padding (set in code = tray width)
+         keeps Start+apps visually centered without drawing under the tray. -->
     <LinearLayout
         android:id="@+id/taskbarCenter"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
-        android:gravity="center_vertical"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <ImageButton
             android:id="@+id/buttonTaskbarStart"
-            android:layout_width="56dp"
+            android:layout_width="48dp"
             android:layout_height="44dp"
             android:background="@drawable/bg_taskbar_btn"
             android:contentDescription="@string/multi_app_start_menu"
-            android:padding="9dp"
+            android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_win11_start" />
 
         <HorizontalScrollView
+            android:id="@+id/taskbarAppsScroll"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginStart="2dp"

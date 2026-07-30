@@ -14,6 +14,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.button.MaterialButton;
 import com.yiyi.cloud_phone.AppIcons;
 import com.yiyi.cloud_phone.R;
 import com.yiyi.cloud_phone.logs.AppEventLogger;
@@ -30,7 +31,7 @@ public class DeviceTerminalActivity extends AppCompatActivity {
     private TerminalWebSocket webSocket;
     private AnsiTerminalView terminalView;
     private TextView statusText;
-    private ImageButton reconnectBtn;
+    private MaterialButton reconnectBtn;
 
     enum Status { CONNECTING, CONNECTED, CLOSED, ERROR }
 
@@ -48,14 +49,19 @@ public class DeviceTerminalActivity extends AppCompatActivity {
         setContentView(R.layout.activity_device_terminal);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.terminalRoot), (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
             return insets;
         });
 
         deviceSerial = getIntent().getStringExtra(EXTRA_SERIAL);
-        if (deviceSerial == null) deviceSerial = "";
+        if (deviceSerial == null) {
+            deviceSerial = "";
+        }
         deviceDisplayName = getIntent().getStringExtra(EXTRA_DISPLAY_NAME);
-        if (deviceDisplayName == null) deviceDisplayName = deviceSerial;
+        if (deviceDisplayName == null) {
+            deviceDisplayName = deviceSerial;
+        }
 
         TextView titleView = findViewById(R.id.textTerminalTitle);
         titleView.setText(getString(R.string.terminal_title) + " – " + deviceDisplayName);
@@ -69,11 +75,29 @@ public class DeviceTerminalActivity extends AppCompatActivity {
         reconnectBtn.setOnClickListener(v -> reconnect());
 
         terminalView = findViewById(R.id.terminalView);
-        terminalView.setInputListener(data -> {
-            if (webSocket != null) webSocket.sendInput(data);
+        terminalView.setInputListener(this::sendInput);
+
+        TerminalExtraKeysBar extraKeys = findViewById(R.id.terminalExtraKeys);
+        extraKeys.setListener(new TerminalExtraKeysBar.Listener() {
+            @Override
+            public void onBytes(byte[] data) {
+                sendInput(data);
+            }
+
+            @Override
+            public void onToggleSoftKeyboard() {
+                terminalView.toggleSoftKeyboard();
+            }
         });
 
+        terminalView.setOnClickListener(v -> terminalView.showSoftKeyboard());
         connect();
+    }
+
+    private void sendInput(byte[] data) {
+        if (webSocket != null) {
+            webSocket.sendInput(data);
+        }
     }
 
     private void connect() {
@@ -89,9 +113,10 @@ public class DeviceTerminalActivity extends AppCompatActivity {
                 AppEventLogger.get().info("terminal", "connect", "Connected to " + deviceSerial);
                 runOnUiThread(() -> {
                     setStatus(Status.CONNECTED);
-                    int cols = terminalView.getCols();
-                    int rows = terminalView.getRows();
-                    webSocket.sendResize(cols, rows);
+                    terminalView.post(() -> {
+                        webSocket.sendResize(terminalView.getCols(), terminalView.getRows());
+                        terminalView.showSoftKeyboard();
+                    });
                 });
             }
 
@@ -129,13 +154,21 @@ public class DeviceTerminalActivity extends AppCompatActivity {
     private void setStatus(Status status) {
         int textRes;
         switch (status) {
-            case CONNECTING: textRes = R.string.terminal_status_connecting; break;
-            case CONNECTED: textRes = R.string.terminal_status_connected; break;
-            case ERROR: textRes = R.string.terminal_status_error; break;
-            default: textRes = R.string.terminal_status_closed;
+            case CONNECTING:
+                textRes = R.string.terminal_status_connecting;
+                break;
+            case CONNECTED:
+                textRes = R.string.terminal_status_connected;
+                break;
+            case ERROR:
+                textRes = R.string.terminal_status_error;
+                break;
+            default:
+                textRes = R.string.terminal_status_closed;
         }
         statusText.setText(textRes);
-        reconnectBtn.setVisibility(status == Status.CLOSED || status == Status.ERROR ? View.VISIBLE : View.GONE);
+        reconnectBtn.setVisibility(
+                status == Status.CLOSED || status == Status.ERROR ? View.VISIBLE : View.GONE);
     }
 
     @Override

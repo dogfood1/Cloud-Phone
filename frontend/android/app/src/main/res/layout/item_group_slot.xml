@@ -1,27 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/auth_surface"
     android:layout_margin="4dp"
-    android:orientation="vertical"
-    android:elevation="2dp">
+    android:background="@drawable/bg_group_slot"
+    android:clipToOutline="true">
 
-    <!-- Header -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:id="@+id/groupSlotHeader"
+        android:layout_width="0dp"
+        android:layout_height="34dp"
+        android:background="@color/m3_surface_container_high"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="8dp"
-        android:paddingEnd="4dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="4dp">
+        android:paddingEnd="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/groupDeviceCheck"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/groupDeviceName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
@@ -33,35 +46,69 @@
             android:id="@+id/groupDeviceBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="6dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="6dp"
-            android:paddingBottom="2dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_group_badge"
+            android:paddingStart="5dp"
+            android:paddingTop="1dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="1dp"
             android:textColor="#FFFFFF"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:visibility="gone" />
     </LinearLayout>
 
-    <!-- Screenshot preview -->
-    <ImageView
-        android:id="@+id/groupDeviceScreenshot"
-        android:layout_width="match_parent"
+    <FrameLayout
+        android:id="@+id/groupPreviewFrame"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:adjustViewBounds="true"
         android:background="@color/auth_preview_bg"
-        android:minHeight="120dp"
-        android:scaleType="fitCenter" />
+        app:layout_constraintDimensionRatio="H,9:16"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/groupSlotHeader">
 
-    <!-- Status -->
+        <TextureView
+            android:id="@+id/groupDeviceTexture"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/groupDeviceLogs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#CC0F172A"
+            android:fontFamily="monospace"
+            android:gravity="bottom"
+            android:lineSpacingExtra="1dp"
+            android:padding="6dp"
+            android:scrollbars="vertical"
+            android:textColor="#E2E8F0"
+            android:textSize="9sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/groupDeviceInactive"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:gravity="center"
+            android:text="@string/group_device_inactive"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
     <TextView
         android:id="@+id/groupDeviceStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/auth_surface"
+        android:layout_width="0dp"
+        android:layout_height="24dp"
         android:gravity="center"
-        android:paddingTop="4dp"
-        android:paddingBottom="6dp"
+        android:includeFontPadding="false"
         android:textColor="@color/auth_text_secondary"
-        android:textSize="11sp" />
-</LinearLayout>
+        android:textSize="10sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/groupPreviewFrame" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

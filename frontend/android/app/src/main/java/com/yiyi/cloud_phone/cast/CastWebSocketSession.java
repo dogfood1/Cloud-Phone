@@ -4,11 +4,8 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.HttpCookie;
-import java.net.URI;
-import java.util.List;
+import com.yiyi.cloud_phone.SessionCookieHelper;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 final class CastWebSocketSession {
@@ -52,7 +49,7 @@ final class CastWebSocketSession {
         this.listener = listener;
         streamReadySent.set(false);
         okhttp3.Request.Builder builder = new okhttp3.Request.Builder().url(url);
-        attachSessionCookie(builder, host, port);
+        SessionCookieHelper.attach(builder, host, port);
         socket = client.newWebSocket(builder.build(), new okhttp3.WebSocketListener() {
             @Override
             public void onOpen(okhttp3.WebSocket webSocket, okhttp3.Response response) {
@@ -97,32 +94,6 @@ final class CastWebSocketSession {
 
     void close() {
         closeQuietly();
-    }
-
-    private static void attachSessionCookie(okhttp3.Request.Builder builder, String host, int port) {
-        CookieHandler handler = CookieHandler.getDefault();
-        if (!(handler instanceof CookieManager)) {
-            return;
-        }
-        CookieManager manager = (CookieManager) handler;
-        try {
-            URI uri = URI.create("http://" + host + ":" + port + "/");
-            List<HttpCookie> cookies = manager.getCookieStore().get(uri);
-            if (cookies == null || cookies.isEmpty()) {
-                return;
-            }
-            StringBuilder cookieHeader = new StringBuilder();
-            for (int index = 0; index < cookies.size(); index += 1) {
-                if (index > 0) {
-                    cookieHeader.append("; ");
-                }
-                HttpCookie cookie = cookies.get(index);
-                cookieHeader.append(cookie.getName()).append('=').append(cookie.getValue());
-            }
-            builder.header("Cookie", cookieHeader.toString());
-        } catch (Exception ignored) {
-            // ignore cookie attach failures
-        }
     }
 
     private void handleBinary(byte[] bytes) {

@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.20.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.21.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -253,8 +253,9 @@ Source: `frontend/android/`. Uses the same Node backend and session model as the
 
 ### Group control (bottom tab · Group)
 
-- Pick online devices into a control grid with screenshot previews and cast status
-- Bottom nav and action bar icons match the web (power, volume, apps, batch mode, add device)
+- Pick online devices into a control grid; **casting starts immediately on add** (web parity), with startup logs overlaid on each slot
+- **Responsive grid:** 1 column when narrow, ~2 on phones, more on tablet widths; tap the slot header to toggle cast
+- Bottom nav and action bar icons match the web (power, volume, apps, batch mode, add device); smaller nav labels to avoid clipping
 - Batch actions: power (screen on/off), volume (mute/up/down), uninstall by package name
 - **Batch control mode:** designate a master device; followers mirror touch input
 
@@ -286,7 +287,7 @@ Settings use a hero header and section icon cards; web and Android share a green
   - Camera: camera, video, audio (`audioCode`, buffer fields, stream extras aligned with web)
 - Changes auto-save when you leave the page
 - **Cast canvas:** **Start** casts inline in the workspace; connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
-- **Multi-app mode:** embedded Win11-style desktop (centered taskbar, Start menu, draggable/resizable windows, per-window virtual display) with stable move and edge-resize gestures; Start menu opens a dedicated fullscreen desktop Activity and **Exit fullscreen** returns; Quick Settings / clock-notifications pop up above the taskbar with Web-matched date/time and calendar, sized to fit the screen
+- **Multi-app mode:** embedded Win11-style desktop (centered taskbar, Start menu, draggable/resizable windows, per-window virtual display) with stable move and edge-resize gestures; overflow apps collapse to icon-only chips; Start menu opens a dedicated fullscreen desktop Activity and **Exit fullscreen** returns; Quick Settings / clock-notifications pop up above the taskbar with Web-matched date/time and calendar, sized to fit the screen
 - **Cast toolbar:** docked below the settings tab bar when not fullscreen; floating bar at the bottom in fullscreen
 - **Fullscreen** can reuse the active session without calling `cast/start` again
 
@@ -303,7 +304,7 @@ Settings use a hero header and section icon cards; web and Android share a green
 
 - **Files:** browse device directories, download to local Downloads, upload to the current path
 - **Apps:** search installed apps, install APK, detail actions (uninstall/freeze/extract APK/force stop/open data dir)
-- **Terminal:** WebSocket `adb shell -tt` with ANSI colors and reconnect
+- **Terminal:** WebSocket `adb shell -tt` with ANSI colors and reconnect; extra-keys bar (ESC/Ctrl/arrows) and soft keyboard input
 
 ### Build & install
 

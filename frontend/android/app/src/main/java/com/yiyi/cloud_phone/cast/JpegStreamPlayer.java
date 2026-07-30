@@ -54,7 +54,9 @@ public class JpegStreamPlayer {
         }
 
         String url = "ws://" + host + ":" + port + "/api/devices/" + encodedSerial + "/cast/ws";
-        Request request = new Request.Builder().url(url).build();
+        Request.Builder builder = new Request.Builder().url(url);
+        com.yiyi.cloud_phone.SessionCookieHelper.attach(builder, host, port);
+        Request request = builder.build();
 
         ws = client.newWebSocket(request, new WebSocketListener() {
             @Override

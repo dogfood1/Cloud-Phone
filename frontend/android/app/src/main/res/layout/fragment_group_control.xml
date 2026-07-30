@@ -3,50 +3,70 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
+    android:background="@color/auth_background"
     android:orientation="vertical">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:background="?attr/colorSurface"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp">
+        android:paddingEnd="8dp">
 
-        <LinearLayout
+        <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:letterSpacing="0.02"
+            android:text="@string/group_title"
+            android:textColor="@color/auth_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/group_eyebrow"
-                android:textColor="@color/auth_primary"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.1" />
+        <ImageButton
+            android:id="@+id/buttonAddGroupDevice"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/group_add_device"
+            android:padding="8dp"
+            android:scaleType="center" />
+    </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/group_title"
-                android:textColor="@color/auth_text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/auth_border" />
+
+    <LinearLayout
+        android:id="@+id/groupSelectionBar"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/textGroupSummary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonGroupSelectAll"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="0dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
             android:text="@string/group_select_all"
             android:textSize="12sp" />
 
@@ -54,78 +74,97 @@
             android:id="@+id/buttonGroupDeselectAll"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="0dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
             android:text="@string/group_deselect_all"
             android:textSize="12sp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonAddGroupDevice"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="@string/group_add_device"
-            android:textSize="12sp"
-            app:cornerRadius="8dp"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp" />
     </LinearLayout>
 
-    <!-- Action bar -->
     <LinearLayout
+        android:id="@+id/groupActionBar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:background="?attr/colorSurface"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonGroupPower"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/group_action_power"
-            android:textSize="12sp"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp" />
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="10sp"
+            app:iconGravity="textTop"
+            app:iconPadding="1dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/auth_text_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonGroupVolume"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/group_action_volume"
-            android:textSize="12sp"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp" />
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="10sp"
+            app:iconGravity="textTop"
+            app:iconPadding="1dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/auth_text_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonGroupApps"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
-            android:text="@string/group_action_apps"
-            android:textSize="12sp"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp" />
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/group_action_apps_short"
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="10sp"
+            app:iconGravity="textTop"
+            app:iconPadding="1dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/auth_text_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonBatchMode"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:text="@string/group_action_batch_mode"
-            android:textSize="12sp"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp" />
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/group_action_batch_short"
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="10sp"
+            app:iconGravity="textTop"
+            app:iconPadding="1dp"
+            app:iconSize="18dp"
+            app:iconTint="@color/auth_text_primary" />
     </LinearLayout>
 
-    <!-- Device grid / empty state -->
+    <View
+        android:id="@+id/groupActionDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/auth_border"
+        android:visibility="gone" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -136,18 +175,47 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="8dp" />
+            android:padding="8dp"
+            android:visibility="gone" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/textGroupEmpty"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:gravity="center"
-            android:text="@string/group_empty"
-            android:textColor="@color/auth_text_secondary"
-            android:textSize="15sp"
-            android:visibility="visible" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="40dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/group_empty_title"
+                android:textColor="@color/auth_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/group_empty_subtitle"
+                android:textColor="@color/auth_text_secondary"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonGroupEmptyAdd"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:minWidth="120dp"
+                android:text="@string/group_add_device"
+                android:textSize="13sp"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
     </FrameLayout>
 
 </LinearLayout>

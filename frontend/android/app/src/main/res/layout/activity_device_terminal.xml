@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/terminalRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
     android:orientation="vertical">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="@color/auth_surface"
+        android:layout_height="52dp"
+        android:background="#FF1A1A1A"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="4dp"
-        android:paddingEnd="12dp">
+        android:paddingEnd="8dp">
 
         <ImageButton
             android:id="@+id/buttonTerminalBack"
@@ -31,8 +31,8 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/auth_text_primary"
-            android:textSize="17sp"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
@@ -40,7 +40,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:textColor="@color/auth_text_secondary"
+            android:textColor="#FFBDBDBD"
             android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
@@ -48,31 +48,26 @@
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="32dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
             android:text="@string/terminal_reconnect"
             android:textSize="12sp"
             android:visibility="gone"
-            app:cornerRadius="6dp"
-            xmlns:app="http://schemas.android.com/apk/res-auto" />
+            app:cornerRadius="6dp" />
     </LinearLayout>
 
-    <!-- Terminal view -->
     <com.yiyi.cloud_phone.terminal.AnsiTerminalView
         android:id="@+id/terminalView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
 
-    <!-- Hint -->
-    <TextView
+    <com.yiyi.cloud_phone.terminal.TerminalExtraKeysBar
+        android:id="@+id/terminalExtraKeys"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/auth_surface"
-        android:paddingStart="12dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="4dp"
-        android:text="@string/terminal_hint"
-        android:textColor="@color/auth_text_secondary"
-        android:textSize="11sp" />
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

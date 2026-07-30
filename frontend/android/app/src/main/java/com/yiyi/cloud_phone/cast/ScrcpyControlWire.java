@@ -19,6 +19,7 @@ public final class ScrcpyControlWire {
     private static final int KEY_POWER = 26;
     private static final int KEY_VOLUME_UP = 24;
     private static final int KEY_VOLUME_DOWN = 25;
+    private static final int KEY_VOLUME_MUTE = 164;
     private static final int KEY_APP_SWITCH = 187;
 
     private static final int KEY_ACTION_DOWN = 0;
@@ -132,6 +133,8 @@ public final class ScrcpyControlWire {
                 return KEY_VOLUME_UP;
             case "volume-down":
                 return KEY_VOLUME_DOWN;
+            case "volume-mute":
+                return KEY_VOLUME_MUTE;
             default:
                 return null;
         }

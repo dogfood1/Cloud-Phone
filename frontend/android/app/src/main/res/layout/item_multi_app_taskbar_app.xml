@@ -4,7 +4,6 @@
     android:layout_height="40dp"
     android:background="@drawable/bg_taskbar_app_idle"
     android:gravity="center_vertical"
-    android:maxWidth="152dp"
     android:orientation="horizontal"
     android:paddingStart="6dp"
     android:paddingEnd="8dp">
@@ -39,6 +38,7 @@
         android:layout_marginStart="6dp"
         android:ellipsize="end"
         android:maxLines="1"
+        android:maxWidth="110dp"
         android:textColor="#1F1F1F"
         android:textSize="12sp" />
 

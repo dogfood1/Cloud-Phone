@@ -1,5 +1,7 @@
 package com.yiyi.cloud_phone.terminal;
 
+import com.yiyi.cloud_phone.SessionCookieHelper;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.WebSocket;
@@ -9,16 +11,22 @@ import okio.ByteString;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 class TerminalWebSocket {
     interface Callback {
         void onConnected();
+
         void onOutput(byte[] data);
+
         void onClosed(String reason);
+
         void onError(String error);
     }
 
-    private static final OkHttpClient client = new OkHttpClient();
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build();
     private WebSocket ws;
     private final Callback callback;
 
@@ -34,8 +42,9 @@ class TerminalWebSocket {
             encodedSerial = serial;
         }
         String url = "ws://" + host + ":" + port + "/api/devices/" + encodedSerial + "/terminal/ws";
-        Request request = new Request.Builder().url(url).build();
-        ws = client.newWebSocket(request, new WebSocketListener() {
+        Request.Builder builder = new Request.Builder().url(url);
+        SessionCookieHelper.attach(builder, host, port);
+        ws = client.newWebSocket(builder.build(), new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, okhttp3.Response response) {
                 callback.onConnected();
@@ -53,12 +62,16 @@ class TerminalWebSocket {
 
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
-                callback.onClosed(reason);
+                callback.onClosed(reason != null && !reason.isEmpty() ? reason : "closed");
             }
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, okhttp3.Response response) {
-                callback.onError(t.getMessage() != null ? t.getMessage() : "Connection failed");
+                String detail = t.getMessage() != null ? t.getMessage() : "Connection failed";
+                if (response != null) {
+                    detail = response.code() + " " + (response.message() != null ? response.message() : detail);
+                }
+                callback.onError(detail);
             }
         });
     }

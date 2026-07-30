@@ -317,7 +317,7 @@
     <string name="terminal_status_closed">已断开</string>
     <string name="terminal_status_error">连接错误</string>
     <string name="terminal_reconnect">重连</string>
-    <string name="terminal_hint">支持 Tab、方向键与 ANSI 彩色输出（adb shell -tt）</string>
+    <string name="terminal_hint">底部小键盘仿 Termux；点 ⌨ 或画面可呼出系统键盘</string>
 
     <!-- Logs -->
     <string name="logs_title">活动日志</string>
@@ -347,13 +347,18 @@
     <string name="group_eyebrow">多设备</string>
     <string name="group_add_device">添加设备</string>
     <string name="group_select_all">全选</string>
-    <string name="group_deselect_all">取消全选</string>
+    <string name="group_deselect_all">清空</string>
     <string name="group_empty">暂无设备\n点击右上角添加设备到群控</string>
+    <string name="group_empty_title">暂无群控设备</string>
+    <string name="group_empty_subtitle">添加设备后将自动开始投屏，并可批量控制电源、音量与应用</string>
+    <string name="group_summary_format">已选 %1$d / 共 %2$d 台</string>
     <string name="group_action_power">电源</string>
     <string name="group_action_volume">音量</string>
     <string name="group_action_apps">批量应用</string>
+    <string name="group_action_apps_short">应用</string>
     <string name="group_action_batch_mode">批量控制</string>
-    <string name="group_action_stop_batch">停止批量</string>
+    <string name="group_action_batch_short">批量</string>
+    <string name="group_action_stop_batch">停止</string>
     <string name="group_power_screen_on">亮屏</string>
     <string name="group_power_screen_off">灭屏</string>
     <string name="group_volume_mute">静音</string>
