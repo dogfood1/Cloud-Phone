@@ -200,6 +200,7 @@
     <string name="server_invalid_port">端口必须在 1-65535</string>
     <string name="server_saved_and_checking">地址已保存，正在检测...</string>
     <string name="workspace_cast_mode">投屏模式</string>
+    <string name="workspace_header_menu">更多</string>
     <string name="workspace_start_cast">开始</string>
     <string name="workspace_settings_hint">参数与 Web 控制台一致，修改后自动保存；点击「开始」进入全屏投屏。</string>
     <string name="workspace_multi_app_hint">多应用模式：右侧画布为 Windows 桌面，使用任务栏开始菜单打开应用。</string>

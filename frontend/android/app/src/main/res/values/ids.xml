@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="workspace_menu_cast_modes" type="id" />
+    <item name="workspace_menu_files" type="id" />
+    <item name="workspace_menu_apps" type="id" />
+    <item name="workspace_menu_terminal" type="id" />
+</resources>

@@ -12,10 +12,6 @@ import android.os.Bundle;
 
 import android.view.View;
 
-import android.widget.ArrayAdapter;
-
-import android.widget.AutoCompleteTextView;
-
 import android.widget.ImageButton;
 
 import android.widget.TextView;
@@ -44,11 +40,8 @@ import com.google.android.material.tabs.TabLayout;
 
 import com.google.android.material.tabs.TabLayoutMediator;
 
-import com.yiyi.cloud_phone.apps.DeviceAppManagerActivity;
 import com.yiyi.cloud_phone.cast.CastFullscreenActivity;
 import com.yiyi.cloud_phone.cast.CastViewportController;
-import com.yiyi.cloud_phone.files.DeviceFileExplorerActivity;
-import com.yiyi.cloud_phone.terminal.DeviceTerminalActivity;
 
 import com.yiyi.cloud_phone.multiapp.MultiAppDesktopActivity;
 import com.yiyi.cloud_phone.multiapp.MultiAppDesktopEmbed;
@@ -60,6 +53,7 @@ import com.yiyi.cloud_phone.workspace.CastSettingsStore;
 import com.yiyi.cloud_phone.workspace.DeviceWorkspaceHost;
 
 import com.yiyi.cloud_phone.workspace.DeviceWorkspacePagerAdapter;
+import com.yiyi.cloud_phone.workspace.WorkspaceHeaderMenu;
 
 
 
@@ -105,13 +99,11 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
     private TabLayoutMediator tabMediator;
 
-    private AutoCompleteTextView inputCastMode;
-
-    private AutoCompleteTextView inputCastModeHeader;
-
     private TextView textHint;
 
     private MaterialButton buttonStartCast;
+
+    private MaterialButton buttonCastMode;
 
     private View castToolbarDock;
 
@@ -124,6 +116,10 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
     private View castViewportRoot;
 
     private View leftPane;
+
+    private View headerTabsScroll;
+
+    private View settingsTabBar;
 
     private MultiAppDesktopEmbed multiAppDesktop;
 
@@ -172,14 +168,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
                 result -> {
                     if (result.getResultCode() == MultiAppDesktopActivity.RESULT_SWITCH_MIRROR) {
                         setCastMode(CastMode.MIRROR);
-                        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
-                        String label = castModeLabel(modes, CastMode.MIRROR);
-                        if (inputCastMode != null) {
-                            inputCastMode.setText(label, false);
-                        }
-                        if (inputCastModeHeader != null) {
-                            inputCastModeHeader.setText(label, false);
-                        }
                         return;
                     }
                     if (castMode == CastMode.MULTI_APP && deviceConnected && multiAppDesktop != null) {
@@ -202,62 +190,37 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         buttonBack.setOnClickListener(v -> finish());
 
-        ImageButton buttonFiles = findViewById(R.id.buttonFiles);
-        buttonFiles.setImageDrawable(AppIcons.workspaceFiles(this));
-        buttonFiles.setOnClickListener(v -> {
-            Intent filesIntent = new Intent(this, com.yiyi.cloud_phone.files.DeviceFileExplorerActivity.class);
-            filesIntent.putExtra(EXTRA_SERIAL, deviceSerial);
-            filesIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
-            startActivity(filesIntent);
-        });
-
-        ImageButton buttonApps = findViewById(R.id.buttonApps);
-        buttonApps.setImageDrawable(AppIcons.workspaceApps(this));
-        buttonApps.setOnClickListener(v -> {
-            Intent appsIntent = new Intent(this, com.yiyi.cloud_phone.apps.DeviceAppManagerActivity.class);
-            appsIntent.putExtra(EXTRA_SERIAL, deviceSerial);
-            appsIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
-            startActivity(appsIntent);
-        });
-
-        ImageButton buttonTerminal = findViewById(R.id.buttonTerminal);
-        buttonTerminal.setImageDrawable(AppIcons.workspaceTerminal(this));
-        buttonTerminal.setOnClickListener(v -> {
-            Intent termIntent = new Intent(this, com.yiyi.cloud_phone.terminal.DeviceTerminalActivity.class);
-            termIntent.putExtra(EXTRA_SERIAL, deviceSerial);
-            termIntent.putExtra(EXTRA_DISPLAY_NAME, deviceDisplayName);
-            startActivity(termIntent);
-        });
-
         TextView textDeviceName = findViewById(R.id.textDeviceName);
 
         textDeviceName.setText(deviceDisplayName);
 
+        headerTabsScroll = findViewById(R.id.headerTabsScroll);
+        settingsTabBar = findViewById(R.id.settingsTabBar);
 
+        buttonCastMode = findViewById(R.id.buttonCastMode);
+        buttonCastMode.setIcon(AppIcons.chevronDown(this));
+        buttonCastMode.setOnClickListener(v -> WorkspaceHeaderMenu.showCastModes(
+                this,
+                v,
+                castMode,
+                CastOptionLists.castModes(),
+                mode -> {
+                    if (mode != null && mode != castMode) {
+                        persistSettings();
+                        setCastMode(mode);
+                    }
+                }
+        ));
+        updateCastModeButton();
 
-        ImageButton btnFiles = findViewById(R.id.buttonWorkspaceFiles);
-
-        btnFiles.setImageDrawable(AppIcons.workspaceFiles(this));
-
-        btnFiles.setOnClickListener(v -> DeviceFileExplorerActivity.open(this, deviceSerial, deviceDisplayName, null));
-
-
-
-        ImageButton btnApps = findViewById(R.id.buttonWorkspaceApps);
-
-        btnApps.setImageDrawable(AppIcons.workspaceApps(this));
-
-        btnApps.setOnClickListener(v -> DeviceAppManagerActivity.open(this, deviceSerial, deviceDisplayName));
-
-
-
-        ImageButton btnTerminal = findViewById(R.id.buttonWorkspaceTerminal);
-
-        btnTerminal.setImageDrawable(AppIcons.workspaceTerminal(this));
-
-        btnTerminal.setOnClickListener(v -> DeviceTerminalActivity.open(this, deviceSerial, deviceDisplayName));
-
-
+        WorkspaceHeaderMenu.bindToolButtons(
+                this,
+                findViewById(R.id.buttonToolFiles),
+                findViewById(R.id.buttonToolApps),
+                findViewById(R.id.buttonToolTerminal),
+                deviceSerial,
+                deviceDisplayName
+        );
 
         textHint = findViewById(R.id.textHint);
 
@@ -283,14 +246,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
             @Override
             public void onSwitchMirror() {
                 setCastMode(CastMode.MIRROR);
-                java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
-                String label = castModeLabel(modes, CastMode.MIRROR);
-                if (inputCastMode != null) {
-                    inputCastMode.setText(label, false);
-                }
-                if (inputCastModeHeader != null) {
-                    inputCastModeHeader.setText(label, false);
-                }
             }
 
             @Override
@@ -421,8 +376,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
 
 
-        setupCastModeSelector();
-
         setupSettingsPager();
 
     }
@@ -475,112 +428,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
 
 
-    private void setupCastModeSelector() {
-
-        inputCastMode = findViewById(R.id.inputCastMode);
-
-        inputCastModeHeader = findViewById(R.id.inputCastModeHeader);
-
-        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
-
-        java.util.List<String> labels = new java.util.ArrayList<>();
-
-        for (CastOptionLists.Option option : modes) {
-
-            labels.add(option.label);
-
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-
-                this,
-
-                android.R.layout.simple_list_item_1,
-
-                labels
-
-        );
-
-        bindCastModeDropdown(inputCastMode, adapter, modes);
-
-        bindCastModeDropdown(inputCastModeHeader, adapter, modes);
-
-        applyMultiAppModeLayout();
-
-    }
-
-
-
-    private void bindCastModeDropdown(
-
-            AutoCompleteTextView view,
-
-            ArrayAdapter<String> adapter,
-
-            java.util.List<CastOptionLists.Option> modes
-
-    ) {
-
-        if (view == null) {
-
-            return;
-
-        }
-
-        view.setAdapter(adapter);
-
-        view.setText(castModeLabel(modes, castMode), false);
-
-        view.setOnItemClickListener((parent, itemView, position, id) -> {
-
-            CastMode next = castModeAt(modes, position);
-
-            if (next != castMode) {
-
-                persistSettings();
-
-                setCastMode(next);
-
-            }
-
-        });
-
-    }
-
-
-
-    private static String castModeLabel(java.util.List<CastOptionLists.Option> modes, CastMode mode) {
-
-        for (CastOptionLists.Option option : modes) {
-
-            if (option.value.equals(mode.id)) {
-
-                return option.label;
-
-            }
-
-        }
-
-        return modes.isEmpty() ? "" : modes.get(0).label;
-
-    }
-
-
-
-    private static CastMode castModeAt(java.util.List<CastOptionLists.Option> modes, int position) {
-
-        if (position < 0 || position >= modes.size()) {
-
-            return CastMode.MIRROR;
-
-        }
-
-        return CastMode.fromId(modes.get(position).value);
-
-    }
-
-
-
     private void applyMultiAppModeLayout() {
 
         boolean multiApp = castMode == CastMode.MULTI_APP;
@@ -591,13 +438,17 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         View hint = findViewById(R.id.textMultiAppHint);
 
-        View layoutCastMode = findViewById(R.id.layoutCastMode);
-
         int visibility = multiApp ? View.GONE : View.VISIBLE;
 
         if (tabs != null) {
 
             tabs.setVisibility(visibility);
+
+        }
+
+        if (settingsTabBar != null) {
+
+            settingsTabBar.setVisibility(visibility);
 
         }
 
@@ -610,12 +461,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
         if (hint != null) {
 
             hint.setVisibility(View.GONE);
-
-        }
-
-        if (layoutCastMode != null) {
-
-            layoutCastMode.setVisibility(visibility);
 
         }
 
@@ -634,12 +479,6 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
         if (buttonStartCast != null) {
 
             buttonStartCast.setVisibility(multiApp ? View.GONE : View.VISIBLE);
-
-        }
-
-        if (inputCastModeHeader != null) {
-
-            inputCastModeHeader.setVisibility(multiApp ? View.VISIBLE : View.GONE);
 
         }
 
@@ -793,7 +632,11 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
             tabMediator.detach();
 
+            tabMediator = null;
+
         }
+
+        tabs.removeAllTabs();
 
         if (pagerAdapter.getItemCount() > 0) {
 
@@ -895,21 +738,7 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         CastSettingsStore.saveMode(this, deviceSerial, castMode);
 
-        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
-
-        String label = castModeLabel(modes, castMode);
-
-        if (inputCastMode != null) {
-
-            inputCastMode.setText(label, false);
-
-        }
-
-        if (inputCastModeHeader != null) {
-
-            inputCastModeHeader.setText(label, false);
-
-        }
+        updateCastModeButton();
 
         ViewPager2 pager = findViewById(R.id.settingsPager);
 
@@ -919,6 +748,12 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         updateHint();
 
+    }
+
+    private void updateCastModeButton() {
+        if (buttonCastMode != null) {
+            buttonCastMode.setText(WorkspaceHeaderMenu.shortModeLabel(castMode));
+        }
     }
 
 

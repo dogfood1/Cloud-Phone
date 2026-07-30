@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.20.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.20.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -278,7 +278,7 @@ Settings use a hero header and section icon cards; web and Android share a green
 
 ### Device workspace
 
-- Tap a card: back, device name, **Files / Apps / Terminal** shortcuts, **Start**
+- Tap a card: back, device name, **Files / Apps / Terminal**, **Start**, and a **cast-mode** dropdown; a second bar below holds **Video / Audio / Device / Screen** (or camera settings tabs)
 - **Cast mode:** mirror (default), **multi-app**, or camera (Android 12+); HarmonyOS/iOS devices use JPEG/MJPEG cast
 - **Responsive layout:** portrait stacks settings above the canvas; landscape splits settings left / canvas right; rotation adapts without dropping the cast session
 - **Tabbed parameters** (same shape as the web left panel, persisted per device serial):
@@ -287,7 +287,7 @@ Settings use a hero header and section icon cards; web and Android share a green
 - Changes auto-save when you leave the page
 - **Cast canvas:** **Start** casts inline in the workspace; connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
 - **Multi-app mode:** embedded Win11-style desktop (centered taskbar, Start menu, draggable windows, per-window virtual display); Start menu opens a dedicated fullscreen desktop Activity and **Exit fullscreen** returns; Quick Settings / clock-notifications pop up above the taskbar with Web-matched date/time and calendar, sized to fit the screen
-- **Cast toolbar:** docked below the device name when not fullscreen; floating bar at the bottom in fullscreen
+- **Cast toolbar:** docked below the settings tab bar when not fullscreen; floating bar at the bottom in fullscreen
 - **Fullscreen** can reuse the active session without calling `cast/start` again
 
 ### Fullscreen cast

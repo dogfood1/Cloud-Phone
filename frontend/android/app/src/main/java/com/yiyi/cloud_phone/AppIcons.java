@@ -176,6 +176,14 @@ public final class AppIcons {
         return drawable(context, "cmd_console", R.color.auth_text_primary, 20);
     }
 
+    public static IconicsDrawable overflowMenu(Context context) {
+        return drawable(context, "cmd_dots_vertical", R.color.auth_text_primary, 22);
+    }
+
+    public static IconicsDrawable chevronDown(Context context) {
+        return drawable(context, "cmd_chevron_down", R.color.auth_text_secondary, 16);
+    }
+
     // Group Control icons
     public static IconicsDrawable powerIcon(Context context) {
         return drawable(context, "cmd_power", R.color.auth_text_primary, 20);
