@@ -122,8 +122,12 @@ final class GroupCastHub {
             String sourceSerial = device.serial;
             session.setControlRelay((serial, payload, videoW, videoH) ->
                     relayControl(sourceSerial, payload, videoW, videoH));
+            session.start();
+            return;
         }
-        session.start();
+        if (!session.isStarted()) {
+            session.start();
+        }
     }
 
     private void relayControl(String sourceSerial, byte[] payload, int fromW, int fromH) {

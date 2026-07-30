@@ -62,47 +62,14 @@ public final class GroupSlotCastSession {
         }
         httpClient = builder.build();
         bootstrap = new GroupSlotCastBootstrap(
-                this.context, serial, deviceSdk, mainHandler, released, () -> started,
-                new GroupSlotCastBootstrap.Sink() {
-                    @Override
-                    public void onBackendReady(byte[] params, int logConsumed) {
-                        backendHeld = true;
-                        streamParams = params;
-                    }
-
-                    @Override
-                    public void onError(String message) {
-                        appendLog(message);
-                        setState(STATE_ERROR, message);
-                    }
-
-                    @Override
-                    public void appendLog(String message) {
-                        GroupSlotCastSession.this.appendLog(message);
-                    }
-
-                    @Override
-                    public void pushUi() {
-                        GroupSlotCastSession.this.pushUi();
-                    }
-
-                    @Override
-                    public int ingestLogs(JSONArray logs, int from) {
-                        return startupLog.ingest(logs, from);
-                    }
-
-                    @Override
-                    public void maybeConnect() {
-                        GroupSlotCastSession.this.maybeConnect();
-                    }
-                }
-        );
+                this.context, serial, deviceSdk, mainHandler, released, () -> started, sink());
         decoder.setListener(new AnnexBH264Decoder.Listener() {
             @Override
             public void onVideoFrameSize(int width, int height) {
                 mainHandler.post(() -> {
                     videoWidth = width;
                     videoHeight = height;
+                    applyLetterbox();
                 });
             }
 
@@ -114,6 +81,7 @@ public final class GroupSlotCastSession {
                         bootstrap.hideLogs();
                         appendLog("视频帧已就绪");
                     }
+                    applyLetterbox();
                 });
             }
         });
@@ -130,6 +98,10 @@ public final class GroupSlotCastSession {
 
     public boolean isStreaming() {
         return STATE_STREAMING.equals(state);
+    }
+
+    public boolean isStarted() {
+        return started && !released.get();
     }
 
     public int getVideoWidth() {
@@ -163,6 +135,7 @@ public final class GroupSlotCastSession {
 
     public void bindTexture(TextureView view) {
         if (textureView == view) {
+            applyLetterbox();
             return;
         }
         unbindTexture(textureView);
@@ -170,47 +143,58 @@ public final class GroupSlotCastSession {
         if (view == null) {
             return;
         }
-        view.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+        final TextureView bound = view;
+        GroupSlotSurfaceBinder.bind(view, new GroupSlotSurfaceBinder.Host() {
             @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture surface, int w, int h) {
+            public void onSurfaceReady() {
+                if (textureView != bound) {
+                    return;
+                }
                 surfaceReady = true;
-                decoder.attachSurface(new Surface(surface), surface);
+                applyLetterbox();
                 maybeConnect();
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int w, int h) {
+            public void onSurfaceLost() {
+                if (textureView == bound) {
+                    surfaceReady = false;
+                    decoder.attachSurface(null, null);
+                }
             }
 
             @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                surfaceReady = false;
-                decoder.attachSurface(null, null);
-                return true;
+            public void onSurfaceSized() {
+                if (textureView == bound) {
+                    applyLetterbox();
+                }
             }
 
             @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+            public void attachDecoder(Surface surface, SurfaceTexture texture) {
+                if (textureView == bound) {
+                    decoder.attachSurface(surface, texture);
+                }
             }
         });
-        if (view.isAvailable()) {
-            surfaceReady = true;
-            decoder.attachSurface(new Surface(view.getSurfaceTexture()), view.getSurfaceTexture());
-            maybeConnect();
-        }
     }
 
     public void unbindTexture(TextureView view) {
         if (view == null || textureView != view) {
             return;
         }
+        GroupSlotLetterbox.reset(view);
         textureView = null;
         surfaceReady = false;
         decoder.attachSurface(null, null);
     }
 
     public void start() {
-        if (started || released.get()) {
+        if (released.get()) {
+            return;
+        }
+        if (started) {
+            maybeConnect();
             return;
         }
         started = true;
@@ -226,12 +210,8 @@ public final class GroupSlotCastSession {
         streamParams = null;
         if (releaseBackend && backendHeld) {
             backendHeld = false;
-            CastSessionController.stop(
-                    context,
-                    CastServerConfig.host(context),
-                    CastServerConfig.port(context),
-                    serial
-            );
+            CastSessionController.stop(context, CastServerConfig.host(context),
+                    CastServerConfig.port(context), serial);
         }
         setState(STATE_IDLE, "");
     }
@@ -246,35 +226,60 @@ public final class GroupSlotCastSession {
     }
 
     public void sendNavigation(String actionId) {
-        if (actionId == null) {
-            return;
-        }
-        if ("screen-on".equals(actionId)) {
-            webSocketSession.sendControl(ScrcpyControlWire.setScreenPower(true));
-            byte[] wake = ScrcpyControlWire.navigationTap("power");
-            if (wake != null) {
-                webSocketSession.sendControl(wake);
+        GroupSlotNavigation.send(webSocketSession, actionId);
+    }
+
+    private GroupSlotCastBootstrap.Sink sink() {
+        return new GroupSlotCastBootstrap.Sink() {
+            @Override public void onBackendReady(byte[] params, int logConsumed) {
+                backendHeld = true;
+                streamParams = params;
+                maybeConnect();
             }
-            return;
-        }
-        if ("screen-off".equals(actionId)) {
-            webSocketSession.sendControl(ScrcpyControlWire.setScreenPower(false));
-            return;
-        }
-        byte[] payload = ScrcpyControlWire.navigationTap(actionId);
-        if (payload != null) {
-            webSocketSession.sendControl(payload);
-        }
+
+            @Override public void onError(String message) {
+                appendLog(message);
+                setState(STATE_ERROR, message);
+            }
+
+            @Override public void appendLog(String message) {
+                GroupSlotCastSession.this.appendLog(message);
+            }
+
+            @Override public void pushUi() {
+                GroupSlotCastSession.this.pushUi();
+            }
+
+            @Override public int ingestLogs(JSONArray logs, int from) {
+                return startupLog.ingest(logs, from);
+            }
+
+            @Override public void maybeConnect() {
+                GroupSlotCastSession.this.maybeConnect();
+            }
+        };
     }
 
     private void maybeConnect() {
         if (!surfaceReady || streamParams == null || !started || released.get()) {
             return;
         }
+        if (webSocketSession.isOpen()) {
+            return;
+        }
         bootstrap.openStream(httpClient, webSocketSession, streamParams, () -> started, message -> {
+            if (!started || released.get()) {
+                return;
+            }
             appendLog(message);
             setState(STATE_ERROR, message);
         });
+    }
+
+    private void applyLetterbox() {
+        if (textureView != null) {
+            GroupSlotLetterbox.apply(textureView, getVideoWidth(), getVideoHeight());
+        }
     }
 
     private void appendLog(String message) {

@@ -45,7 +45,10 @@ final class CastWebSocketSession {
             byte[] streamParams,
             Listener listener
     ) {
-        closeQuietly();
+        if (socket != null) {
+            this.listener = listener;
+            return;
+        }
         this.listener = listener;
         streamReadySent.set(false);
         okhttp3.Request.Builder builder = new okhttp3.Request.Builder().url(url);
@@ -69,11 +72,17 @@ final class CastWebSocketSession {
 
             @Override
             public void onClosed(okhttp3.WebSocket webSocket, int code, String reason) {
+                if (socket == webSocket) {
+                    socket = null;
+                }
                 notifyClosed(reason == null ? "closed" : reason);
             }
 
             @Override
             public void onFailure(okhttp3.WebSocket webSocket, Throwable t, okhttp3.Response response) {
+                if (socket == webSocket) {
+                    socket = null;
+                }
                 String message = "websocket_failed";
                 if (response != null && response.code() == 401) {
                     message = "websocket_unauthorized";
@@ -90,6 +99,10 @@ final class CastWebSocketSession {
             return;
         }
         socket.send(okio.ByteString.of(payload));
+    }
+
+    boolean isOpen() {
+        return socket != null;
     }
 
     void close() {
