@@ -4,6 +4,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
@@ -78,14 +79,11 @@ public final class MultiAppStartMenuDialog {
         recycler.setVisibility(View.GONE);
 
         int width = Math.min(
-                MultiAppFlyoutPopup.dp(activity, 672),
-                Math.round(activity.getResources().getDisplayMetrics().widthPixels * 0.72f)
+                MultiAppFlyoutPopup.fitWidth(activity, 560),
+                Math.round(activity.getResources().getDisplayMetrics().widthPixels * 0.92f)
         );
-        int maxHeight = Math.min(
-                MultiAppFlyoutPopup.dp(activity, 544),
-                Math.round(activity.getResources().getDisplayMetrics().heightPixels * 0.70f)
-        );
-        content.setLayoutParams(new android.view.ViewGroup.LayoutParams(width, maxHeight));
+        int maxHeight = MultiAppFlyoutPopup.maxHeightAbove(activity, anchor);
+        content.setLayoutParams(new ViewGroup.LayoutParams(width, maxHeight));
         PopupWindow popup = MultiAppFlyoutPopup.showAbove(activity, anchor, content, width, maxHeight);
 
         adapter.setOnAppClickListener(item -> {

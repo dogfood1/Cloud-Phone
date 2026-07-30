@@ -52,8 +52,9 @@ public final class MultiAppQuickSettingsDialog {
         AtomicBoolean muted = new AtomicBoolean(false);
         Handler handler = new Handler(Looper.getMainLooper());
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        int width = MultiAppFlyoutPopup.dp(activity, 360);
-        PopupWindow popup = MultiAppFlyoutPopup.showAboveEnd(activity, anchor, content, width, 0);
+        int width = MultiAppFlyoutPopup.fitWidth(activity, 320);
+        int maxH = MultiAppFlyoutPopup.maxHeightAbove(activity, anchor);
+        PopupWindow popup = MultiAppFlyoutPopup.showAboveEnd(activity, anchor, content, width, maxH);
 
         Runnable refreshUi = () -> executor.execute(() -> refresh(
                 activity, serial, tileWifi, tileBluetooth, tileAirplane, imageWifi,

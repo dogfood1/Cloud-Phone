@@ -78,16 +78,12 @@ final class MultiAppTaskbarController {
     }
 
     void updateClock() {
-        java.util.Calendar now = java.util.Calendar.getInstance();
+        java.util.Calendar now = java.util.Calendar.getInstance(java.util.Locale.CHINA);
         if (clockTime != null) {
-            java.text.SimpleDateFormat timeFmt =
-                    new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA);
-            clockTime.setText(timeFmt.format(now.getTime()));
+            clockTime.setText(Win11CalendarLunar.formatTaskbarTime(now));
         }
         if (clockDate != null) {
-            java.text.SimpleDateFormat dateFmt =
-                    new java.text.SimpleDateFormat("yyyy/M/d", java.util.Locale.CHINA);
-            clockDate.setText(dateFmt.format(now.getTime()));
+            clockDate.setText(Win11CalendarLunar.formatTaskbarDate(now));
         }
     }
 

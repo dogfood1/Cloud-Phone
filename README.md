@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.20.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.20.1** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -280,7 +280,7 @@ images/readme/
   - 摄像头：摄像头、视频、音频（含 `audioCode`、`bufferMs` 等，流 extra 与 Web 对齐）
 - 修改参数在离开页面时自动保存
 - **右侧/下方投屏画布**：点击 **开始** 在工作区内联投屏；启动阶段显示连接日志（含后端 adb push / forward / shell 与前端 WebSocket 步骤），首帧出现后自动隐藏
-- **多应用模式**：工作区嵌入 Win11 风格桌面（任务栏居中、开始菜单、可拖拽窗口、每窗独立虚拟屏）；开始菜单可进入独立全屏桌面 Activity，再「取消全屏」返回；快速设置 / 时钟通知从任务栏向上弹出
+- **多应用模式**：工作区嵌入 Win11 风格桌面（任务栏居中、开始菜单、可拖拽窗口、每窗独立虚拟屏）；开始菜单可进入独立全屏桌面 Activity，再「取消全屏」返回；快速设置 / 时钟通知从任务栏向上弹出，日期时间与月历对齐 Web，弹出层随屏幕自适应
 - **投屏工具栏**：非全屏时位于设备名下方全宽横条；全屏时底部悬浮
 - **全屏** 按钮可携带当前会话进入横屏全屏，无需重复启动后端
 
