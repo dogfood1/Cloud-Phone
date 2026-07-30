@@ -47,22 +47,22 @@ final class MultiAppWindowLayout {
     }
 
     static Bounds defaultWindowBounds(int canvasW, int canvasH, int windowIndex, String orientation) {
-        int availH = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.TITLE_BAR_H, canvasH);
+        int availH = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.titleBarHeight(), canvasH);
         int availW = Math.max(MultiAppWindowState.MIN_W, canvasW - EDGE_GAP * 2);
         VdSize vd = resolveVdSize(orientation);
         float aspect = vd.width / (float) vd.height;
 
         int height = availH;
-        int contentH = Math.max(MultiAppWindowState.MIN_H, height - MultiAppWindowState.TITLE_BAR_H);
+        int contentH = Math.max(MultiAppWindowState.MIN_H, height - MultiAppWindowState.titleBarHeight());
         int width = Math.round(contentH * aspect);
         if (width > availW) {
             width = availW;
             contentH = Math.round(width / aspect);
-            height = contentH + MultiAppWindowState.TITLE_BAR_H;
+            height = contentH + MultiAppWindowState.titleBarHeight();
         }
         width = Math.max(MultiAppWindowState.MIN_W, width);
         height = Math.max(
-                MultiAppWindowState.MIN_H + MultiAppWindowState.TITLE_BAR_H,
+                MultiAppWindowState.MIN_H + MultiAppWindowState.titleBarHeight(),
                 Math.min(availH, height)
         );
 

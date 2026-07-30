@@ -1,9 +1,11 @@
 package com.yiyi.cloud_phone.multiapp;
 
 public final class MultiAppWindowState {
-    public static final int TITLE_BAR_H = 36;
+    public static final int TITLE_BAR_DP = 36;
     public static final int MIN_W = 240;
     public static final int MIN_H = 320;
+
+    private static int titleBarPx = TITLE_BAR_DP;
 
     public final String id;
     public final String packageName;
@@ -55,11 +57,19 @@ public final class MultiAppWindowState {
         this.zIndex = zIndex;
     }
 
+    public static void configureTitleBarPx(int px) {
+        titleBarPx = Math.max(1, px);
+    }
+
+    public static int titleBarHeight() {
+        return titleBarPx;
+    }
+
     public int contentWidth() {
         return Math.max(1, width);
     }
 
     public int contentHeight() {
-        return Math.max(1, height - TITLE_BAR_H);
+        return Math.max(1, height - titleBarPx);
     }
 }

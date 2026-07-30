@@ -3,7 +3,9 @@ package com.yiyi.cloud_phone.multiapp;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewParent;
 
+/** Title-bar drag; keeps gesture state even when the finger leaves the title. */
 final class MultiAppTitleDragListener implements View.OnTouchListener {
     interface Host {
         void onFocus();
@@ -16,6 +18,7 @@ final class MultiAppTitleDragListener implements View.OnTouchListener {
     private final MultiAppWindowState win;
     private final Host host;
     private final GestureDetector gestureDetector;
+    private boolean dragging;
     private float startX;
     private float startY;
     private int origX;
@@ -42,18 +45,35 @@ final class MultiAppTitleDragListener implements View.OnTouchListener {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 host.onFocus();
+                dragging = true;
                 startX = event.getRawX();
                 startY = event.getRawY();
                 origX = win.x;
                 origY = win.y;
+                disallowParentIntercept(v, true);
                 return true;
             case MotionEvent.ACTION_MOVE:
+                if (!dragging) {
+                    return false;
+                }
                 int dx = Math.round(event.getRawX() - startX);
                 int dy = Math.round(event.getRawY() - startY);
                 host.onMove(origX + dx, origY + dy);
                 return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                dragging = false;
+                disallowParentIntercept(v, false);
+                return true;
             default:
                 return false;
+        }
+    }
+
+    private static void disallowParentIntercept(View v, boolean disallow) {
+        ViewParent parent = v.getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(disallow);
         }
     }
 }

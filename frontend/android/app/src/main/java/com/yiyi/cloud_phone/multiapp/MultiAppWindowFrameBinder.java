@@ -37,14 +37,47 @@ final class MultiAppWindowFrameBinder {
 
     static View inflate(AppCompatActivity activity, FrameLayout desktopCanvas, MultiAppWindowState win, Host host) {
         View frame = LayoutInflater.from(activity).inflate(R.layout.view_multi_app_window, desktopCanvas, false);
-        bind(frame, win, host, desktopCanvas.getWidth(), desktopCanvas.getHeight());
+        bindChrome(frame, win, host);
+        refresh(frame, win, host);
         return frame;
     }
 
-    static void bind(View frame, MultiAppWindowState win, Host host, int canvasW, int canvasH) {
+    /** Update title/icons/layout/edge visibility without recreating touch listeners. */
+    static void refresh(View frame, MultiAppWindowState win, Host host) {
         TextView title = frame.findViewById(R.id.windowTitle);
-        title.setText(win.label);
+        if (title != null) {
+            title.setText(win.label);
+        }
         bindIcons(frame, win);
+        setResizeEdgesVisible(frame, !win.maximized);
+        host.applyLayout(frame, win);
+    }
+
+    static void bindIcons(View frame, MultiAppWindowState win) {
+        ImageView icon = frame.findViewById(R.id.windowIcon);
+        TextView initial = frame.findViewById(R.id.windowIconInitial);
+        MultiAppIconUtil.bindIcon(icon, initial, win.label, win.iconDataUrl);
+    }
+
+    static void setupTouch(View target, MultiAppWindowCastSession session) {
+        target.setOnTouchListener((v, event) -> {
+            int action;
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                action = ScrcpyControlWire.MOTION_DOWN;
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                action = ScrcpyControlWire.MOTION_UP;
+            } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                action = ScrcpyControlWire.MOTION_MOVE;
+            } else {
+                return false;
+            }
+            session.sendTouch(action, event.getX(), event.getY(), v.getWidth(), v.getHeight());
+            return true;
+        });
+    }
+
+    private static void bindChrome(View frame, MultiAppWindowState win, Host host) {
         frame.findViewById(R.id.buttonWindowBack).setOnClickListener(v -> host.onBack(win.id));
         frame.findViewById(R.id.buttonWindowMinimize).setOnClickListener(v -> host.onMinimize(win.id));
         frame.findViewById(R.id.buttonWindowMaximize).setOnClickListener(v -> host.onMaximize(win.id));
@@ -75,30 +108,20 @@ final class MultiAppWindowFrameBinder {
         bindResizeEdge(frame, win, host, R.id.resizeSE, "se");
         bindResizeEdge(frame, win, host, R.id.resizeSW, "sw");
         frame.setOnClickListener(v -> host.onFocus(win.id));
-        host.applyLayout(frame, win);
     }
 
-    static void bindIcons(View frame, MultiAppWindowState win) {
-        ImageView icon = frame.findViewById(R.id.windowIcon);
-        TextView initial = frame.findViewById(R.id.windowIconInitial);
-        MultiAppIconUtil.bindIcon(icon, initial, win.label, win.iconDataUrl);
-    }
-
-    static void setupTouch(View target, MultiAppWindowCastSession session) {
-        target.setOnTouchListener((v, event) -> {
-            int action;
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                action = ScrcpyControlWire.MOTION_DOWN;
-            } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                action = ScrcpyControlWire.MOTION_UP;
-            } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                action = ScrcpyControlWire.MOTION_MOVE;
-            } else {
-                return false;
+    private static void setResizeEdgesVisible(View frame, boolean visible) {
+        int visibility = visible ? View.VISIBLE : View.GONE;
+        int[] ids = {
+                R.id.resizeN, R.id.resizeS, R.id.resizeE, R.id.resizeW,
+                R.id.resizeNE, R.id.resizeNW, R.id.resizeSE, R.id.resizeSW
+        };
+        for (int id : ids) {
+            View handle = frame.findViewById(id);
+            if (handle != null) {
+                handle.setVisibility(visibility);
             }
-            session.sendTouch(action, event.getX(), event.getY(), v.getWidth(), v.getHeight());
-            return true;
-        });
+        }
     }
 
     private static void bindResizeEdge(View frame, MultiAppWindowState win, Host host, int id, String edge) {

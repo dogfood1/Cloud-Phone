@@ -96,10 +96,14 @@ public final class MultiAppWindowManager {
         if (win == null) {
             return;
         }
+        boolean wasMinimized = win.minimized;
         win.zIndex = ++zCounter;
         win.minimized = false;
         focusedId = id;
-        notifyChanged();
+        // Avoid rebinding chrome mid-drag; only rebuild when restoring a minimized window.
+        if (wasMinimized) {
+            notifyChanged();
+        }
         notifyFocus(id);
     }
 
@@ -152,7 +156,7 @@ public final class MultiAppWindowManager {
         win.x = 0;
         win.y = 0;
         win.width = Math.max(MultiAppWindowState.MIN_W, canvasW);
-        win.height = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.TITLE_BAR_H, canvasH);
+        win.height = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.titleBarHeight(), canvasH);
         syncVdSize(win);
         notifyChanged();
     }
@@ -179,12 +183,24 @@ public final class MultiAppWindowManager {
         if (win == null || win.maximized) {
             return;
         }
-        win.x = Math.max(0, x);
-        win.y = Math.max(0, y);
+        win.x = x;
+        win.y = y;
         win.width = Math.max(MultiAppWindowState.MIN_W, width);
-        win.height = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.TITLE_BAR_H, height);
+        win.height = Math.max(MultiAppWindowState.MIN_H + MultiAppWindowState.titleBarHeight(), height);
         syncVdSize(win);
-        notifyChanged();
+        // Do not notifyChanged() — callers apply layout directly so touch listeners stay alive.
+    }
+
+    void clampToCanvas(String id, int canvasW, int canvasH) {
+        MultiAppWindowState win = find(id);
+        if (win == null || win.maximized || canvasW <= 0 || canvasH <= 0) {
+            return;
+        }
+        int title = MultiAppWindowState.titleBarHeight();
+        // Keep at least the title bar on-screen so the window can still be dragged back.
+        int minVisible = Math.min(title, win.height);
+        win.x = Math.max(-(win.width - minVisible), Math.min(win.x, canvasW - minVisible));
+        win.y = Math.max(0, Math.min(win.y, canvasH - minVisible));
     }
 
     void setOrientation(String id, String orientation) {

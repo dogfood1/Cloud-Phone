@@ -66,6 +66,8 @@ final class MultiAppDesktopController implements MultiAppWindowManager.Listener,
     void bind(View root) {
         desktopCanvas = root.findViewById(R.id.desktopCanvas);
         taskbarRoot = root.findViewById(R.id.taskbar);
+        float density = activity.getResources().getDisplayMetrics().density;
+        MultiAppWindowState.configureTitleBarPx(Math.round(MultiAppWindowState.TITLE_BAR_DP * density));
         taskbar.bind(taskbarRoot);
         ImageButton back = root.findViewById(R.id.buttonDesktopBack);
         if (back != null) {
@@ -200,7 +202,7 @@ final class MultiAppDesktopController implements MultiAppWindowManager.Listener,
                 windowViews.put(win.id, frame);
                 ensureCastSession(win);
             } else {
-                MultiAppWindowFrameBinder.bind(frame, win, frameHost, desktopCanvas.getWidth(), desktopCanvas.getHeight());
+                MultiAppWindowFrameBinder.refresh(frame, win, frameHost);
             }
         }
         for (String id : windowViews.keySet().toArray(new String[0])) {
@@ -242,11 +244,13 @@ final class MultiAppDesktopController implements MultiAppWindowManager.Listener,
         @Override
         public void onResize(String id, int x, int y, int width, int height) {
             windowManager.updateBounds(id, x, y, width, height);
+            windowManager.clampToCanvas(id, desktopCanvas.getWidth(), desktopCanvas.getHeight());
             MultiAppWindowState win = windowManager.find(id);
             View view = windowViews.get(id);
             if (win != null && view != null) {
                 applyWindowLayout(view, win);
             }
+            scheduleVdResize(id);
         }
 
         @Override
@@ -256,6 +260,7 @@ final class MultiAppDesktopController implements MultiAppWindowManager.Listener,
                 return;
             }
             windowManager.updateBounds(id, x, y, win.width, win.height);
+            windowManager.clampToCanvas(id, desktopCanvas.getWidth(), desktopCanvas.getHeight());
             View view = windowViews.get(id);
             if (view != null) {
                 applyWindowLayout(view, win);
@@ -287,7 +292,16 @@ final class MultiAppDesktopController implements MultiAppWindowManager.Listener,
         frame.setLayoutParams(lp);
         frame.setElevation(win.zIndex + (win.id.equals(windowManager.focusedId()) ? 8 : 0));
         applyWindowChrome(frame, win);
-        MultiAppWindowFrameBinder.bindIcons(frame, win);
+    }
+
+    private void scheduleVdResize(String id) {
+        MultiAppWindowState win = windowManager.find(id);
+        WindowBundle bundle = bundles.get(id);
+        if (win == null || bundle == null || bundle.resizeScheduler == null || bundle.cast == null
+                || !bundle.cast.isReady()) {
+            return;
+        }
+        bundle.resizeScheduler.schedule(win.contentWidth(), win.contentHeight());
     }
 
     private void applyWindowChrome(View frame, MultiAppWindowState win) {

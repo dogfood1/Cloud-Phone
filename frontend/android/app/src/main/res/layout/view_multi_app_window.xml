@@ -120,49 +120,49 @@
     <View
         android:id="@+id/resizeN"
         android:layout_width="match_parent"
-        android:layout_height="6dp"
+        android:layout_height="10dp"
         android:layout_gravity="top" />
 
     <View
         android:id="@+id/resizeS"
         android:layout_width="match_parent"
-        android:layout_height="6dp"
+        android:layout_height="10dp"
         android:layout_gravity="bottom" />
 
     <View
         android:id="@+id/resizeE"
-        android:layout_width="6dp"
+        android:layout_width="10dp"
         android:layout_height="match_parent"
         android:layout_gravity="end" />
 
     <View
         android:id="@+id/resizeW"
-        android:layout_width="6dp"
+        android:layout_width="10dp"
         android:layout_height="match_parent"
         android:layout_gravity="start" />
 
     <View
         android:id="@+id/resizeNE"
-        android:layout_width="12dp"
-        android:layout_height="12dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_gravity="top|end" />
 
     <View
         android:id="@+id/resizeNW"
-        android:layout_width="12dp"
-        android:layout_height="12dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_gravity="top|start" />
 
     <View
         android:id="@+id/resizeSE"
-        android:layout_width="12dp"
-        android:layout_height="12dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_gravity="bottom|end" />
 
     <View
         android:id="@+id/resizeSW"
-        android:layout_width="12dp"
-        android:layout_height="12dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_gravity="bottom|start" />
 
 </FrameLayout>
