@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.19.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.20.0** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -76,7 +76,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **Auth session**: HttpOnly cookie ~**150 days**; sessions persisted in SQLite (survive backend restart); password change revokes all sessions; silent recover via cookie → remembered password before showing the login UI
 - **Local persistence**: theme, locale, settings, activity log, and Icon Helper consent sync via backend SQLite (`/api/local-persistence`)
 - **iOS cast**: WebDriverAgent MJPEG (port 9100) + HTTP touch; place `wda.ipa` in `backend/bin/wda/` for the Windows sign/install wizard, or use Mac `iproxy` + `ios-wda-bridge.mjs` for LAN bridge; browser cast with nav keys
-- **Android companion app**: same backend — device gallery, full Settings page, cast workspace, landscape fullscreen H.264 cast; stream params aligned with web
+- **Android companion app**: same backend — device gallery, full Settings page, cast workspace, **multi-app Win11 desktop** (embedded canvas + fullscreen Activity), landscape fullscreen H.264 cast; stream params aligned with web; workspace stacks vertically in portrait and splits horizontally in landscape
 - **Mobile cast UX**: mirror nav keys / camera torch & zoom; Material motion; auto-hiding chrome; touch mapping with letterboxing
 
 ---
@@ -279,12 +279,14 @@ Settings use a hero header and section icon cards; web and Android share a green
 ### Device workspace
 
 - Tap a card: back, device name, **Files / Apps / Terminal** shortcuts, **Start**
-- **Cast mode:** mirror (default) or camera (Android 12+); HarmonyOS/iOS devices use JPEG/MJPEG cast
+- **Cast mode:** mirror (default), **multi-app**, or camera (Android 12+); HarmonyOS/iOS devices use JPEG/MJPEG cast
+- **Responsive layout:** portrait stacks settings above the canvas; landscape splits settings left / canvas right; rotation adapts without dropping the cast session
 - **Tabbed parameters** (same shape as the web left panel, persisted per device serial):
   - Mirror: video, audio, device, screen (virtual display presets, `__main__`/`__custom__`, suggested DPI, `start_app` package)
   - Camera: camera, video, audio (`audioCode`, buffer fields, stream extras aligned with web)
 - Changes auto-save when you leave the page
-- **Right cast canvas:** **Start** casts inline in the workspace (settings left, canvas right); connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
+- **Cast canvas:** **Start** casts inline in the workspace; connection logs during startup (adb push / forward / shell / WebSocket), auto-hidden after the first frame
+- **Multi-app mode:** embedded Win11-style desktop (centered taskbar, Start menu, draggable windows, per-window virtual display); Start menu opens a dedicated fullscreen desktop Activity and **Exit fullscreen** returns; Quick Settings / clock-notifications pop up above the taskbar
 - **Cast toolbar:** docked below the device name when not fullscreen; floating bar at the bottom in fullscreen
 - **Fullscreen** can reuse the active session without calling `cast/start` again
 
@@ -324,6 +326,7 @@ The phone must reach the backend on your LAN. Cleartext HTTP is allowed for loca
 | Add device (USB / pair / QR) | Yes | Yes |
 | Group control / activity log | Yes | Yes |
 | Cast settings workspace | Yes | Yes |
+| Multi-app Win11 desktop | Yes | Yes |
 | Fullscreen cast + touch / toolbar | Yes | Yes |
 | File explorer | Yes | Yes |
 | App manager | Yes | Yes |

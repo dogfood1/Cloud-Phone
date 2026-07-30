@@ -63,4 +63,8 @@ public final class CastPayloadBuilder {
         payload.put("audio", !audio.optBoolean("disabled", false));
         return payload;
     }
+
+    public static byte[] streamParamsFromPayload(JSONObject payload) {
+        return CastVideoSettingsWire.changeStreamParametersFromPayload(payload);
+    }
 }

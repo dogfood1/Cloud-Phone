@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.19.2** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.20.0** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -78,7 +78,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
 | **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；**每设备一个 scrcpy-server**，每窗独立 WebSocket / 虚拟屏 + `start_app`（对齐原版 `--new-display`）；编码 **60fps/8Mbps**；CSD 出码 + 前端 SPS/PPS 内联保证 WebCodecs 出画；关窗时 `am force-stop` 杀掉应用进程；拉伸/最大化同步虚拟屏尺寸；开始菜单底部可「全屏 / 取消全屏」（浏览器原生全屏）；设备上线预热包名/图标到浏览器缓存；开始菜单与应用管理优先读缓存；Icon Helper / 快速设置 / 通知中心 |
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |
-| **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、横屏全屏 H.264 投屏；流参数与 Web 对齐 |
+| **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、**多应用 Win11 桌面**（嵌入画布 + 全屏 Activity）、横屏全屏 H.264 投屏；流参数与 Web 对齐；工作区竖屏上下 / 横屏左右自适应 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |
 
 ---
@@ -273,12 +273,14 @@ images/readme/
 ### 设备工作区
 
 - 点击设备卡片进入：顶部返回、设备名、**文件 / 应用 / 终端** 快捷入口、**开始** 按钮
-- **投屏模式**：镜像（默认）/ 摄像头（Android 12+）；鸿蒙/iOS 设备使用 JPEG/MJPEG 投屏
+- **投屏模式**：镜像（默认）/ **多应用** / 摄像头（Android 12+）；鸿蒙/iOS 设备使用 JPEG/MJPEG 投屏
+- **布局自适应**：竖屏为上设置、下画布；横屏为左设置、右画布；旋转时自动切换且不中断投屏
 - **多标签参数**（与 Web 工作区左侧面板同结构，按设备序列号持久化）：
   - 镜像：视频、音频、设备、屏幕（含虚拟屏预设 Desktop/Mac/iPad 等、`__main__`/`__custom__`、DPI 建议、`start_app` 包名）
   - 摄像头：摄像头、视频、音频（含 `audioCode`、`bufferMs` 等，流 extra 与 Web 对齐）
 - 修改参数在离开页面时自动保存
-- **右侧投屏画布**：点击 **开始** 在工作区内联投屏（左 44% 设置 / 右 56% 画布）；启动阶段显示连接日志（含后端 adb push / forward / shell 与前端 WebSocket 步骤），首帧出现后自动隐藏
+- **右侧/下方投屏画布**：点击 **开始** 在工作区内联投屏；启动阶段显示连接日志（含后端 adb push / forward / shell 与前端 WebSocket 步骤），首帧出现后自动隐藏
+- **多应用模式**：工作区嵌入 Win11 风格桌面（任务栏居中、开始菜单、可拖拽窗口、每窗独立虚拟屏）；开始菜单可进入独立全屏桌面 Activity，再「取消全屏」返回；快速设置 / 时钟通知从任务栏向上弹出
 - **投屏工具栏**：非全屏时位于设备名下方全宽横条；全屏时底部悬浮
 - **全屏** 按钮可携带当前会话进入横屏全屏，无需重复启动后端
 
@@ -318,6 +320,7 @@ cd frontend/android
 | 添加设备（USB/配对/二维码） | ✅ | ✅ |
 | 群控 / 活动日志 | ✅ | ✅ |
 | 投屏参数工作区 | ✅ | ✅ |
+| 多应用 Win11 桌面 | ✅ | ✅ |
 | 全屏投屏 + 触控/工具栏 | ✅ | ✅ |
 | 文件管理 | ✅ | ✅ |
 | 应用管理 | ✅ | ✅ |

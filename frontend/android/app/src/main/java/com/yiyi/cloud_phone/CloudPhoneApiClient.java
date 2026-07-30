@@ -211,6 +211,41 @@ public final class CloudPhoneApiClient {
                 new JSONObject());
     }
 
+    public static JSONObject listLauncherApps(
+            Context context, String host, int port, String serial, boolean light, boolean packageNamesOnly
+    ) throws Exception {
+        String query = "?light=" + (light ? "1" : "0") + "&packageNamesOnly=" + (packageNamesOnly ? "1" : "0");
+        return requestProtectedJson(context, host, port, "/api/devices/" + encSerial(serial) + "/launcher-apps" + query, "GET");
+    }
+
+    public static String fetchAppOrientation(Context context, String host, int port, String serial, String pkg) throws Exception {
+        JSONObject result = requestProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "/orientation",
+                "GET");
+        return "landscape".equals(result.optString("orientation", "")) ? "landscape" : "portrait";
+    }
+
+    public static JSONObject getAppRunningState(Context context, String host, int port, String serial, String pkg) throws Exception {
+        return requestProtectedJson(context, host, port,
+                "/api/devices/" + encSerial(serial) + "/apps/" + Uri.encode(pkg, StandardCharsets.UTF_8.name()) + "/running",
+                "GET");
+    }
+
+    public static JSONObject getQuickSettings(Context context, String host, int port, String serial) throws Exception {
+        return requestProtectedJson(context, host, port, "/api/devices/" + encSerial(serial) + "/quick-settings", "GET");
+    }
+
+    public static JSONObject patchQuickSettings(
+            Context context, String host, int port, String serial, JSONObject patch
+    ) throws Exception {
+        return postProtectedJson(context, host, port, "/api/devices/" + encSerial(serial) + "/quick-settings", patch);
+    }
+
+    public static JSONObject getNotifications(Context context, String host, int port, String serial, boolean light) throws Exception {
+        String query = light ? "?light=1" : "";
+        return requestProtectedJson(context, host, port, "/api/devices/" + encSerial(serial) + "/notifications" + query, "GET");
+    }
+
     // ---- iOS device management ----
 
     public static JSONObject discoverIosDevices(Context context, String host, int port) throws Exception {

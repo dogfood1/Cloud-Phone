@@ -3,10 +3,10 @@ package com.yiyi.cloud_phone.workspace;
 import java.util.ArrayList;
 import java.util.List;
 
-final class CastOptionLists {
-    static final class Option {
-        final String value;
-        final String label;
+public final class CastOptionLists {
+    public static final class Option {
+        public final String value;
+        public final String label;
 
         Option(String value, String label) {
             this.value = value;
@@ -17,9 +17,10 @@ final class CastOptionLists {
     private CastOptionLists() {
     }
 
-    static List<Option> castModes() {
+    public static List<Option> castModes() {
         List<Option> items = new ArrayList<>();
         items.add(new Option(CastMode.MIRROR.id, "镜像投屏"));
+        items.add(new Option(CastMode.MULTI_APP.id, "多应用投屏"));
         items.add(new Option(CastMode.CAMERA.id, "摄像头"));
         return items;
     }

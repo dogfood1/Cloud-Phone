@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/deviceWorkspaceRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/auth_background">
@@ -68,7 +69,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/workspace_open_files"
-            android:scaleType="center" />
+            android:scaleType="center"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/buttonWorkspaceApps"
@@ -76,7 +78,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/workspace_open_apps"
-            android:scaleType="center" />
+            android:scaleType="center"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/buttonWorkspaceTerminal"
@@ -84,7 +87,19 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/workspace_open_terminal"
-            android:scaleType="center" />
+            android:scaleType="center"
+            android:visibility="gone" />
+
+        <AutoCompleteTextView
+            android:id="@+id/inputCastModeHeader"
+            android:layout_width="132dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@android:color/transparent"
+            android:hint="@string/workspace_cast_mode"
+            android:inputType="none"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonStartCast"
@@ -105,21 +120,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerBar" />
 
+    <!-- Default: portrait horizontal guideline (vertical stack). Landscape overrides via code/layout-land. -->
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineSplit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.44" />
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.48" />
 
     <LinearLayout
         android:id="@+id/leftPane"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:orientation="vertical"
-        android:paddingBottom="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/guidelineSplit"
+        android:paddingBottom="4dp"
+        app:layout_constraintBottom_toTopOf="@id/guidelineSplit"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/castToolbarDock">
 
@@ -140,6 +156,18 @@
                 android:inputType="none"
                 android:textSize="14sp" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/textMultiAppHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="12dp"
+            android:text="@string/multi_app_workspace_hint"
+            android:textColor="@color/auth_text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/settingsTabs"
@@ -164,7 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="12dp"
-            android:paddingTop="6dp"
+            android:paddingTop="4dp"
             android:paddingEnd="12dp"
             android:paddingBottom="4dp"
             android:text="@string/workspace_settings_hint"
@@ -176,14 +204,21 @@
         android:id="@+id/castViewportHost"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
         android:background="@color/auth_preview_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/guidelineSplit"
-        app:layout_constraintTop_toBottomOf="@id/castToolbarDock">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/guidelineSplit">
 
-        <include layout="@layout/include_cast_viewport" />
+        <include
+            android:id="@+id/castViewportRoot"
+            layout="@layout/include_cast_viewport" />
+
+        <include layout="@layout/include_multi_app_desktop_embed" />
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

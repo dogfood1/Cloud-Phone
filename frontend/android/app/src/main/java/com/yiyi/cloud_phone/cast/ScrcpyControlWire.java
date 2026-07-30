@@ -12,6 +12,7 @@ public final class ScrcpyControlWire {
     private static final int TYPE_INJECT_TOUCH = 2;
     private static final int TYPE_SET_SCREEN_POWER = 10;
     private static final int TYPE_ROTATE_DEVICE = 11;
+    private static final int TYPE_RESIZE_DISPLAY = 21;
 
     private static final int KEY_HOME = 3;
     private static final int KEY_BACK = 4;
@@ -92,6 +93,16 @@ public final class ScrcpyControlWire {
 
     public static byte[] rotateDevice() {
         return new byte[] { (byte) TYPE_ROTATE_DEVICE };
+    }
+
+    public static byte[] resizeDisplay(int width, int height) {
+        int w = Math.max(1, Math.min(0xffff, Math.round(width)));
+        int h = Math.max(1, Math.min(0xffff, Math.round(height)));
+        ByteBuffer buffer = ByteBuffer.allocate(5).order(ByteOrder.BIG_ENDIAN);
+        buffer.put((byte) TYPE_RESIZE_DISPLAY);
+        buffer.putShort((short) w);
+        buffer.putShort((short) h);
+        return buffer.array();
     }
 
     private static byte[] injectKeycode(int action, int keycode) {

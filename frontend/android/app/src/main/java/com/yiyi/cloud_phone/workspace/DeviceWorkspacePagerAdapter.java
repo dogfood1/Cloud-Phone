@@ -32,6 +32,11 @@ public final class DeviceWorkspacePagerAdapter extends FragmentStateAdapter {
         notifyDataSetChanged();
     }
 
+    public void setEmptyTabs() {
+        tabs.clear();
+        notifyDataSetChanged();
+    }
+
     public String tabTitle(int position) {
         return tabs.get(position).title;
     }

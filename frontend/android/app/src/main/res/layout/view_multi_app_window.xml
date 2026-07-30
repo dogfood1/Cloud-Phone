@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_win11_window"
+    android:elevation="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/windowTitleBar"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:background="#F3F3F3"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="0dp">
+
+            <ImageButton
+                android:id="@+id/buttonWindowBack"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_taskbar_btn"
+                android:contentDescription="@string/cast_action_back"
+                android:padding="4dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_win11_back" />
+
+            <FrameLayout
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="6dp">
+
+                <ImageView
+                    android:id="@+id/windowIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:background="@drawable/bg_win11_app_icon"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/windowIconInitial"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:background="@drawable/bg_win11_app_icon"
+                    android:gravity="center"
+                    android:textColor="#444444"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/windowTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1F1F1F"
+                android:textSize="12sp" />
+
+            <ImageButton
+                android:id="@+id/buttonWindowMinimize"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_taskbar_btn"
+                android:contentDescription="@string/multi_app_minimize"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_win11_minimize" />
+
+            <ImageButton
+                android:id="@+id/buttonWindowMaximize"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_taskbar_btn"
+                android:contentDescription="@string/multi_app_maximize"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_win11_maximize" />
+
+            <ImageButton
+                android:id="@+id/buttonWindowClose"
+                android:layout_width="40dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_win11_close_btn"
+                android:contentDescription="@string/common_close"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_win11_close" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/windowContent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#111111">
+
+            <TextureView
+                android:id="@+id/windowTexture"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <TextView
+                android:id="@+id/windowStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/resizeN"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_gravity="top" />
+
+    <View
+        android:id="@+id/resizeS"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_gravity="bottom" />
+
+    <View
+        android:id="@+id/resizeE"
+        android:layout_width="6dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end" />
+
+    <View
+        android:id="@+id/resizeW"
+        android:layout_width="6dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start" />
+
+    <View
+        android:id="@+id/resizeNE"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|end" />
+
+    <View
+        android:id="@+id/resizeNW"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|start" />
+
+    <View
+        android:id="@+id/resizeSE"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="bottom|end" />
+
+    <View
+        android:id="@+id/resizeSW"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="bottom|start" />
+
+</FrameLayout>

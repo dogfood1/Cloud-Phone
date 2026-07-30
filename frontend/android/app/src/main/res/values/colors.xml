@@ -17,4 +17,10 @@
     <color name="m3_surface_container">#FFFFFF</color>
     <color name="m3_surface_container_high">#F8FAFC</color>
     <color name="m3_nav_indicator">#E8F7EE</color>
+    <color name="win11_text">#1F1F1F</color>
+    <color name="win11_titlebar_idle">#F3F3F3</color>
+    <color name="win11_titlebar_focused">#E8F1FB</color>
+    <color name="win11_accent">#0078D4</color>
+    <color name="win11_accent_dark">#005FB8</color>
+    <color name="win11_window_body">#111111</color>
 </resources>

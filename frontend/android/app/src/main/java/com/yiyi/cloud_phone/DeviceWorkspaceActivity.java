@@ -6,6 +6,8 @@ import android.content.Context;
 
 import android.content.Intent;
 
+import android.content.res.Configuration;
+
 import android.os.Bundle;
 
 import android.view.View;
@@ -20,11 +22,15 @@ import android.widget.TextView;
 
 import android.widget.Toast;
 
-
-
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.constraintlayout.widget.Guideline;
 
 import androidx.core.view.WindowCompat;
 
@@ -44,8 +50,11 @@ import com.yiyi.cloud_phone.cast.CastViewportController;
 import com.yiyi.cloud_phone.files.DeviceFileExplorerActivity;
 import com.yiyi.cloud_phone.terminal.DeviceTerminalActivity;
 
+import com.yiyi.cloud_phone.multiapp.MultiAppDesktopActivity;
+import com.yiyi.cloud_phone.multiapp.MultiAppDesktopEmbed;
 import com.yiyi.cloud_phone.workspace.CastMode;
 
+import com.yiyi.cloud_phone.workspace.CastOptionLists;
 import com.yiyi.cloud_phone.workspace.CastSettingsStore;
 
 import com.yiyi.cloud_phone.workspace.DeviceWorkspaceHost;
@@ -98,15 +107,27 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
     private AutoCompleteTextView inputCastMode;
 
+    private AutoCompleteTextView inputCastModeHeader;
+
     private TextView textHint;
 
     private MaterialButton buttonStartCast;
 
     private View castToolbarDock;
 
+    private View castViewportHost;
+
     private final CastViewportController castViewport = new CastViewportController();
 
     private boolean castActive;
+
+    private View castViewportRoot;
+
+    private View leftPane;
+
+    private MultiAppDesktopEmbed multiAppDesktop;
+
+    private ActivityResultLauncher<Intent> multiAppFullscreenLauncher;
 
 
 
@@ -145,6 +166,27 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
 
         readIntentExtras();
+
+        multiAppFullscreenLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == MultiAppDesktopActivity.RESULT_SWITCH_MIRROR) {
+                        setCastMode(CastMode.MIRROR);
+                        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
+                        String label = castModeLabel(modes, CastMode.MIRROR);
+                        if (inputCastMode != null) {
+                            inputCastMode.setText(label, false);
+                        }
+                        if (inputCastModeHeader != null) {
+                            inputCastModeHeader.setText(label, false);
+                        }
+                        return;
+                    }
+                    if (castMode == CastMode.MULTI_APP && deviceConnected && multiAppDesktop != null) {
+                        multiAppDesktop.show();
+                    }
+                }
+        );
 
         mirrorSettings = CastSettingsStore.loadMirror(this, deviceSerial);
 
@@ -231,7 +273,35 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         castToolbarDock = findViewById(R.id.castToolbarDock);
 
-        castViewport.bind(findViewById(R.id.castViewportRoot), new CastViewportController.Host() {
+        castViewportHost = findViewById(R.id.castViewportHost);
+
+        castViewportRoot = findViewById(R.id.castViewportRoot);
+
+        leftPane = findViewById(R.id.leftPane);
+
+        multiAppDesktop = new MultiAppDesktopEmbed(this, deviceSerial, deviceSdk, new MultiAppDesktopEmbed.Callback() {
+            @Override
+            public void onSwitchMirror() {
+                setCastMode(CastMode.MIRROR);
+                java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
+                String label = castModeLabel(modes, CastMode.MIRROR);
+                if (inputCastMode != null) {
+                    inputCastMode.setText(label, false);
+                }
+                if (inputCastModeHeader != null) {
+                    inputCastModeHeader.setText(label, false);
+                }
+            }
+
+            @Override
+            public void onOpenFullscreen() {
+                openMultiAppFullscreen();
+            }
+        });
+
+        multiAppDesktop.attach(findViewById(R.id.multiAppRoot));
+
+        castViewport.bind(castViewportRoot, new CastViewportController.Host() {
 
             @Override
 
@@ -359,6 +429,20 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
 
 
+    private void openMultiAppFullscreen() {
+        if (!deviceConnected) {
+            Toast.makeText(this, R.string.workspace_offline_hint, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(this, MultiAppDesktopActivity.class);
+        intent.putExtra(MultiAppDesktopActivity.EXTRA_SERIAL, deviceSerial);
+        intent.putExtra(MultiAppDesktopActivity.EXTRA_DISPLAY_NAME, deviceDisplayName);
+        intent.putExtra(MultiAppDesktopActivity.EXTRA_SDK, deviceSdk);
+        multiAppFullscreenLauncher.launch(intent);
+    }
+
+
+
     private void readIntentExtras() {
 
         Intent intent = getIntent();
@@ -395,7 +479,17 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         inputCastMode = findViewById(R.id.inputCastMode);
 
-        String[] labels = new String[] { "镜像投屏", "摄像头" };
+        inputCastModeHeader = findViewById(R.id.inputCastModeHeader);
+
+        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
+
+        java.util.List<String> labels = new java.util.ArrayList<>();
+
+        for (CastOptionLists.Option option : modes) {
+
+            labels.add(option.label);
+
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
 
@@ -407,13 +501,39 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         );
 
-        inputCastMode.setAdapter(adapter);
+        bindCastModeDropdown(inputCastMode, adapter, modes);
 
-        inputCastMode.setText(castMode == CastMode.CAMERA ? labels[1] : labels[0], false);
+        bindCastModeDropdown(inputCastModeHeader, adapter, modes);
 
-        inputCastMode.setOnItemClickListener((parent, view, position, id) -> {
+        applyMultiAppModeLayout();
 
-            CastMode next = position == 1 ? CastMode.CAMERA : CastMode.MIRROR;
+    }
+
+
+
+    private void bindCastModeDropdown(
+
+            AutoCompleteTextView view,
+
+            ArrayAdapter<String> adapter,
+
+            java.util.List<CastOptionLists.Option> modes
+
+    ) {
+
+        if (view == null) {
+
+            return;
+
+        }
+
+        view.setAdapter(adapter);
+
+        view.setText(castModeLabel(modes, castMode), false);
+
+        view.setOnItemClickListener((parent, itemView, position, id) -> {
+
+            CastMode next = castModeAt(modes, position);
 
             if (next != castMode) {
 
@@ -425,6 +545,212 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         });
 
+    }
+
+
+
+    private static String castModeLabel(java.util.List<CastOptionLists.Option> modes, CastMode mode) {
+
+        for (CastOptionLists.Option option : modes) {
+
+            if (option.value.equals(mode.id)) {
+
+                return option.label;
+
+            }
+
+        }
+
+        return modes.isEmpty() ? "" : modes.get(0).label;
+
+    }
+
+
+
+    private static CastMode castModeAt(java.util.List<CastOptionLists.Option> modes, int position) {
+
+        if (position < 0 || position >= modes.size()) {
+
+            return CastMode.MIRROR;
+
+        }
+
+        return CastMode.fromId(modes.get(position).value);
+
+    }
+
+
+
+    private void applyMultiAppModeLayout() {
+
+        boolean multiApp = castMode == CastMode.MULTI_APP;
+
+        View tabs = findViewById(R.id.settingsTabs);
+
+        View pager = findViewById(R.id.settingsPager);
+
+        View hint = findViewById(R.id.textMultiAppHint);
+
+        View layoutCastMode = findViewById(R.id.layoutCastMode);
+
+        int visibility = multiApp ? View.GONE : View.VISIBLE;
+
+        if (tabs != null) {
+
+            tabs.setVisibility(visibility);
+
+        }
+
+        if (pager != null) {
+
+            pager.setVisibility(visibility);
+
+        }
+
+        if (hint != null) {
+
+            hint.setVisibility(View.GONE);
+
+        }
+
+        if (layoutCastMode != null) {
+
+            layoutCastMode.setVisibility(visibility);
+
+        }
+
+        if (textHint != null) {
+
+            textHint.setVisibility(multiApp ? View.GONE : View.VISIBLE);
+
+            if (!multiApp) {
+
+                textHint.setText(getString(R.string.workspace_settings_hint));
+
+            }
+
+        }
+
+        if (buttonStartCast != null) {
+
+            buttonStartCast.setVisibility(multiApp ? View.GONE : View.VISIBLE);
+
+        }
+
+        if (inputCastModeHeader != null) {
+
+            inputCastModeHeader.setVisibility(multiApp ? View.VISIBLE : View.GONE);
+
+        }
+
+        if (castToolbarDock != null) {
+
+            castToolbarDock.setVisibility(multiApp ? View.GONE : (castActive ? View.VISIBLE : View.GONE));
+
+        }
+
+        updateMultiAppCanvasLayout(multiApp);
+
+    }
+
+
+
+    private void updateMultiAppCanvasLayout(boolean multiApp) {
+        ConstraintLayout root = findViewById(R.id.deviceWorkspaceRoot);
+        if (root == null) {
+            return;
+        }
+        boolean landscape = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        float density = getResources().getDisplayMetrics().density;
+        int margin = Math.round(8 * density);
+
+        Guideline guideline = findViewById(R.id.guidelineSplit);
+        if (guideline != null) {
+            ConstraintLayout.LayoutParams glp =
+                    (ConstraintLayout.LayoutParams) guideline.getLayoutParams();
+            glp.orientation = landscape
+                    ? ConstraintLayout.LayoutParams.VERTICAL
+                    : ConstraintLayout.LayoutParams.HORIZONTAL;
+            guideline.setLayoutParams(glp);
+            guideline.setGuidelinePercent(landscape ? 0.42f : 0.48f);
+        }
+
+        ConstraintSet set = new ConstraintSet();
+        set.clone(root);
+        set.clear(R.id.leftPane, ConstraintSet.START);
+        set.clear(R.id.leftPane, ConstraintSet.END);
+        set.clear(R.id.leftPane, ConstraintSet.TOP);
+        set.clear(R.id.leftPane, ConstraintSet.BOTTOM);
+        set.clear(R.id.castViewportHost, ConstraintSet.START);
+        set.clear(R.id.castViewportHost, ConstraintSet.END);
+        set.clear(R.id.castViewportHost, ConstraintSet.TOP);
+        set.clear(R.id.castViewportHost, ConstraintSet.BOTTOM);
+
+        if (multiApp) {
+            if (leftPane != null) {
+                leftPane.setVisibility(View.GONE);
+            }
+            set.connect(R.id.castViewportHost, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, margin);
+            set.connect(R.id.castViewportHost, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, margin);
+            set.connect(R.id.castViewportHost, ConstraintSet.TOP, R.id.castToolbarDock, ConstraintSet.BOTTOM, Math.round(4 * density));
+            set.connect(R.id.castViewportHost, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, margin);
+            if (castViewportRoot != null) {
+                castViewportRoot.setVisibility(View.GONE);
+            }
+            if (castViewport.isCasting()) {
+                castViewport.stopCast();
+            }
+            if (multiAppDesktop != null && deviceConnected) {
+                multiAppDesktop.show();
+            }
+            if (castViewportHost != null) {
+                castViewportHost.setBackground(null);
+            }
+        } else {
+            if (leftPane != null) {
+                leftPane.setVisibility(View.VISIBLE);
+            }
+            if (landscape) {
+                set.connect(R.id.leftPane, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                set.connect(R.id.leftPane, ConstraintSet.END, R.id.guidelineSplit, ConstraintSet.START);
+                set.connect(R.id.leftPane, ConstraintSet.TOP, R.id.castToolbarDock, ConstraintSet.BOTTOM);
+                set.connect(R.id.leftPane, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM);
+                set.connect(R.id.castViewportHost, ConstraintSet.START, R.id.guidelineSplit, ConstraintSet.END, 0);
+                set.connect(R.id.castViewportHost, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, margin);
+                set.connect(R.id.castViewportHost, ConstraintSet.TOP, R.id.castToolbarDock, ConstraintSet.BOTTOM, margin);
+                set.connect(R.id.castViewportHost, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, margin);
+            } else {
+                set.connect(R.id.leftPane, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                set.connect(R.id.leftPane, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                set.connect(R.id.leftPane, ConstraintSet.TOP, R.id.castToolbarDock, ConstraintSet.BOTTOM);
+                set.connect(R.id.leftPane, ConstraintSet.BOTTOM, R.id.guidelineSplit, ConstraintSet.TOP);
+                set.connect(R.id.castViewportHost, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, margin);
+                set.connect(R.id.castViewportHost, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, margin);
+                set.connect(R.id.castViewportHost, ConstraintSet.TOP, R.id.guidelineSplit, ConstraintSet.BOTTOM, Math.round(4 * density));
+                set.connect(R.id.castViewportHost, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, margin);
+            }
+            if (castViewportRoot != null) {
+                castViewportRoot.setVisibility(View.VISIBLE);
+            }
+            if (multiAppDesktop != null) {
+                multiAppDesktop.hide();
+            }
+            if (castViewportHost != null) {
+                castViewportHost.setBackgroundColor(getColor(R.color.auth_preview_bg));
+            }
+        }
+        set.constrainWidth(R.id.leftPane, ConstraintSet.MATCH_CONSTRAINT);
+        set.constrainHeight(R.id.leftPane, ConstraintSet.MATCH_CONSTRAINT);
+        set.constrainWidth(R.id.castViewportHost, ConstraintSet.MATCH_CONSTRAINT);
+        set.constrainHeight(R.id.castViewportHost, ConstraintSet.MATCH_CONSTRAINT);
+        set.applyTo(root);
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applyMultiAppModeLayout();
     }
 
 
@@ -449,6 +775,10 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
             pagerAdapter.setCameraTabs();
 
+        } else if (castMode == CastMode.MULTI_APP) {
+
+            pagerAdapter.setEmptyTabs();
+
         } else {
 
             pagerAdapter.setMirrorTabs();
@@ -465,13 +795,19 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         }
 
-        tabMediator = new TabLayoutMediator(tabs, pager, (tab, position) -> {
+        if (pagerAdapter.getItemCount() > 0) {
 
-            tab.setText(pagerAdapter.tabTitle(position));
+            tabMediator = new TabLayoutMediator(tabs, pager, (tab, position) -> {
 
-        });
+                tab.setText(pagerAdapter.tabTitle(position));
 
-        tabMediator.attach();
+            });
+
+            tabMediator.attach();
+
+        }
+
+        applyMultiAppModeLayout();
 
     }
 
@@ -482,6 +818,14 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
         if (!deviceConnected) {
 
             textHint.setText(R.string.workspace_offline_hint);
+
+            return;
+
+        }
+
+        if (castMode == CastMode.MULTI_APP) {
+
+            textHint.setText(R.string.workspace_multi_app_hint);
 
             return;
 
@@ -551,11 +895,29 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
 
         CastSettingsStore.saveMode(this, deviceSerial, castMode);
 
+        java.util.List<CastOptionLists.Option> modes = CastOptionLists.castModes();
+
+        String label = castModeLabel(modes, castMode);
+
+        if (inputCastMode != null) {
+
+            inputCastMode.setText(label, false);
+
+        }
+
+        if (inputCastModeHeader != null) {
+
+            inputCastModeHeader.setText(label, false);
+
+        }
+
         ViewPager2 pager = findViewById(R.id.settingsPager);
 
         TabLayout tabs = findViewById(R.id.settingsTabs);
 
         applyCastModeTabs(pager, tabs);
+
+        updateHint();
 
     }
 
@@ -668,6 +1030,12 @@ public class DeviceWorkspaceActivity extends AppCompatActivity implements Device
     protected void onDestroy() {
 
         castViewport.release();
+
+        if (multiAppDesktop != null) {
+
+            multiAppDesktop.release();
+
+        }
 
         if (tabMediator != null) {
 

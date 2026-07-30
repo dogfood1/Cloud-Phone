@@ -23,6 +23,7 @@
         <activity
             android:name=".DeviceWorkspaceActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:parentActivityName=".ConsoleActivity" />
         <activity
             android:name=".files.DeviceFileExplorerActivity"
@@ -41,6 +42,13 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.CloudPhone" />
+        <activity
+            android:name=".multiapp.MultiAppDesktopActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="sensorLandscape"
+            android:parentActivityName=".DeviceWorkspaceActivity"
             android:theme="@style/Theme.CloudPhone" />
         <activity
             android:name=".MainActivity"
