@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.20.1** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.20.2** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -70,7 +70,7 @@ Mirror settings panels follow grouping ideas from **escrcpy**, but this repo is 
 - **API security**: HttpOnly session cookie (~**150 days**) persisted in SQLite (survives restart); password change revokes all sessions; on 401 soft-recover cookie → remembered password before login UI; JSON AES-GCM; WebSocket requires a valid session
 - **Device entry**: top-right Add Device modal; Android USB / pair code / QR / **direct connect** (IP + ADB port for ReDroid, emulators, etc.); **HarmonyOS USB/HDC**; **Apple WDA** — Windows USB wizard (sign/install/connect), or Mac `tools/ios-wda-bridge.mjs` for LAN discovery
 - **Termux host**: run the backend on Android via Termux as Linux (`scripts/install-termux.sh`); repo includes `backend/bin/scrcpy/linux/scrcpy-server` (no local Gradle build)
-- **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions
+- **Docker/CI**: `docker-cloud-phone/` — Linux defaults to **host network** (shared host NICs, ADB/mDNS); Mac/Windows use `docker-compose.bridge.yml` overlay; multi-arch images + Actions; commits tagged `#android` skip Docker packaging
 - **HarmonyOS cast**: HDC + uitest agent + JPEG stream; `cast/start` pushes agent and fport, `/cast/ws` starts the JPEG pipe and delivers frames; **scale/quality**; **real-time touch** (ECHO/hdckit `Gestures`); touch coords track display scale, landscape, and preview rotation; agents in `backend/assets/harmony/`
 - **Multi-app cast**: Windows-style desktop; **one scrcpy-server per device**, per-window WebSocket / virtual display + `start_app` (aligned with official `--new-display`); encode **60fps / 8Mbps**; server CSD + client SPS/PPS inlining for reliable WebCodecs paint; closing a window runs `am force-stop` on the package; resize/maximize syncs virtual-display size via `RESIZE_DISPLAY`; Start menu footer **Fullscreen / Exit fullscreen** (native Fullscreen API, same as mirror cast); on device online, prefetch package/icons into browser cache; Start menu and App Manager are cache-first; Icon Helper / Quick Settings / notification center
 - **Auth session**: HttpOnly cookie ~**150 days**; sessions persisted in SQLite (survive backend restart); password change revokes all sessions; silent recover via cookie → remembered password before showing the login UI

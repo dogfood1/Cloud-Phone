@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.20.2 - 2026-07-30
+
+- **CI**：推送到 `main` 时若提交信息包含 `#android`，跳过 Docker 镜像构建与推送；手动 `workflow_dispatch` 仍会打包
+
 ## 1.20.1 - 2026-07-30
 
 - **Android 多应用日期时间对齐 Web**：任务栏时钟用 zh-CN 的 `HH:mm:ss` / `yyyy/M/d`；日历头为 `M月d日, 星期X` + ICU 农历；补全月历网格与节气副标
