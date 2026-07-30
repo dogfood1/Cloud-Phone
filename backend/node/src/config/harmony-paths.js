@@ -201,5 +201,5 @@ export function resolveHdcPath() {
 }
 
 export function pickHarmonyLocalPort() {
-  return 28_000 + Math.floor(Math.random() * 1000);
+  return 19_100 + Math.floor(Math.random() * 5_800);
 }

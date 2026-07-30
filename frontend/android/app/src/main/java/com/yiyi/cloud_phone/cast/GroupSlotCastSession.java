@@ -7,12 +7,7 @@ import android.os.Looper;
 import android.view.Surface;
 import android.view.TextureView;
 
-import com.yiyi.cloud_phone.DeviceCastApi;
-import com.yiyi.cloud_phone.workspace.CastMode;
-import com.yiyi.cloud_phone.workspace.GroupCastOptions;
-
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -31,15 +26,19 @@ public final class GroupSlotCastSession {
         void onUiChanged(String state, String logText, String error, boolean showLogs);
     }
 
+    public interface ControlRelay {
+        void onControlSent(String serial, byte[] payload, int videoWidth, int videoHeight);
+    }
+
     private final Context context;
     private final String serial;
-    private final int deviceSdk;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final AnnexBH264Decoder decoder = new AnnexBH264Decoder();
     private final CastWebSocketSession webSocketSession = new CastWebSocketSession(decoder);
     private final GroupStartupLogBuffer startupLog = new GroupStartupLogBuffer();
     private final AtomicBoolean released = new AtomicBoolean(false);
     private final OkHttpClient httpClient;
+    private final GroupSlotCastBootstrap bootstrap;
 
     private TextureView textureView;
     private UiCallback callback;
@@ -47,25 +46,64 @@ public final class GroupSlotCastSession {
     private boolean started;
     private boolean backendHeld;
     private byte[] streamParams;
-    private int logPollConsumed;
-    private Runnable logPollRunnable;
     private String state = STATE_IDLE;
     private String errorMessage = "";
-    private boolean showLogs;
+    private int videoWidth;
+    private int videoHeight;
+    private ControlRelay controlRelay;
 
     public GroupSlotCastSession(Context context, String serial, int deviceSdk) {
         this.context = context.getApplicationContext();
         this.serial = serial;
-        this.deviceSdk = deviceSdk;
         CookieHandler handler = CookieHandler.getDefault();
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         if (handler instanceof CookieManager) {
             builder.cookieJar(new JavaNetCookieJar((CookieManager) handler));
         }
         httpClient = builder.build();
+        bootstrap = new GroupSlotCastBootstrap(
+                this.context, serial, deviceSdk, mainHandler, released, () -> started,
+                new GroupSlotCastBootstrap.Sink() {
+                    @Override
+                    public void onBackendReady(byte[] params, int logConsumed) {
+                        backendHeld = true;
+                        streamParams = params;
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        appendLog(message);
+                        setState(STATE_ERROR, message);
+                    }
+
+                    @Override
+                    public void appendLog(String message) {
+                        GroupSlotCastSession.this.appendLog(message);
+                    }
+
+                    @Override
+                    public void pushUi() {
+                        GroupSlotCastSession.this.pushUi();
+                    }
+
+                    @Override
+                    public int ingestLogs(JSONArray logs, int from) {
+                        return startupLog.ingest(logs, from);
+                    }
+
+                    @Override
+                    public void maybeConnect() {
+                        GroupSlotCastSession.this.maybeConnect();
+                    }
+                }
+        );
         decoder.setListener(new AnnexBH264Decoder.Listener() {
             @Override
             public void onVideoFrameSize(int width, int height) {
+                mainHandler.post(() -> {
+                    videoWidth = width;
+                    videoHeight = height;
+                });
             }
 
             @Override
@@ -73,7 +111,7 @@ public final class GroupSlotCastSession {
                 mainHandler.post(() -> {
                     if (!STATE_STREAMING.equals(state)) {
                         setState(STATE_STREAMING, "");
-                        hideLogs();
+                        bootstrap.hideLogs();
                         appendLog("视频帧已就绪");
                     }
                 });
@@ -84,6 +122,43 @@ public final class GroupSlotCastSession {
     public void setUiCallback(UiCallback callback) {
         this.callback = callback;
         pushUi();
+    }
+
+    public void setControlRelay(ControlRelay controlRelay) {
+        this.controlRelay = controlRelay;
+    }
+
+    public boolean isStreaming() {
+        return STATE_STREAMING.equals(state);
+    }
+
+    public int getVideoWidth() {
+        return videoWidth > 0 ? videoWidth : decoder.getVideoWidth();
+    }
+
+    public int getVideoHeight() {
+        return videoHeight > 0 ? videoHeight : decoder.getVideoHeight();
+    }
+
+    public void sendTouch(int action, float x, float y, int viewW, int viewH) {
+        int vw = getVideoWidth();
+        int vh = getVideoHeight();
+        if (!isStreaming() || vw <= 0 || vh <= 0 || viewW <= 0 || viewH <= 0) {
+            return;
+        }
+        float mappedX = x / viewW * vw;
+        float mappedY = y / viewH * vh;
+        byte[] payload = ScrcpyControlWire.injectTouch(action, mappedX, mappedY, vw, vh);
+        webSocketSession.sendControl(payload);
+        if (controlRelay != null) {
+            controlRelay.onControlSent(serial, payload, vw, vh);
+        }
+    }
+
+    public void sendControl(byte[] payload) {
+        if (payload != null && isStreaming()) {
+            webSocketSession.sendControl(payload);
+        }
     }
 
     public void bindTexture(TextureView view) {
@@ -139,58 +214,14 @@ public final class GroupSlotCastSession {
             return;
         }
         started = true;
-        showLogs = true;
         startupLog.reset();
         setState(STATE_STARTING, "");
-        appendLog("正在请求后端启动投屏…");
-        GroupCastStartGate.acquire(slot -> new Thread(() -> {
-            try {
-                if (released.get() || !started) {
-                    return;
-                }
-                JSONObject settings = GroupCastOptions.buildSettings();
-                JSONObject payload = CastPayloadBuilder.build(CastMode.MIRROR, settings, deviceSdk);
-                payload.put("audio", false);
-                payload.put("maxSize", GroupCastOptions.TARGET_MAX_SIZE);
-                JSONObject session = DeviceCastApi.startCast(
-                        context,
-                        CastServerConfig.host(context),
-                        CastServerConfig.port(context),
-                        serial,
-                        payload
-                );
-                if (!session.optBoolean("success", false)) {
-                    throw new Exception(session.optString("message", "cast_start_failed"));
-                }
-                backendHeld = true;
-                streamParams = CastPayloadBuilder.streamParamsFromPayload(payload);
-                JSONArray logs = session.optJSONArray("startupLogs");
-                int consumed = logs == null ? 0 : logs.length();
-                mainHandler.post(() -> {
-                    logPollConsumed = startupLog.ingest(logs, 0);
-                    if (logPollConsumed < consumed) {
-                        logPollConsumed = consumed;
-                    }
-                    appendLog("前端：scrcpy 启动成功");
-                    appendLog("正在连接 WebSocket 视频流…");
-                    startLogPolling();
-                    maybeConnect();
-                });
-            } catch (Exception error) {
-                String message = error.getMessage() == null ? "cast_start_failed" : error.getMessage();
-                mainHandler.post(() -> {
-                    appendLog(message);
-                    setState(STATE_ERROR, message);
-                });
-            } finally {
-                slot.release();
-            }
-        }, "group-cast-start").start());
+        bootstrap.requestStart();
     }
 
     public void stop(boolean releaseBackend) {
         started = false;
-        stopLogPolling();
+        bootstrap.stopLogPolling();
         webSocketSession.close();
         streamParams = null;
         if (releaseBackend && backendHeld) {
@@ -202,7 +233,6 @@ public final class GroupSlotCastSession {
                     serial
             );
         }
-        showLogs = false;
         setState(STATE_IDLE, "");
     }
 
@@ -212,6 +242,7 @@ public final class GroupSlotCastSession {
         unbindTexture(textureView);
         decoder.release();
         callback = null;
+        controlRelay = null;
     }
 
     public void sendNavigation(String actionId) {
@@ -240,83 +271,10 @@ public final class GroupSlotCastSession {
         if (!surfaceReady || streamParams == null || !started || released.get()) {
             return;
         }
-        CastConnectCoordinator.openStream(
-                httpClient,
-                webSocketSession,
-                CastServerConfig.host(context),
-                CastServerConfig.port(context),
-                serial,
-                streamParams,
-                new CastConnectCoordinator.Host() {
-                    @Override
-                    public void onBackendStarted(JSONObject sessionPayload, byte[] params) {
-                    }
-
-                    @Override
-                    public void onWebSocketOpen() {
-                        mainHandler.post(() -> appendLog("WebSocket 已连接"));
-                    }
-
-                    @Override
-                    public void onInitialInfo() {
-                        mainHandler.post(() -> appendLog("收到初始流信息"));
-                    }
-
-                    @Override
-                    public void onStreamError(String message) {
-                        mainHandler.post(() -> {
-                            if (!started) {
-                                return;
-                            }
-                            appendLog(message == null ? "stream_error" : message);
-                            setState(STATE_ERROR, message);
-                        });
-                    }
-                }
-        );
-    }
-
-    private void startLogPolling() {
-        stopLogPolling();
-        logPollRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (!started || !showLogs || released.get()) {
-                    return;
-                }
-                new Thread(() -> {
-                    try {
-                        JSONObject status = DeviceCastApi.getCastStatus(
-                                context,
-                                CastServerConfig.host(context),
-                                CastServerConfig.port(context),
-                                serial
-                        );
-                        JSONArray logs = status.optJSONArray("startupLogs");
-                        mainHandler.post(() -> {
-                            logPollConsumed = startupLog.ingest(logs, logPollConsumed);
-                            pushUi();
-                        });
-                    } catch (Exception ignored) {
-                    }
-                    mainHandler.postDelayed(this, 600);
-                }, "group-cast-log").start();
-            }
-        };
-        mainHandler.post(logPollRunnable);
-    }
-
-    private void stopLogPolling() {
-        if (logPollRunnable != null) {
-            mainHandler.removeCallbacks(logPollRunnable);
-            logPollRunnable = null;
-        }
-    }
-
-    private void hideLogs() {
-        showLogs = false;
-        stopLogPolling();
-        pushUi();
+        bootstrap.openStream(httpClient, webSocketSession, streamParams, () -> started, message -> {
+            appendLog(message);
+            setState(STATE_ERROR, message);
+        });
     }
 
     private void appendLog(String message) {
@@ -332,7 +290,7 @@ public final class GroupSlotCastSession {
 
     private void pushUi() {
         if (callback != null) {
-            callback.onUiChanged(state, startupLog.text(), errorMessage, showLogs);
+            callback.onUiChanged(state, startupLog.text(), errorMessage, bootstrap.showingLogs());
         }
     }
 }

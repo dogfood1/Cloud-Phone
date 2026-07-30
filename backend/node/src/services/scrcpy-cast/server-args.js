@@ -94,6 +94,9 @@ export function buildServerShellCommand(scid = DEFAULT_CAST_SCID, options = {}) 
 }
 
 export function pickLocalPort() {
-  // Avoid Windows Hyper-V / excluded ranges that often cover 27000–28000 (WSAEACCES 10013).
-  return 37_100 + Math.floor(Math.random() * 800);
+  // Prefer sync fallback only for callers that cannot await; prefer pickAvailableLocalPort.
+  return 19_100 + Math.floor(Math.random() * 5_800);
 }
+
+export { pickAvailableLocalPort, isPortBindAccessDenied } from "../local-port.js";
+

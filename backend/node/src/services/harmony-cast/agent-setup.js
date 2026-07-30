@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import {
   HARMONY_AGENT_REMOTE_PATH,
   UITEST_SERVICE_PORT,
-  pickHarmonyLocalPort,
   resolveHarmonyAgentPathForAbi,
 } from "../../config/harmony-paths.js";
+import { pickAvailableLocalPort } from "../local-port.js";
 import { runHdc } from "../hdc/hdc-exec.js";
 import {
   buildAgentAbiMismatchMessage,
@@ -118,18 +118,19 @@ export async function setupHarmonyUitestAgent(serial) {
   });
 }
 
-export async function forwardHarmonyUitestPort(serial, localPort = pickHarmonyLocalPort()) {
-  await runHdc(["fport", `tcp:${localPort}`, `tcp:${UITEST_SERVICE_PORT}`], {
+export async function forwardHarmonyUitestPort(serial, localPort) {
+  const port = localPort > 0 ? localPort : await pickAvailableLocalPort();
+  await runHdc(["fport", `tcp:${port}`, `tcp:${UITEST_SERVICE_PORT}`], {
     serial,
     timeout: 8000,
   });
 
   logHarmonyCastInfo(serial, "uitest.fport.ready", {
-    localPort,
+    localPort: port,
     remotePort: UITEST_SERVICE_PORT,
   });
 
-  return localPort;
+  return port;
 }
 
 export async function removeHarmonyUitestPort(serial, localPort) {

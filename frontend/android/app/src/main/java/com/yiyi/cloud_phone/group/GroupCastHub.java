@@ -4,7 +4,10 @@ import android.content.Context;
 import android.view.TextureView;
 
 import com.yiyi.cloud_phone.cast.GroupSlotCastSession;
+import com.yiyi.cloud_phone.cast.ScrcpyControlWire;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +23,8 @@ final class GroupCastHub {
     private final Context context;
     private final Map<String, GroupSlotCastSession> sessions = new HashMap<>();
     private Listener listener;
+    private boolean batchMode;
+    private String masterSerial;
 
     GroupCastHub(Context context) {
         this.context = context.getApplicationContext();
@@ -27,6 +32,11 @@ final class GroupCastHub {
 
     void setListener(Listener listener) {
         this.listener = listener;
+    }
+
+    void setBatchMode(boolean batchMode, String masterSerial) {
+        this.batchMode = batchMode;
+        this.masterSerial = masterSerial;
     }
 
     void sync(List<GroupDevice> devices) {
@@ -53,12 +63,15 @@ final class GroupCastHub {
 
     void bind(GroupDevice device, TextureView texture) {
         GroupSlotCastSession session = sessions.get(device.serial);
-        if (session != null) {
-            session.bindTexture(texture);
+        if (session == null) {
+            return;
         }
+        session.bindTexture(texture);
+        GroupSlotTouchBinder.attach(texture, device.serial, session, this::canControl);
     }
 
     void unbind(GroupDevice device, TextureView texture) {
+        GroupSlotTouchBinder.detach(texture);
         GroupSlotCastSession session = sessions.get(device.serial);
         if (session != null) {
             session.unbindTexture(texture);
@@ -84,6 +97,13 @@ final class GroupCastHub {
         sessions.clear();
     }
 
+    private boolean canControl(String serial) {
+        if (!batchMode) {
+            return true;
+        }
+        return masterSerial != null && masterSerial.equals(serial);
+    }
+
     private void ensureStarted(GroupDevice device) {
         GroupSlotCastSession session = sessions.get(device.serial);
         if (session == null) {
@@ -99,8 +119,50 @@ final class GroupCastHub {
                     listener.onDeviceUi(target);
                 }
             });
+            String sourceSerial = device.serial;
+            session.setControlRelay((serial, payload, videoW, videoH) ->
+                    relayControl(sourceSerial, payload, videoW, videoH));
         }
         session.start();
+    }
+
+    private void relayControl(String sourceSerial, byte[] payload, int fromW, int fromH) {
+        if (!batchMode || masterSerial == null || !masterSerial.equals(sourceSerial) || payload == null) {
+            return;
+        }
+        for (Map.Entry<String, GroupSlotCastSession> entry : sessions.entrySet()) {
+            if (entry.getKey().equals(sourceSerial)) {
+                continue;
+            }
+            GroupSlotCastSession follower = entry.getValue();
+            if (!follower.isStreaming()) {
+                continue;
+            }
+            byte[] relayed = remapTouch(payload, fromW, fromH, follower.getVideoWidth(), follower.getVideoHeight());
+            if (relayed != null) {
+                follower.sendControl(relayed);
+            }
+        }
+    }
+
+    private static byte[] remapTouch(byte[] payload, int fromW, int fromH, int toW, int toH) {
+        if (payload.length < 32 || payload[0] != 2 || toW <= 0 || toH <= 0) {
+            return payload;
+        }
+        ByteBuffer view = ByteBuffer.wrap(payload).order(ByteOrder.BIG_ENDIAN);
+        int action = view.get(1) & 0xff;
+        int x = view.getInt(10);
+        int y = view.getInt(14);
+        int msgW = view.getShort(18) & 0xffff;
+        int msgH = view.getShort(20) & 0xffff;
+        int srcW = msgW > 0 ? msgW : fromW;
+        int srcH = msgH > 0 ? msgH : fromH;
+        if (srcW <= 0 || srcH <= 0) {
+            return payload;
+        }
+        float mappedX = (float) x / srcW * toW;
+        float mappedY = (float) y / srcH * toH;
+        return ScrcpyControlWire.injectTouch(action, mappedX, mappedY, toW, toH);
     }
 
     private void stopDevice(String serial, boolean releaseBackend) {

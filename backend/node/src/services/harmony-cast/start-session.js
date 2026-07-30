@@ -1,7 +1,7 @@
 import { readHarmonyDisplaySize } from "../harmony-device.js";
-import { pickHarmonyLocalPort } from "../../config/harmony-paths.js";
 import { listHdcTargets } from "../hdc/hdc-exec.js";
 import { runWithHdcLock } from "../hdc/hdc-lock.js";
+import { pickAvailableLocalPort } from "../local-port.js";
 import { forwardHarmonyUitestPort, setupHarmonyUitestAgent } from "./agent-setup.js";
 import { normalizeHarmonyCastOptions } from "./cast-options.js";
 import { logHarmonyCastInfo } from "./cast-logger.js";
@@ -17,7 +17,7 @@ export async function startHarmonyCast(serial, options = {}) {
   }
 
   const castOptions = normalizeHarmonyCastOptions(options);
-  const localPort = pickHarmonyLocalPort();
+  const localPort = await pickAvailableLocalPort();
   const session = {
     serial,
     platform: "harmony",

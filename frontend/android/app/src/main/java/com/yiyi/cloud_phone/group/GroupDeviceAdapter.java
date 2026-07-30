@@ -102,6 +102,20 @@ class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.ViewHol
         return devices.size();
     }
 
+    private static String shortError(String raw, String fallback) {
+        if (raw == null || raw.isEmpty()) {
+            return fallback;
+        }
+        if (raw.contains("10013") || raw.contains("cannot bind") || raw.contains("访问权限")) {
+            return "本地端口被系统占用，请重试";
+        }
+        String trimmed = raw.replace('\n', ' ').trim();
+        if (trimmed.length() > 48) {
+            return trimmed.substring(0, 45) + "…";
+        }
+        return trimmed;
+    }
+
     class ViewHolder extends RecyclerView.ViewHolder {
         final View header;
         final TextView nameView;
@@ -140,9 +154,8 @@ class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.ViewHol
                     statusView.setText(R.string.group_cast_streaming);
                     break;
                 case ERROR:
-                    statusView.setText(device.errorMessage != null
-                            ? device.errorMessage
-                            : itemView.getContext().getString(R.string.group_cast_error));
+                    statusView.setText(shortError(device.errorMessage,
+                            itemView.getContext().getString(R.string.group_cast_error)));
                     break;
                 default:
                     statusView.setText(R.string.group_cast_idle);
@@ -161,6 +174,10 @@ class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.ViewHol
             }
 
             inactiveView.setVisibility(device.active ? View.GONE : View.VISIBLE);
+            inactiveView.setClickable(false);
+            inactiveView.setFocusable(false);
+            logsView.setClickable(false);
+            logsView.setFocusable(false);
 
             if (batchModeActive) {
                 badgeView.setVisibility(View.VISIBLE);

@@ -192,6 +192,9 @@ public class GroupControlFragment extends Fragment {
                     } else if (which == 1) {
                         masterSerial = device.serial;
                         adapter.setBatchMode(batchMode, masterSerial);
+                        if (castHub != null) {
+                            castHub.setBatchMode(batchMode, masterSerial);
+                        }
                     } else if (which == 2) {
                         groupDevices.remove(device);
                         adapter.setDevices(groupDevices);
@@ -210,6 +213,9 @@ public class GroupControlFragment extends Fragment {
         }
         batchModeBtn.setText(batchMode ? R.string.group_action_stop_batch : R.string.group_action_batch_short);
         adapter.setBatchMode(batchMode, masterSerial);
+        if (castHub != null) {
+            castHub.setBatchMode(batchMode, masterSerial);
+        }
         AppEventLogger.get().info("group", "batch_mode", "Batch mode: " + batchMode);
     }
 

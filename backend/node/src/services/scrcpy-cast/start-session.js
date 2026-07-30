@@ -20,8 +20,8 @@ import {
   CAST_TUNNEL_FORWARD,
   DEFAULT_CAST_SCID,
   getRemoteJarPath,
-  pickLocalPort,
 } from "./server-args.js";
+import { isPortBindAccessDenied, pickAvailableLocalPort } from "../local-port.js";
 import { getCastSession, setCastSession } from "./session-store.js";
 import {
   buildCastStartPayload,
@@ -35,6 +35,50 @@ import { waitForLocalPortOpen } from "./wait-for-local-port.js";
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function establishForwardWithRetry(session, socketName, isWsScrcpy) {
+  const serial = session.serial;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const port = session.localPort;
+    try {
+      if (isWsScrcpy) {
+        await adbForwardTcp(serial, port, 8886);
+      } else {
+        await adbForward(serial, port, socketName);
+      }
+      const forwardList = await listAdbForward(serial);
+      logCastInfo(serial, "adb.forward.done", {
+        localPort: port,
+        socketName,
+        forwardList,
+        attempt,
+      });
+      appendCastStartupLog(session, `adb：forward 隧道完成 (local:${port})`);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isPortBindAccessDenied(error) || attempt >= 5) {
+        throw error;
+      }
+      const nextPort = await pickAvailableLocalPort();
+      logCastWarn(serial, "adb.forward.retry", {
+        failedPort: port,
+        nextPort,
+        attempt,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      appendCastStartupLog(
+        session,
+        `adb：端口 ${port} 不可用 (10013/权限)，改用 ${nextPort}`,
+      );
+      session.localPort = nextPort;
+    }
+  }
+
+  throw lastError ?? new Error("adb forward failed");
 }
 
 /**
@@ -153,7 +197,7 @@ export async function startScrcpyCast(serial, options = {}) {
   }
 
   const scid = DEFAULT_CAST_SCID;
-  const localPort = pickLocalPort();
+  const localPort = await pickAvailableLocalPort();
   const socketName = buildSocketName(scid);
   const serverOptions = resolveCastServerOptions(options);
   const isWsScrcpy = SCRCPY_WEB_CAST_MODE;
@@ -221,22 +265,9 @@ export async function startScrcpyCast(serial, options = {}) {
       logCastInfo(serial, "adb.push.done", { remote: getRemoteJarPath() });
       appendCastStartupLog(session, "adb：push scrcpy-server.jar 完成");
 
-      logCastInfo(serial, "adb.forward.begin", { localPort, socketName });
+      logCastInfo(serial, "adb.forward.begin", { localPort: session.localPort, socketName });
       appendCastStartupLog(session, "adb：建立 forward 隧道开始");
-      if (isWsScrcpy) {
-        // ws-scrcpy modified server listens on tcp:8886 on device
-        await adbForwardTcp(serial, localPort, 8886);
-      } else {
-        await adbForward(serial, localPort, socketName);
-      }
-
-      const forwardList = await listAdbForward(serial);
-      logCastInfo(serial, "adb.forward.done", {
-        localPort,
-        socketName,
-        forwardList,
-      });
-      appendCastStartupLog(session, `adb：forward 隧道完成 (local:${localPort})`);
+      await establishForwardWithRetry(session, socketName, isWsScrcpy);
     }, { lockKey: serial });
 
     if (isWsScrcpy) {
@@ -255,7 +286,7 @@ export async function startScrcpyCast(serial, options = {}) {
   session.starting = false;
 
   logCastInfo(serial, "cast.start.ready", {
-    localPort,
+    localPort: session.localPort,
     socketName,
     tunnel: CAST_TUNNEL_FORWARD,
     message: "Forward tunnel ready; scrcpy framed stream starts when WebSocket connects",
