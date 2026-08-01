@@ -4,7 +4,7 @@
 
 **用浏览器连真机：投屏、触控、文件、应用、终端，都在一个页面里；另有 Android 伴侣 App，在手机上管理设备与全屏投屏。**
 
-当前版本：**v1.21.3** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
+当前版本：**v1.21.4** · Node 后端 + Vue 3 Web + Android 客户端 · Android scrcpy 4.0 WebSocket + 鸿蒙 HDC JPEG + iOS WDA MJPEG 投屏
 
 [English](README.EN.md) · **中文**
 
@@ -19,6 +19,7 @@
 | **GitHub** | [github.com/yiyifred/Cloud-Phone](https://github.com/yiyifred/Cloud-Phone) |
 | **Gitee** | [gitee.com/yiyifred/Cloud-Phone](https://gitee.com/yiyifred/Cloud-Phone) |
 | **LINUX DO** | [linux.do](https://linux.do/) |
+| **爱发电** | [ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred) |
 
 ---
 
@@ -393,7 +394,6 @@ Cloud-Phone/
 ├── frontend/web/          # Vue 3 + Vite + Naive UI（Web 控制台）
 ├── frontend/android/      # Android 伴侣 App（设备画廊、设置、全屏投屏）
 ├── tools/                         # 构建、同步、开发启动脚本（含 ios-wda-bridge.mjs）
-├── images/qr/             # 赞助二维码
 └── CHANGELOG.md
 ```
 
@@ -553,14 +553,9 @@ scrcpy 本体遵循 **Apache License 2.0**（见 `backend/source/scrcpy/LICENSE`
 
 ## 赞助
 
-如果 Cloud Phone 帮你省了时间，欢迎请我喝杯咖啡。扫码即是对项目的认可，金额随意。
+如果 Cloud Phone 帮你省了时间，欢迎通过 **爱发电** 支持一下，金额随意：
 
-<table align="center">
-<tr>
-<td align="center"><b>微信</b><br/><img src="images/qr/wx.jpg" width="220" alt="微信赞助二维码"/></td>
-<td align="center"><b>支付宝</b><br/><img src="images/qr/zfb.png" width="220" alt="支付宝赞助二维码"/></td>
-</tr>
-</table>
+**[https://ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred)**
 
 赞助自愿、非商业捆绑；项目仍完全开源，不影响你自行部署使用。
 

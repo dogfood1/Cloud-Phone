@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.21.4 - 2026-08-01
+
+- **赞助入口改为爱发电**：移除微信/支付宝收款码，相关链接表与赞助区统一指向 [ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred)
+- **Sponsorship via Afdian**：removed WeChat/Alipay QR codes; links table and sponsorship section now point to Afdian
+- **项目版本**：`1.21.4`
+
 ## 1.21.3 - 2026-07-30
 
 - **修复 Android 群控选择栏**：全选 / 清空按钮去掉 Material inset 裁切，文字完整显示

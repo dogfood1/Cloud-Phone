@@ -4,7 +4,7 @@
 
 **Manage real Android devices in the browser: cast, control, files, apps, and shell — plus an Android companion app for the gallery and fullscreen cast on your phone.**
 
-Current version: **v1.21.3** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
+Current version: **v1.21.4** · Node backend + Vue 3 web + Android app · Android scrcpy 4.0 WebSocket + HarmonyOS HDC JPEG + iOS WDA MJPEG cast
 
 [中文](README.md) · **English**
 
@@ -19,6 +19,7 @@ Current version: **v1.21.3** · Node backend + Vue 3 web + Android app · Androi
 | **GitHub** | [github.com/yiyifred/Cloud-Phone](https://github.com/yiyifred/Cloud-Phone) |
 | **Gitee** | [gitee.com/yiyifred/Cloud-Phone](https://gitee.com/yiyifred/Cloud-Phone) |
 | **LINUX DO** | [linux.do](https://linux.do/) |
+| **Afdian** | [ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred) |
 
 ---
 
@@ -396,7 +397,6 @@ backend/source/WebDriverAgent/ iOS WebDriver server (Appium WDA, integration pen
 frontend/web/          Vue 3 + Vite (web console)
 frontend/android/      Android companion app
 tools/                 build & dev scripts (incl. ios-wda-bridge.mjs)
-images/qr/             sponsorship QR codes
 ```
 
 ---
@@ -554,14 +554,9 @@ The vendored scrcpy source is licensed under **Apache License 2.0** (see `backen
 
 ## Sponsorship
 
-If Cloud Phone saved you some time, feel free to buy me a coffee – totally optional.
+If Cloud Phone saved you some time, feel free to support via **Afdian** – totally optional:
 
-<table align="center">
-<tr>
-<td align="center"><b>WeChat</b><br/><img src="images/qr/wx.jpg" width="220" alt="WeChat QR"/></td>
-<td align="center"><b>Alipay</b><br/><img src="images/qr/zfb.png" width="220" alt="Alipay QR"/></td>
-</tr>
-</table>
+**[https://ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred)**
 
 The project remains free and open source either way.
 
