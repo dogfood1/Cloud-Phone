@@ -8,7 +8,7 @@ import { BACKEND_DATA_PATH } from "../config/paths.js";
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba";
+const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix";
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
 const PRODUCT_NAMESPACES = ["", "product", "system", "vendor", "odm"];
 const CAMERA_IMAGE_FIT_MODES = new Set(["cover", "contain", "stretch"]);
@@ -131,7 +131,7 @@ function normalizeCameraImageFitMode(value) {
 
 function buildCameraImageFilter(width, height, options = {}) {
   const fitMode = normalizeCameraImageFitMode(options.fitMode);
-  const mirror = normalizeBoolean(options.mirror, true, "Camera image mirror correction");
+  const mirror = normalizeBoolean(options.mirror, false, "Camera image mirror correction");
   const filters = [];
 
   if (fitMode === "cover") {
@@ -448,6 +448,8 @@ export async function createRedroidInstance(payload = {}) {
     "androidboot.redroid_gpu_mode=guest",
     "ro.product.locale=zh-CN",
     "persist.sys.locale=zh-CN",
+    "ro.vendor.camera.external.jpegMirrorCorrection=false",
+    "ro.vendor.camera.external.forceHighQualityJpeg=true",
     `ro.build.display.id=AEM.${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.${Math.random().toString(16).slice(2, 10).toUpperCase()}`,
     `ro.boot.wifimacaddr=${buildMac(0x72)}`,
     `ro.boot.btmacaddr=${buildMac(0xa6)}`,
@@ -587,7 +589,7 @@ async function startManagedCameraWriter(imagePath, videoNr, cfg) {
       "-i",
       imagePath,
       "-vf",
-      `scale=${cfg.cameraWidth}:${cfg.cameraHeight}:force_original_aspect_ratio=decrease,pad=${cfg.cameraWidth}:${cfg.cameraHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1`,
+      `scale=${cfg.cameraWidth}:${cfg.cameraHeight}:force_original_aspect_ratio=increase,crop=${cfg.cameraWidth}:${cfg.cameraHeight},setsar=1`,
       "-r",
       String(cfg.cameraFps),
       "-c:v",

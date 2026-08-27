@@ -52,7 +52,7 @@ const fixedCameraPreview = ref("");
 const fixedCameraError = ref("");
 const fixedCameraFeedback = ref("");
 const fixedCameraFitMode = ref("cover");
-const fixedCameraMirror = ref(true);
+const fixedCameraMirror = ref(false);
 
 const CAMERA_IMAGE_FIT_OPTIONS = [
   { label: "填满裁剪", value: "cover" },
