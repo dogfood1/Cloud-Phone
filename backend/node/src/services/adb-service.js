@@ -9,6 +9,7 @@ import { resolveAdbPath } from "./adb-path.js";
 import { getDeviceDisplayName } from "./device-display.js";
 import { getDeviceIpAddress } from "./device-ip.js";
 import { isWirelessAdbSerial, withConnectionType } from "./device-transport.js";
+import { connectManagedRedroidAdbTargets } from "./redroid-service.js";
 import { stopScrcpyCast } from "./scrcpy-cast/index.js";
 
 const execFileAsync = promisify(execFile);
@@ -162,6 +163,7 @@ export async function pairDeviceByQrService(serviceName, pairingCode) {
 
 async function listDevicesUnsafe() {
   const adbPath = resolveAdbPath();
+  await connectManagedRedroidAdbTargets(adbPath).catch(() => []);
   const { stdout } = await execFileAsync(adbPath, ["devices", "-l"], {
     windowsHide: true,
     timeout: 5000,

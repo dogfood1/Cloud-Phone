@@ -525,7 +525,10 @@ chmod +x build-multiarch.sh
 | `CLOUD_PHONE_USE_HOST_NETWORK` | Docker host 网络（Linux compose 默认 `1`） | `1` |
 | `CLOUD_PHONE_DATA_DIR` | 后端数据目录（Docker compose 默认 `/data`，挂载 `docker-cloud-phone/data`） | `backend/node/data`（非 Docker） |
 | `CLOUD_PHONE_PREFER_SYSTEM_ADB` | Docker/Linux 优先使用 apt 安装的 adb | `1`（Docker 默认） |
+| `ADB_SERVER_SOCKET` | Linux host 网络下复用宿主机 adb server，避免容器内旧 adb 自行启动 server | `tcp:127.0.0.1:5037` |
 | `CLOUD_PHONE_LAN_IP` | 指定主 LAN IPv4（mDNS / 展示，可选） | 自动选取 |
+| `REDROID_CONTAINER_ADB_PORT` | ReDroid 容器内 adbd 端口，宿主机端口映射到该端口 | `5554` |
+| `REDROID_ADB_AUTO_CONNECT` | 设备列表刷新前自动启动并连接受管 ReDroid ADB | `1` |
 | `BACKEND_ORIGIN` | 前端代理 `/api` 的后端地址（host 网络为 `127.0.0.1`） | `http://127.0.0.1:3000` |
 | `FRONTEND_HTTPS` | 生产前端是否启用 HTTPS（`server.mjs`，Docker 默认开启） | `1`（设 `0` 关闭） |
 | `FRONTEND_TLS_SAN` | 自签名证书 SAN（逗号分隔 IP/域名，如 `192.168.1.10`） | 空 |

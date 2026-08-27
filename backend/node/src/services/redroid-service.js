@@ -26,6 +26,7 @@ function config() {
     cameraFps: Number(process.env.REDROID_CAMERA_FPS || 30),
     videoNr,
     adbPortBase: Number(process.env.REDROID_ADB_PORT_BASE || 5555),
+    containerAdbPort: Number(process.env.REDROID_CONTAINER_ADB_PORT || 5554),
     defaultWidth: Number(process.env.REDROID_WIDTH || 720),
     defaultHeight: Number(process.env.REDROID_HEIGHT || 1280),
     defaultDpi: Number(process.env.REDROID_DPI || 320),
@@ -210,8 +211,19 @@ function cameraImagePathForVideo(cfg, videoNr) {
 }
 
 function extractPort(inspect) {
-  const bindings = inspect?.NetworkSettings?.Ports?.["5555/tcp"];
-  return bindings?.[0]?.HostPort ? Number(bindings[0].HostPort) : null;
+  const ports = inspect?.NetworkSettings?.Ports ?? {};
+  const labels = inspect?.Config?.Labels ?? {};
+  const containerAdbPort = labels["cloud-phone.redroid.containerAdbPort"] || "5554";
+  const candidates = [`${containerAdbPort}/tcp`, "5554/tcp", "5555/tcp"];
+
+  for (const candidate of candidates) {
+    const bindings = ports[candidate];
+    if (bindings?.[0]?.HostPort) {
+      return Number(bindings[0].HostPort);
+    }
+  }
+
+  return labels["cloud-phone.redroid.adbPort"] ? Number(labels["cloud-phone.redroid.adbPort"]) : null;
 }
 
 function extractVideoNr(inspect) {
@@ -239,6 +251,7 @@ function mapContainer(inspect) {
     running: Boolean(inspect?.State?.Running),
     createdAt: inspect?.Created ?? null,
     adbPort: extractPort(inspect),
+    containerAdbPort: Number(labels["cloud-phone.redroid.containerAdbPort"] || 5554),
     videoNr: extractVideoNr(inspect),
     dataDir: inspect?.Mounts?.find((item) => item.Destination === "/data")?.Source ?? null,
     model: {
@@ -276,6 +289,7 @@ export function getRedroidRuntimeConfig() {
     cameraFps: cfg.cameraFps,
     defaultVideoNr: cfg.videoNr,
     defaultAdbPortBase: cfg.adbPortBase,
+    containerAdbPort: cfg.containerAdbPort,
   };
 }
 
@@ -430,6 +444,7 @@ export async function createRedroidInstance(payload = {}) {
   const labels = [
     "cloud-phone.redroid=1",
     `cloud-phone.redroid.adbPort=${adbPort}`,
+    `cloud-phone.redroid.containerAdbPort=${cfg.containerAdbPort}`,
     `cloud-phone.redroid.videoNr=${videoNr}`,
     `cloud-phone.redroid.brand=${propValue(model.brand || model.manufacturer, "Google")}`,
     `cloud-phone.redroid.manufacturer=${propValue(model.manufacturer || model.brand, "Google")}`,
@@ -446,6 +461,9 @@ export async function createRedroidInstance(payload = {}) {
     `androidboot.redroid_dpi=${dpi}`,
     `androidboot.redroid_fps=${fps}`,
     "androidboot.redroid_gpu_mode=guest",
+    `service.adb.tcp.port=${cfg.containerAdbPort}`,
+    `persist.adb.tcp.port=${cfg.containerAdbPort}`,
+    "persist.sys.usb.config=adb",
     "ro.product.locale=zh-CN",
     "persist.sys.locale=zh-CN",
     "ro.vendor.camera.external.jpegMirrorCorrection=false",
@@ -467,7 +485,7 @@ export async function createRedroidInstance(payload = {}) {
     "-v",
     `${dataDir}:/data`,
     "-p",
-    `${adbPort}:5555`,
+    `${adbPort}:${cfg.containerAdbPort}`,
     "--device",
     `/dev/video${videoNr}:/dev/video${videoNr}`,
   ];
@@ -485,6 +503,48 @@ export async function createRedroidInstance(payload = {}) {
     containerId: stdout.trim(),
     instance,
   };
+}
+
+export async function ensureRedroidAdbd(name) {
+  const safeName = assertName(name);
+  return commandResult("docker", [
+    "exec",
+    safeName,
+    "sh",
+    "-c",
+    "boot=$(getprop sys.boot_completed); state=$(getprop init.svc.adbd); if [ \"$boot\" = \"1\" ] && [ \"$state\" != \"running\" ]; then setprop ctl.start adbd; sleep 1; state=$(getprop init.svc.adbd); fi; printf 'boot=%s adbd=%s\\n' \"$boot\" \"$state\"",
+  ], { timeout: 8_000 });
+}
+
+export async function connectManagedRedroidAdbTargets(adbPath) {
+  if (process.env.REDROID_ADB_AUTO_CONNECT === "0") {
+    return [];
+  }
+
+  const instances = await listRedroidInstances().catch(() => []);
+  const results = [];
+
+  for (const instance of instances) {
+    if (!instance.running || !instance.adbPort) {
+      continue;
+    }
+
+    const adbd = await ensureRedroidAdbd(instance.name);
+    const target = `127.0.0.1:${instance.adbPort}`;
+    const connect = await commandResult(adbPath, ["connect", target], {
+      timeout: 4_000,
+      maxBuffer: 1024 * 1024,
+    });
+
+    results.push({
+      name: instance.name,
+      target,
+      adbd,
+      connect,
+    });
+  }
+
+  return results;
 }
 
 export async function startRedroidInstance(name) {
