@@ -51,6 +51,14 @@ const fixedCameraFile = ref(null);
 const fixedCameraPreview = ref("");
 const fixedCameraError = ref("");
 const fixedCameraFeedback = ref("");
+const fixedCameraFitMode = ref("cover");
+const fixedCameraMirror = ref(true);
+
+const CAMERA_IMAGE_FIT_OPTIONS = [
+  { label: "填满裁剪", value: "cover" },
+  { label: "完整显示", value: "contain" },
+  { label: "拉伸填满", value: "stretch" },
+];
 
 const isHarmonyDevice = computed(() => props.device?.platform === "harmony");
 const isIosDevice = computed(() => props.device?.platform === "ios");
@@ -147,6 +155,16 @@ const fixedCameraMeta = computed(() => {
   const fps = Number(redroidStatus.value?.config?.cameraFps ?? 30);
   return `${redroidInstance.value?.name ?? "ReDroid"} · /dev/video${fixedCameraVideoNr.value} · ${width}x${height}@${fps}`;
 });
+
+function previewObjectFit(mode) {
+  if (mode === "contain") {
+    return "contain";
+  }
+  if (mode === "stretch") {
+    return "fill";
+  }
+  return "cover";
+}
 
 watch(castMode, (nextMode, previousMode) => {
   if (previousMode && nextMode !== previousMode && !props.casting) {
@@ -289,6 +307,8 @@ async function applyFixedCameraImage() {
       videoNr: fixedCameraVideoNr.value,
       width,
       height,
+      fitMode: fixedCameraFitMode.value,
+      mirror: fixedCameraMirror.value,
     });
     redroidStatus.value = {
       ...(redroidStatus.value ?? {}),
@@ -301,6 +321,8 @@ async function applyFixedCameraImage() {
       details: {
         videoNr: fixedCameraVideoNr.value,
         filename: fixedCameraFile.value.name,
+        fitMode: fixedCameraFitMode.value,
+        mirror: fixedCameraMirror.value,
         managedWriter: Boolean(result.managedWriter),
       },
     });
@@ -399,9 +421,34 @@ defineExpose({ stepPreviewRotationDeg });
 
       <label class="workspace-fixed-camera__dropzone">
         <input accept="image/*" type="file" :disabled="fixedCameraBusy" @change="handleFixedCameraSelected" />
-        <img v-if="fixedCameraPreview" :src="fixedCameraPreview" alt="" />
+        <img
+          v-if="fixedCameraPreview"
+          :src="fixedCameraPreview"
+          :class="{ 'workspace-fixed-camera__preview--mirror': fixedCameraMirror }"
+          :style="{ objectFit: previewObjectFit(fixedCameraFitMode) }"
+          alt=""
+        />
         <span v-else>选择图片</span>
       </label>
+
+      <div class="workspace-fixed-camera__options">
+        <label>
+          <span>适配</span>
+          <select v-model="fixedCameraFitMode" :disabled="fixedCameraBusy">
+            <option
+              v-for="option in CAMERA_IMAGE_FIT_OPTIONS"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="workspace-fixed-camera__check">
+          <input v-model="fixedCameraMirror" type="checkbox" :disabled="fixedCameraBusy" />
+          <span>镜像校正</span>
+        </label>
+      </div>
 
       <NButton
         block

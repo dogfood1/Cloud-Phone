@@ -576,6 +576,17 @@ h2 {
   object-fit: contain;
 }
 
+.redroid-camera-preview--mirror {
+  transform: scaleX(-1);
+}
+
+.redroid-camera-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
 .redroid-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -589,6 +600,7 @@ h2 {
 }
 
 .redroid-form-grid label,
+.redroid-camera-options label,
 .redroid-model-picker label {
   display: grid;
   gap: 0.32rem;
@@ -599,6 +611,7 @@ h2 {
 
 .redroid-form-grid input,
 .redroid-form-grid select,
+.redroid-camera-options select,
 .redroid-model-picker select,
 .redroid-model-search input {
   width: 100%;
@@ -609,6 +622,25 @@ h2 {
   border-radius: 0.55rem;
   background: var(--bg-input);
   color: var(--text);
+}
+
+.redroid-check {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  min-height: 2.35rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-input);
+  white-space: nowrap;
+}
+
+.redroid-check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--success);
 }
 
 .redroid-model-search {
@@ -1836,6 +1868,55 @@ h2 {
   height: 100%;
   max-height: 8rem;
   object-fit: contain;
+}
+
+.workspace-fixed-camera__preview--mirror {
+  transform: scaleX(-1);
+}
+
+.workspace-fixed-camera__options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.workspace-fixed-camera__options label {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.workspace-fixed-camera__options select {
+  width: 100%;
+  height: 2rem;
+  min-width: 0;
+  padding: 0 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.workspace-fixed-camera__check {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--bg-input);
+  white-space: nowrap;
+}
+
+.workspace-fixed-camera__check input {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--success);
 }
 
 .workspace-left__placeholder {

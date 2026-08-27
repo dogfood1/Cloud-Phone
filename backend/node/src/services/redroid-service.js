@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba";
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
 const PRODUCT_NAMESPACES = ["", "product", "system", "vendor", "odm"];
+const CAMERA_IMAGE_FIT_MODES = new Set(["cover", "contain", "stretch"]);
 
 function config() {
   const workdir = process.env.REDROID_HOST_WORKDIR || DEFAULT_WORKDIR;
@@ -90,6 +91,74 @@ function normalizeInteger(value, fallback, min, max, label) {
     throw error;
   }
   return number;
+}
+
+function normalizeBoolean(value, fallback, label) {
+  if (value == null || value === "") {
+    return fallback;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+
+  const text = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(text)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(text)) {
+    return false;
+  }
+
+  const error = new Error(`${label} must be a boolean.`);
+  error.statusCode = 400;
+  throw error;
+}
+
+function normalizeCameraImageFitMode(value) {
+  const mode = String(value ?? "cover").trim().toLowerCase();
+  if (!CAMERA_IMAGE_FIT_MODES.has(mode)) {
+    const error = new Error("Camera image fit mode must be cover, contain or stretch.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return mode;
+}
+
+function buildCameraImageFilter(width, height, options = {}) {
+  const fitMode = normalizeCameraImageFitMode(options.fitMode);
+  const mirror = normalizeBoolean(options.mirror, true, "Camera image mirror correction");
+  const filters = [];
+
+  if (fitMode === "cover") {
+    filters.push(
+      `scale=${width}:${height}:force_original_aspect_ratio=increase`,
+      `crop=${width}:${height}`,
+    );
+  } else if (fitMode === "contain") {
+    filters.push(
+      `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
+      `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+    );
+  } else {
+    filters.push(`scale=${width}:${height}`);
+  }
+
+  if (mirror) {
+    filters.push("hflip");
+  }
+
+  filters.push("setsar=1");
+
+  return {
+    filter: filters.join(","),
+    fitMode,
+    mirror,
+  };
 }
 
 function propValue(value, fallback = "") {
@@ -518,7 +587,7 @@ async function startManagedCameraWriter(imagePath, videoNr, cfg) {
       "-i",
       imagePath,
       "-vf",
-      `scale=${cfg.cameraWidth}:${cfg.cameraHeight}:force_original_aspect_ratio=decrease,pad=${cfg.cameraWidth}:${cfg.cameraHeight}:(ow-iw)/2:(oh-ih)/2`,
+      `scale=${cfg.cameraWidth}:${cfg.cameraHeight}:force_original_aspect_ratio=decrease,pad=${cfg.cameraWidth}:${cfg.cameraHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1`,
       "-r",
       String(cfg.cameraFps),
       "-c:v",
@@ -553,6 +622,10 @@ export async function setRedroidCameraImage(payload = {}) {
   const videoNr = normalizeInteger(payload.videoNr, cfg.videoNr, 0, 255, "Video device number");
   const width = normalizeInteger(payload.width, cfg.cameraWidth, 320, 4096, "Camera width");
   const height = normalizeInteger(payload.height, cfg.cameraHeight, 240, 4096, "Camera height");
+  const transform = buildCameraImageFilter(width, height, {
+    fitMode: payload.fitMode,
+    mirror: payload.mirror,
+  });
   const buffer = decodeImagePayload(payload);
   const uploadDir = path.join(cfg.workdir, "camera-images");
   const imagePath = cameraImagePathForVideo(cfg, videoNr);
@@ -575,7 +648,7 @@ export async function setRedroidCameraImage(payload = {}) {
       "-i",
       inputPath,
       "-vf",
-      `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+      transform.filter,
       "-frames:v",
       "1",
       outputTmp,
@@ -618,5 +691,9 @@ export async function setRedroidCameraImage(payload = {}) {
     camera: await getRedroidCameraStatus({ videoNr }),
     restart,
     managedWriter,
+    transform: {
+      fitMode: transform.fitMode,
+      mirror: transform.mirror,
+    },
   };
 }

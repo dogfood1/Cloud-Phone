@@ -35,6 +35,14 @@ const brandLoading = ref(false);
 const modelLoading = ref(false);
 const selectedImage = ref(null);
 const selectedImagePreview = ref("");
+const cameraFitMode = ref("cover");
+const cameraMirror = ref(true);
+
+const CAMERA_IMAGE_FIT_OPTIONS = [
+  { label: "填满裁剪", value: "cover" },
+  { label: "完整显示", value: "contain" },
+  { label: "拉伸填满", value: "stretch" },
+];
 
 const createForm = reactive({
   name: "test02",
@@ -81,6 +89,16 @@ const selectedModelLabel = computed(() => {
 
   return `${createForm.model.manufacturer} ${createForm.model.marketingName || createForm.model.modelCode}`;
 });
+
+function previewObjectFit(mode) {
+  if (mode === "contain") {
+    return "contain";
+  }
+  if (mode === "stretch") {
+    return "fill";
+  }
+  return "cover";
+}
 
 function applyStatusDefaults(payload) {
   if (payload?.config?.image) {
@@ -233,6 +251,8 @@ async function handleUpdateCameraImage() {
       videoNr: Number(config.value.defaultVideoNr ?? 20),
       width: Number(config.value.cameraWidth ?? 1280),
       height: Number(config.value.cameraHeight ?? 720),
+      fitMode: cameraFitMode.value,
+      mirror: cameraMirror.value,
     });
     status.value = {
       ...(status.value ?? {}),
@@ -245,6 +265,8 @@ async function handleUpdateCameraImage() {
       details: {
         videoNr: config.value.defaultVideoNr ?? 20,
         filename: selectedImage.value.name,
+        fitMode: cameraFitMode.value,
+        mirror: cameraMirror.value,
       },
     });
   } catch (requestError) {
@@ -359,9 +381,34 @@ onMounted(async () => {
 
         <label class="redroid-dropzone">
           <input accept="image/*" type="file" @change="handleImageSelected" />
-          <img v-if="selectedImagePreview" :src="selectedImagePreview" alt="" />
+          <img
+            v-if="selectedImagePreview"
+            :src="selectedImagePreview"
+            :class="{ 'redroid-camera-preview--mirror': cameraMirror }"
+            :style="{ objectFit: previewObjectFit(cameraFitMode) }"
+            alt=""
+          />
           <span v-else>选择图片作为虚拟摄像头画面</span>
         </label>
+
+        <div class="redroid-camera-options">
+          <label>
+            <span>画面适配</span>
+            <select v-model="cameraFitMode" :disabled="actionLoading">
+              <option
+                v-for="option in CAMERA_IMAGE_FIT_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <label class="redroid-check">
+            <input v-model="cameraMirror" type="checkbox" :disabled="actionLoading" />
+            <span>前置镜像校正</span>
+          </label>
+        </div>
 
         <button
           type="button"
