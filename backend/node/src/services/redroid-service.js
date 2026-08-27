@@ -132,6 +132,14 @@ function buildProductArgs(model = {}) {
   return args;
 }
 
+function cameraImagePathForVideo(cfg, videoNr) {
+  if (Number(videoNr) === Number(cfg.videoNr)) {
+    return cfg.cameraImagePath;
+  }
+
+  return path.join(cfg.workdir, "camera-images", `static-video${videoNr}.png`);
+}
+
 function extractPort(inspect) {
   const bindings = inspect?.NetworkSettings?.Ports?.["5555/tcp"];
   return bindings?.[0]?.HostPort ? Number(bindings[0].HostPort) : null;
@@ -232,38 +240,75 @@ export async function listRedroidInstances() {
   return inspectContainers(names);
 }
 
-export async function getRedroidCameraStatus() {
+async function getManagedCameraWriterStatus(videoNr) {
+  const pidPath = path.join(BACKEND_DATA_PATH, `redroid-camera-video${videoNr}.pid`);
+
+  try {
+    const pid = Number((await fs.readFile(pidPath, "utf8")).trim());
+    if (!Number.isInteger(pid) || pid <= 1) {
+      return { active: false, pid: null, pidPath };
+    }
+
+    try {
+      process.kill(pid, 0);
+      return { active: true, pid, pidPath };
+    } catch {
+      await fs.rm(pidPath, { force: true });
+      return { active: false, pid, pidPath };
+    }
+  } catch {
+    return { active: false, pid: null, pidPath };
+  }
+}
+
+export async function getRedroidCameraStatus(options = {}) {
   const cfg = config();
+  const videoNr = normalizeInteger(options.videoNr, cfg.videoNr, 0, 255, "Video device number");
+  const imagePath = cameraImagePathForVideo(cfg, videoNr);
+  const managedWriter = await getManagedCameraWriterStatus(videoNr);
+  const serviceProbe =
+    Number(videoNr) === Number(cfg.videoNr)
+      ? await commandResult("nsenter", [
+          "--target",
+          "1",
+          "--mount",
+          "--uts",
+          "--ipc",
+          "--net",
+          "--pid",
+          "/usr/bin/systemctl",
+          "is-active",
+          cfg.cameraService,
+        ], { timeout: 8_000 })
+      : {
+          ok: managedWriter.active,
+          output: managedWriter.active
+            ? `managed ffmpeg writer active, pid=${managedWriter.pid}`
+            : "managed ffmpeg writer inactive",
+          stdout: managedWriter.active ? "active\n" : "",
+          stderr: "",
+        };
+
   const [statResult, serviceResult, v4l2Result] = await Promise.all([
-    fs.stat(cfg.cameraImagePath).catch(() => null),
-    commandResult("nsenter", [
-      "--target",
-      "1",
-      "--mount",
-      "--uts",
-      "--ipc",
-      "--net",
-      "--pid",
-      "/usr/bin/systemctl",
-      "is-active",
-      cfg.cameraService,
-    ], { timeout: 8_000 }),
-    commandResult("v4l2-ctl", [`--device=/dev/video${cfg.videoNr}`, "--all"], {
+    fs.stat(imagePath).catch(() => null),
+    serviceProbe,
+    commandResult("v4l2-ctl", [`--device=/dev/video${videoNr}`, "--all"], {
       timeout: 8_000,
       maxBuffer: 1024 * 1024,
     }),
   ]);
 
   return {
-    videoNr: cfg.videoNr,
-    device: `/dev/video${cfg.videoNr}`,
-    imagePath: cfg.cameraImagePath,
+    videoNr,
+    device: `/dev/video${videoNr}`,
+    imagePath,
     imageExists: Boolean(statResult),
     imageUpdatedAt: statResult?.mtime?.toISOString?.() ?? null,
     imageSize: statResult?.size ?? null,
-    service: cfg.cameraService,
+    service: Number(videoNr) === Number(cfg.videoNr) ? cfg.cameraService : "managed-ffmpeg",
     serviceActive: serviceResult.ok && serviceResult.stdout.trim() === "active",
     serviceOutput: serviceResult.output,
+    managedWriter,
     v4l2Output: v4l2Result.output,
     v4l2Ok: v4l2Result.ok,
   };
@@ -510,13 +555,15 @@ export async function setRedroidCameraImage(payload = {}) {
   const height = normalizeInteger(payload.height, cfg.cameraHeight, 240, 4096, "Camera height");
   const buffer = decodeImagePayload(payload);
   const uploadDir = path.join(cfg.workdir, "camera-images");
+  const imagePath = cameraImagePathForVideo(cfg, videoNr);
   const inputPath = path.join(uploadDir, `upload-${Date.now()}.bin`);
   const outputTmp = path.join(
-    path.dirname(cfg.cameraImagePath),
-    `.${path.basename(cfg.cameraImagePath)}.${Date.now()}.tmp.png`,
+    path.dirname(imagePath),
+    `.${path.basename(imagePath)}.${Date.now()}.tmp.png`,
   );
 
   await fs.mkdir(uploadDir, { recursive: true });
+  await fs.mkdir(path.dirname(imagePath), { recursive: true });
   await fs.writeFile(inputPath, buffer);
   try {
     await run("ffmpeg", [
@@ -533,25 +580,42 @@ export async function setRedroidCameraImage(payload = {}) {
       "1",
       outputTmp,
     ], { timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
-    await fs.rename(outputTmp, cfg.cameraImagePath);
+    await fs.rename(outputTmp, imagePath);
   } finally {
     await fs.rm(inputPath, { force: true }).catch(() => {});
     await fs.rm(outputTmp, { force: true }).catch(() => {});
   }
 
-  const restart = await restartHostCameraService(cfg.cameraService);
+  let restart = null;
   let managedWriter = null;
 
-  if (!restart.ok) {
-    managedWriter = await startManagedCameraWriter(cfg.cameraImagePath, videoNr, {
+  if (Number(videoNr) === Number(cfg.videoNr)) {
+    await stopManagedCameraWriter(videoNr);
+    restart = await restartHostCameraService(cfg.cameraService);
+
+    if (!restart.ok) {
+      managedWriter = await startManagedCameraWriter(imagePath, videoNr, {
+        ...cfg,
+        cameraWidth: width,
+        cameraHeight: height,
+      });
+    }
+  } else {
+    managedWriter = await startManagedCameraWriter(imagePath, videoNr, {
       ...cfg,
       cameraWidth: width,
       cameraHeight: height,
     });
+    restart = {
+      ok: true,
+      skipped: true,
+      attempts: [],
+      output: `managed ffmpeg writer started for /dev/video${videoNr}`,
+    };
   }
 
   return {
-    camera: await getRedroidCameraStatus(),
+    camera: await getRedroidCameraStatus({ videoNr }),
     restart,
     managedWriter,
   };

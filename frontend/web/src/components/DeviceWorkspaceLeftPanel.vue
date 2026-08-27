@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { NButton, NForm, NFormItem, NSpace, NText } from "naive-ui";
 
+import AppIcon from "./AppIcon.vue";
 import CameraCastSettings from "./mirror/CameraCastSettings.vue";
 import HarmonyCastSettings from "./mirror/HarmonyCastSettings.vue";
 import MirrorCastSettings from "./mirror/MirrorCastSettings.vue";
@@ -16,7 +17,10 @@ import { buildHarmonyCastOptions } from "../utils/harmony-cast-options.js";
 import { createDefaultCameraSettings } from "../utils/camera-cast-defaults.js";
 import { createDefaultMirrorSettings } from "../utils/mirror-cast-defaults.js";
 import { DEFAULT_CAST_MODE, DEVICE_CAST_MODES } from "../utils/device-cast-modes.js";
-import { logDebug, logInfo } from "../utils/app-event-logger.js";
+import { getErrorMessage } from "../utils/api.js";
+import { logDebug, logInfo, logWarn } from "../utils/app-event-logger.js";
+import { fetchRedroidStatus, updateRedroidCameraImage } from "../utils/redroid-api.js";
+import { formatAndroidVersion } from "../utils/device-format.js";
 
 const props = defineProps({
   device: {
@@ -40,10 +44,18 @@ const castMode = defineModel("castMode", { default: DEFAULT_CAST_MODE });
 const mirrorSettingsRef = ref(null);
 const cameraSettingsRef = ref(null);
 const harmonySettingsRef = ref(null);
+const redroidStatus = ref(null);
+const redroidLoading = ref(false);
+const fixedCameraBusy = ref(false);
+const fixedCameraFile = ref(null);
+const fixedCameraPreview = ref("");
+const fixedCameraError = ref("");
+const fixedCameraFeedback = ref("");
 
 const isHarmonyDevice = computed(() => props.device?.platform === "harmony");
 const isIosDevice = computed(() => props.device?.platform === "ios");
 const isJpegCastDevice = computed(() => isHarmonyDevice.value || isIosDevice.value);
+const androidLine = computed(() => formatAndroidVersion(props.device));
 
 const canStartCast = computed(() => {
   if (props.casting || props.castBusy) {
@@ -75,6 +87,67 @@ const modeOptions = computed(() =>
   DEVICE_CAST_MODES.map((mode) => ({ label: mode.label, value: mode.id })),
 );
 
+function adbPortFromSerial(serial) {
+  const value = String(serial ?? "");
+  const tcpMatch = value.match(/:(\d{1,5})$/);
+  if (tcpMatch) {
+    return Number(tcpMatch[1]);
+  }
+
+  const emulatorMatch = value.match(/^emulator-(\d{1,5})$/);
+  if (emulatorMatch) {
+    return Number(emulatorMatch[1]) + 1;
+  }
+
+  return null;
+}
+
+const redroidInstance = computed(() => {
+  const instances = redroidStatus.value?.instances ?? [];
+  const adbPort = adbPortFromSerial(props.device?.serial);
+
+  if (adbPort) {
+    const byPort = instances.find((instance) => Number(instance.adbPort) === adbPort);
+    if (byPort) {
+      return byPort;
+    }
+  }
+
+  if (props.device?.serial === "emulator-5554" && instances.length === 1) {
+    return instances[0];
+  }
+
+  return null;
+});
+
+const fixedCameraVideoNr = computed(() => {
+  const instanceVideoNr = redroidInstance.value?.videoNr;
+  if (instanceVideoNr != null) {
+    return Number(instanceVideoNr);
+  }
+
+  return Number(redroidStatus.value?.config?.defaultVideoNr ?? 20);
+});
+
+const fixedCameraSize = computed(() => ({
+  width: Number(redroidStatus.value?.config?.cameraWidth ?? 1280),
+  height: Number(redroidStatus.value?.config?.cameraHeight ?? 720),
+}));
+
+const showFixedCamera = computed(() =>
+  props.device?.platform === "android" && Boolean(redroidInstance.value),
+);
+
+const fixedCameraMeta = computed(() => {
+  if (!showFixedCamera.value) {
+    return "";
+  }
+
+  const { width, height } = fixedCameraSize.value;
+  const fps = Number(redroidStatus.value?.config?.cameraFps ?? 30);
+  return `${redroidInstance.value?.name ?? "ReDroid"} · /dev/video${fixedCameraVideoNr.value} · ${width}x${height}@${fps}`;
+});
+
 watch(castMode, (nextMode, previousMode) => {
   if (previousMode && nextMode !== previousMode && !props.casting) {
     logInfo("cast", "cast.mode.change", `切换投屏模式：${previousMode} → ${nextMode}`, {
@@ -84,6 +157,17 @@ watch(castMode, (nextMode, previousMode) => {
     });
   }
 });
+
+watch(
+  () => props.device?.serial,
+  () => {
+    fixedCameraError.value = "";
+    fixedCameraFeedback.value = "";
+    fixedCameraFile.value = null;
+    fixedCameraPreview.value = "";
+    void loadRedroidStatus();
+  },
+);
 
 function buildCastOptions() {
   if (isJpegCastDevice.value) {
@@ -139,9 +223,101 @@ function handleSettingsChange(settings) {
   emit("cast-options-change", options);
 }
 
+async function loadRedroidStatus() {
+  if (props.device?.platform !== "android") {
+    redroidStatus.value = null;
+    return;
+  }
+
+  redroidLoading.value = true;
+  try {
+    redroidStatus.value = await fetchRedroidStatus();
+  } catch (error) {
+    fixedCameraError.value = getErrorMessage(error, "加载 ReDroid 摄像头状态失败。");
+    logWarn("redroid", "redroid.device.status_failed", fixedCameraError.value, {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
+  } finally {
+    redroidLoading.value = false;
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("读取图片失败。"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleFixedCameraSelected(event) {
+  const file = event.target.files?.[0] ?? null;
+  fixedCameraFile.value = file;
+  fixedCameraPreview.value = "";
+  fixedCameraError.value = "";
+  fixedCameraFeedback.value = "";
+
+  if (!file) {
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    fixedCameraPreview.value = String(reader.result ?? "");
+  };
+  reader.readAsDataURL(file);
+}
+
+async function applyFixedCameraImage() {
+  if (!fixedCameraFile.value) {
+    fixedCameraError.value = "请选择图片。";
+    return;
+  }
+
+  fixedCameraBusy.value = true;
+  fixedCameraError.value = "";
+  fixedCameraFeedback.value = "";
+
+  try {
+    const imageDataUrl = await readFileAsDataUrl(fixedCameraFile.value);
+    const { width, height } = fixedCameraSize.value;
+    const result = await updateRedroidCameraImage({
+      imageDataUrl,
+      filename: fixedCameraFile.value.name,
+      videoNr: fixedCameraVideoNr.value,
+      width,
+      height,
+    });
+    redroidStatus.value = {
+      ...(redroidStatus.value ?? {}),
+      camera: result.camera,
+    };
+    fixedCameraFeedback.value = `已应用到 /dev/video${fixedCameraVideoNr.value}`;
+    logInfo("redroid", "redroid.device.camera.update", "在设备详情中更新固定摄像头图片", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+      details: {
+        videoNr: fixedCameraVideoNr.value,
+        filename: fixedCameraFile.value.name,
+        managedWriter: Boolean(result.managedWriter),
+      },
+    });
+  } catch (error) {
+    fixedCameraError.value = getErrorMessage(error, "设置摄像头图片失败。");
+  } finally {
+    fixedCameraBusy.value = false;
+  }
+}
+
 function stepPreviewRotationDeg() {
   return mirrorSettingsRef.value?.stepPreviewRotationDeg?.();
 }
+
+onMounted(() => {
+  void loadRedroidStatus();
+});
 
 defineExpose({ stepPreviewRotationDeg });
 </script>
@@ -164,6 +340,21 @@ defineExpose({ stepPreviewRotationDeg });
         </NText>
         <HelpHint :content="castHelpText" title="投屏说明" size="sm" />
       </div>
+
+      <dl class="workspace-device-info">
+        <div>
+          <dt>网络 IP</dt>
+          <dd>{{ device.ipAddress || "—" }}</dd>
+        </div>
+        <div>
+          <dt>系统</dt>
+          <dd>{{ androidLine || "—" }}</dd>
+        </div>
+        <div>
+          <dt>序列号</dt>
+          <dd>{{ device.serial }}</dd>
+        </div>
+      </dl>
     </div>
 
     <div class="workspace-left__section workspace-left__middle">
@@ -198,6 +389,35 @@ defineExpose({ stepPreviewRotationDeg });
         多应用投屏将在右侧全屏桌面中打开，左侧设置栏会自动隐藏。
       </div>
       <p v-else class="workspace-left__placeholder">该模式的详细设置即将推出。</p>
+    </div>
+
+    <div v-if="showFixedCamera" class="workspace-left__section workspace-fixed-camera">
+      <div class="workspace-fixed-camera__head">
+        <strong>固定摄像头图片</strong>
+        <span>{{ fixedCameraMeta }}</span>
+      </div>
+
+      <label class="workspace-fixed-camera__dropzone">
+        <input accept="image/*" type="file" :disabled="fixedCameraBusy" @change="handleFixedCameraSelected" />
+        <img v-if="fixedCameraPreview" :src="fixedCameraPreview" alt="" />
+        <span v-else>选择图片</span>
+      </label>
+
+      <NButton
+        block
+        type="primary"
+        :loading="fixedCameraBusy"
+        :disabled="fixedCameraBusy || redroidLoading || !fixedCameraFile"
+        @click="applyFixedCameraImage"
+      >
+        <template #icon>
+          <AppIcon name="image" />
+        </template>
+        应用固定图片
+      </NButton>
+
+      <p v-if="fixedCameraFeedback" class="workspace-left__hint">{{ fixedCameraFeedback }}</p>
+      <p v-if="fixedCameraError" class="workspace-left__hint workspace-left__hint--error">{{ fixedCameraError }}</p>
     </div>
 
     <div class="workspace-left__section workspace-left__bottom">

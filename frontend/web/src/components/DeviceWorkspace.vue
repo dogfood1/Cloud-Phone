@@ -504,6 +504,8 @@ async function handleViewportFullscreenChange(isFullscreen) {
             <span>{{ device.serial }}</span>
             <span class="device-workspace__dot">·</span>
             <span>{{ stateLabel }}</span>
+            <span class="device-workspace__dot">·</span>
+            <span>网络 IP {{ device.ipAddress || "—" }}</span>
           </p>
         </div>
       </div>
