@@ -7,6 +7,7 @@ import PanelAlert from "./ui/PanelAlert.vue";
 import {
   createRedroidInstance,
   deleteRedroidInstance,
+  fetchRedroidModelBrands,
   fetchRedroidModels,
   fetchRedroidStatus,
   startRedroidInstance,
@@ -23,9 +24,15 @@ const actionLoading = ref(false);
 const error = ref("");
 const feedback = ref("");
 const status = ref(null);
+const brands = ref([]);
+const brandsMeta = ref(null);
 const models = ref([]);
 const modelsMeta = ref(null);
-const modelQuery = ref("Pixel");
+const modelQuery = ref("");
+const selectedSourceKey = ref("google");
+const selectedModelId = ref("");
+const brandLoading = ref(false);
+const modelLoading = ref(false);
 const selectedImage = ref(null);
 const selectedImagePreview = ref("");
 
@@ -58,6 +65,22 @@ const cameraStatusLabel = computed(() => {
 
 const instances = computed(() => status.value?.instances ?? []);
 const config = computed(() => status.value?.config ?? {});
+const selectedSourceLabel = computed(() => {
+  const source = brands.value.find((brand) => brand.key === selectedSourceKey.value);
+  return source?.label || createForm.model.manufacturer || "厂商";
+});
+const selectedModelLabel = computed(() => {
+  const model = models.value.find((item) => item.id === selectedModelId.value);
+  if (model) {
+    return model.label || `${model.manufacturer} ${model.modelCode}`;
+  }
+
+  if (!createForm.model.modelCode) {
+    return "";
+  }
+
+  return `${createForm.model.manufacturer} ${createForm.model.marketingName || createForm.model.modelCode}`;
+});
 
 function applyStatusDefaults(payload) {
   if (payload?.config?.image) {
@@ -87,28 +110,84 @@ async function loadStatus() {
   }
 }
 
+async function loadBrands(options = {}) {
+  brandLoading.value = true;
+  try {
+    const payload = await fetchRedroidModelBrands({
+      refresh: options.refresh,
+    });
+    brands.value = payload.brands ?? [];
+    brandsMeta.value = payload;
+
+    if (!brands.value.some((brand) => brand.key === selectedSourceKey.value)) {
+      selectedSourceKey.value =
+        brands.value.find((brand) => brand.key === "google")?.key ||
+        brands.value[0]?.key ||
+        "";
+    }
+  } catch (requestError) {
+    error.value = getErrorMessage(requestError, "加载厂商列表失败。");
+  } finally {
+    brandLoading.value = false;
+  }
+}
+
 async function loadModels(options = {}) {
+  modelLoading.value = true;
   try {
     const payload = await fetchRedroidModels({
+      source: selectedSourceKey.value,
       query: modelQuery.value,
-      limit: 80,
+      limit: 1000,
       refresh: options.refresh,
     });
     models.value = payload.models ?? [];
     modelsMeta.value = payload;
+
+    const currentModel = models.value.find((model) => model.id === selectedModelId.value);
+    const nextModel = currentModel || (options.applyFirst ? models.value[0] : null);
+
+    if (nextModel) {
+      applyModel(nextModel, { silent: options.silent });
+    } else if (!currentModel) {
+      selectedModelId.value = "";
+    }
   } catch (requestError) {
     error.value = getErrorMessage(requestError, "加载机型列表失败。");
+  } finally {
+    modelLoading.value = false;
   }
 }
 
-function applyModel(model) {
+function applyModel(model, options = {}) {
+  selectedModelId.value = model.id || "";
   createForm.model.brand = model.brand || model.manufacturer || "Google";
   createForm.model.manufacturer = model.manufacturer || model.brand || "Google";
   createForm.model.modelCode = model.modelCode || model.model || "";
   createForm.model.marketingName = model.marketingName || "";
   createForm.model.device = model.device || model.codename || "";
   createForm.model.productName = model.productName || model.device || model.codename || "";
-  feedback.value = `已选择 ${model.label || model.modelCode}`;
+  if (!options.silent) {
+    feedback.value = `已选择 ${model.label || model.modelCode}`;
+  }
+}
+
+async function handleBrandChanged() {
+  selectedModelId.value = "";
+  modelQuery.value = "";
+  await loadModels({ applyFirst: true });
+}
+
+function handleModelChanged() {
+  const model = models.value.find((item) => item.id === selectedModelId.value);
+  if (model) {
+    applyModel(model);
+  }
+}
+
+async function refreshModelData() {
+  await loadBrands({ refresh: true });
+  await loadModels({ applyFirst: true });
 }
 
 function readFileAsDataUrl(file) {
@@ -241,7 +320,13 @@ async function runInstanceAction(instance, action) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadStatus(), loadModels()]);
+  await Promise.all([
+    loadStatus(),
+    (async () => {
+      await loadBrands();
+      await loadModels({ applyFirst: true, silent: true });
+    })(),
+  ]);
 });
 </script>
 
@@ -293,7 +378,7 @@ onMounted(async () => {
         <div class="redroid-panel__header">
           <div>
             <h3>创建云手机</h3>
-            <p>{{ createForm.model.manufacturer }} {{ createForm.model.modelCode }}</p>
+            <p>{{ selectedSourceLabel }} · {{ createForm.model.modelCode || "未选择型号" }}</p>
           </div>
         </div>
 
@@ -320,24 +405,57 @@ onMounted(async () => {
           </label>
         </div>
 
-        <div class="redroid-model-search">
-          <input v-model.trim="modelQuery" placeholder="搜索 Pixel、SM-S911B、sailfish..." @keyup.enter="loadModels()" />
-          <button type="button" @click="loadModels()">搜索</button>
-          <button type="button" @click="loadModels({ refresh: true })">更新表</button>
+        <div class="redroid-model-picker">
+          <label>
+            <span>厂商</span>
+            <select
+              v-model="selectedSourceKey"
+              :disabled="brandLoading || actionLoading || !brands.length"
+              @change="handleBrandChanged"
+            >
+              <option v-if="!brands.length" value="">无可选厂商</option>
+              <option v-for="brand in brands" :key="brand.key" :value="brand.key">
+                {{ brand.label }} · {{ brand.count }} 款
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>型号</span>
+            <select
+              v-model="selectedModelId"
+              :disabled="modelLoading || actionLoading || !models.length"
+              @change="handleModelChanged"
+            >
+              <option v-if="!models.length" value="">无可选型号</option>
+              <option v-for="model in models" :key="model.id" :value="model.id">
+                {{ model.modelCode }} · {{ model.marketingName || model.label }}
+              </option>
+            </select>
+          </label>
         </div>
 
-        <div class="redroid-model-list">
+        <div class="redroid-model-search">
+          <input
+            v-model.trim="modelQuery"
+            placeholder="在所选厂商内搜索型号、设备代号..."
+            @keyup.enter="loadModels({ applyFirst: true })"
+          />
+          <button type="button" :disabled="modelLoading || !selectedSourceKey" @click="loadModels({ applyFirst: true })">
+            {{ modelLoading ? "加载中" : "筛选" }}
+          </button>
           <button
-            v-for="model in models"
-            :key="model.id"
             type="button"
-            class="redroid-model-option"
-            @click="applyModel(model)"
+            :disabled="brandLoading || modelLoading"
+            @click="refreshModelData"
           >
-            <strong>{{ model.modelCode }}</strong>
-            <span>{{ model.label }}</span>
+            更新表
           </button>
         </div>
+
+        <p v-if="selectedModelLabel" class="redroid-model-summary">
+          已选：{{ selectedModelLabel }}
+        </p>
 
         <div class="redroid-form-grid">
           <label>
@@ -393,7 +511,7 @@ onMounted(async () => {
         </button>
 
         <p v-if="modelsMeta" class="redroid-note">
-          机型表来源：{{ modelsMeta.source }} · {{ modelsMeta.sourceLicense }} · {{ modelsMeta.total }} 条匹配
+          机型表来源：{{ modelsMeta.source }} · {{ brandsMeta?.total ?? 0 }} 个厂商源 · {{ modelsMeta.total }} 条匹配
         </p>
       </section>
 

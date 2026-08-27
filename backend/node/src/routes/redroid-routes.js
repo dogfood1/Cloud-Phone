@@ -9,7 +9,10 @@ import {
   startRedroidInstance,
   stopRedroidInstance,
 } from "../services/redroid-service.js";
-import { listRedroidModelPresets } from "../services/redroid-models-service.js";
+import {
+  listRedroidModelBrands,
+  listRedroidModelPresets,
+} from "../services/redroid-models-service.js";
 import { readProtectedJsonBody, sendProtectedJson } from "../utils/protected-http.js";
 
 function sendError(res, error) {
@@ -43,10 +46,23 @@ export async function handleRedroidRoute(req, res, method, pathname, requestUrl)
       return true;
     }
 
+    if (method === "GET" && pathname === "/api/redroid/brands") {
+      const result = await listRedroidModelBrands({
+        refresh: requestUrl.searchParams.get("refresh") === "1",
+      });
+
+      sendProtectedJson(res, 200, {
+        success: true,
+        ...result,
+      });
+      return true;
+    }
+
     if (method === "GET" && pathname === "/api/redroid/models") {
       const result = await listRedroidModelPresets({
         query: requestUrl.searchParams.get("q") ?? "",
         brand: requestUrl.searchParams.get("brand") ?? "",
+        source: requestUrl.searchParams.get("source") ?? "",
         limit: Number(requestUrl.searchParams.get("limit") ?? 80),
         refresh: requestUrl.searchParams.get("refresh") === "1",
       });

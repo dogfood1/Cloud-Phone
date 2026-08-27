@@ -4,6 +4,16 @@ export function fetchRedroidStatus() {
   return requestJson("/api/redroid/status");
 }
 
+export function fetchRedroidModelBrands(options = {}) {
+  const params = new URLSearchParams();
+  if (options.refresh) {
+    params.set("refresh", "1");
+  }
+
+  const suffix = params.toString() ? `?${params}` : "";
+  return requestJson(`/api/redroid/brands${suffix}`);
+}
+
 export function fetchRedroidModels(options = {}) {
   const params = new URLSearchParams();
   if (options.query) {
@@ -11,6 +21,9 @@ export function fetchRedroidModels(options = {}) {
   }
   if (options.brand) {
     params.set("brand", options.brand);
+  }
+  if (options.source) {
+    params.set("source", options.source);
   }
   if (options.limit) {
     params.set("limit", String(options.limit));

@@ -582,7 +582,14 @@ h2 {
   gap: 0.75rem;
 }
 
-.redroid-form-grid label {
+.redroid-model-picker {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(14rem, 1.2fr);
+  gap: 0.75rem;
+}
+
+.redroid-form-grid label,
+.redroid-model-picker label {
   display: grid;
   gap: 0.32rem;
   min-width: 0;
@@ -592,6 +599,7 @@ h2 {
 
 .redroid-form-grid input,
 .redroid-form-grid select,
+.redroid-model-picker select,
 .redroid-model-search input {
   width: 100%;
   height: 2.35rem;
@@ -631,9 +639,23 @@ h2 {
 }
 
 .redroid-primary:disabled,
+.redroid-model-search button:disabled,
 .redroid-instance__actions button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+.redroid-model-summary {
+  margin: -0.25rem 0 0;
+  padding: 0.52rem 0.65rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-muted);
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .redroid-model-list {
@@ -720,6 +742,7 @@ h2 {
   }
 
   .redroid-form-grid,
+  .redroid-model-picker,
   .redroid-model-list {
     grid-template-columns: 1fr;
   }
