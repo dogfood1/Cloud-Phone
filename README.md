@@ -16,7 +16,7 @@
 
 | 平台 | 地址 |
 |------|------|
-| **GitHub** | [github.com/yiyifred/Cloud-Phone](https://github.com/yiyifred/Cloud-Phone) |
+| **GitHub** | [github.com/dogfood1/Cloud-Phone](https://github.com/dogfood1/Cloud-Phone) |
 | **Gitee** | [gitee.com/yiyifred/Cloud-Phone](https://gitee.com/yiyifred/Cloud-Phone) |
 | **LINUX DO** | [linux.do](https://linux.do/) |
 | **爱发电** | [ifdian.net/a/yiyifred](https://ifdian.net/a/yiyifred) |
@@ -28,6 +28,7 @@
 - [相关链接](#相关链接)
 - [为什么做这个项目](#为什么做这个项目)
 - [亮点](#亮点)
+- [ReDroid 扩展](#redroid-扩展)
 - [截图（预留）](#截图预留)
 - [功能一览](#功能一览)
 - [Android 客户端](#android-客户端)
@@ -78,6 +79,16 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 | **Docker/CI** | `docker-cloud-phone/`：Linux 默认 **host 网络**（共享宿主机网卡、ADB/mDNS）；Mac/Windows 叠加 `docker-compose.bridge.yml`；多架构镜像与 Actions 推送；提交信息含 `#android` 时跳过 Docker 打包 |
 | **鸿蒙投屏** | HDC + uitest agent + JPEG 流：`cast/start` 推送 agent 并 fport，`/cast/ws` 连接后启动 JPEG 管道并推送帧；可调 **scale/quality**；**实时触控**（ECHO/hdckit `Gestures`）；触控坐标随画面缩放、横屏与预览旋转适配；agent 见 `backend/assets/harmony/` |
 | **多应用投屏** | 投屏模式下拉选「多应用投屏」：左侧栏隐藏、右侧全宽 Windows 桌面；Win11 风格任务栏与开始菜单；**每设备一个 scrcpy-server**，每窗独立 WebSocket / 虚拟屏 + `start_app`（对齐原版 `--new-display`）；编码 **60fps/8Mbps**；CSD 出码 + 前端 SPS/PPS 内联保证 WebCodecs 出画；关窗时 `am force-stop` 杀掉应用进程；拉伸/最大化同步虚拟屏尺寸；开始菜单底部可「全屏 / 取消全屏」（浏览器原生全屏）；设备上线预热包名/图标到浏览器缓存；开始菜单与应用管理优先读缓存；Icon Helper / 快速设置 / 通知中心 |
+
+## ReDroid 扩展
+
+本 fork 增加了面向 `redroid:13.0.0_arm64_only_extcam_rgba` 的云手机管理页：
+
+- 上传一张图片并设置为宿主机 `/dev/video20` 的 v4l2loopback 静态摄像头画面。
+- 创建 ReDroid 容器，默认映射 ADB `5555+` 和 `/dev/video20`，并注入已验证的外部摄像头镜像启动参数。
+- 创建时可设置 `ro.product.*` 机型信息，支持品牌、厂商、型号、device、product name。
+- 机型表通过后端从 [KHwang9883/MobileModels](https://github.com/KHwang9883/MobileModels) 拉取并缓存；该数据源许可证为 `CC BY-NC-SA 4.0`。
+- 后端需要 Docker socket、host pid、`ffmpeg`、`v4l2-ctl` 和 `/root/redroid-extcam` 挂载；`docker-cloud-phone/docker-compose*.yml` 已内置这些配置。
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |
 | **Android 伴侣 App** | 连接同一后端：设备画廊、完整设置页、投屏参数工作区、**多应用 Win11 桌面**（嵌入画布 + 全屏 Activity）、横屏全屏 H.264 投屏；流参数与 Web 对齐；工作区竖屏上下 / 横屏左右自适应 |
 | **移动投屏** | Android 端镜像导航键 / 摄像头手电变焦；Material 动效、工具栏自动隐藏；画布触控与黑边适配 |

@@ -11,6 +11,7 @@ export default {
     brandTitle: "设备控制台",
     navLabel: "主导航",
     devices: "设备",
+    redroid: "云手机",
     groupControl: "群控",
     logs: "日志",
     settings: "设置",

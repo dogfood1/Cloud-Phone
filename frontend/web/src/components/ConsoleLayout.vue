@@ -7,6 +7,7 @@ import DevicesPanel from "./DevicesPanel.vue";
 import GroupControlPanel from "./GroupControlPanel.vue";
 import LogsPanel from "./LogsPanel.vue";
 import MobileBottomNav from "./MobileBottomNav.vue";
+import RedroidManagerPanel from "./RedroidManagerPanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import { useMobileLayout } from "../composables/useMobileLayout.js";
 import { logInfo } from "../utils/app-event-logger.js";
@@ -132,6 +133,7 @@ function handleTabChange(tabId) {
         'main-panel--devices': !selectedDevice && activeTab === 'devices',
         'main-panel--settings': !selectedDevice && activeTab === 'settings',
         'main-panel--group-control': !selectedDevice && activeTab === 'group-control',
+        'main-panel--redroid': !selectedDevice && activeTab === 'redroid',
         'main-panel--logs': !selectedDevice && activeTab === 'logs',
       }"
     >
@@ -158,6 +160,10 @@ function handleTabChange(tabId) {
         :error="deviceError"
         :screenshot-url="screenshotUrl"
         @refresh="emit('refresh-devices')"
+      />
+      <RedroidManagerPanel
+        v-else-if="activeTab === 'redroid'"
+        @refresh-devices="emit('refresh-devices')"
       />
       <LogsPanel v-else-if="activeTab === 'logs'" />
       <SettingsPanel

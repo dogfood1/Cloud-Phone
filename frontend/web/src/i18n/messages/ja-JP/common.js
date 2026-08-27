@@ -11,6 +11,7 @@ export default {
     brandTitle: "デバイスコンソール",
     navLabel: "メインナビゲーション",
     devices: "デバイス",
+    redroid: "クラウド端末",
     groupControl: "群制御",
     logs: "ログ",
     settings: "設定",

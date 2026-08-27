@@ -29,6 +29,7 @@ import { handleIosDeviceRoute } from "./routes/ios-device-routes.js";
 import { handleIosWdaPipelineRoute } from "./routes/ios-wda-pipeline-routes.js";
 import { handleDeviceRoute } from "./routes/device-routes.js";
 import { handleLocalPersistenceRoute } from "./routes/local-persistence-routes.js";
+import { handleRedroidRoute } from "./routes/redroid-routes.js";
 import { handleScrcpyRoute } from "./routes/scrcpy-routes.js";
 import {
   getSessionTokenFromCookies,
@@ -125,6 +126,10 @@ export function createApp() {
     }
 
     if (await handleLocalPersistenceRoute(req, res, method, pathname, requestUrl)) {
+      return;
+    }
+
+    if (await handleRedroidRoute(req, res, method, pathname, requestUrl)) {
       return;
     }
 

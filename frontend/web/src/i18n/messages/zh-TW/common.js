@@ -11,6 +11,7 @@ export default {
     brandTitle: "裝置控制台",
     navLabel: "主導覽",
     devices: "裝置",
+    redroid: "雲手機",
     groupControl: "群控",
     logs: "日誌",
     settings: "設定",

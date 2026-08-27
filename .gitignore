@@ -3,6 +3,7 @@ projects/
 .npm-cache/
 
 .env
+.cloud-phone-source
 
 __pycache__/
 *.pyc

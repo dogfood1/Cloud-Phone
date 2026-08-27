@@ -1,4 +1,4 @@
-# 从 Docker Hub 拉取镜像（默认 yiyifred/cloud-phone-*）
+# 从 Docker Hub 拉取镜像（默认 dogfood1/cloud-phone-*）
 # Linux 默认 host 网络：前后端共享宿主机网络栈，可枚举全部网卡、ADB 局域网、mDNS
 # Mac/Windows 请叠加 bridge：./compose.sh -f docker-compose.yml -f docker-compose.bridge.yml up -d
 # 用法:
@@ -8,8 +8,10 @@ name: cloud-phone
 
 services:
   backend:
-    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-dogfood1}/cloud-phone-backend:${IMAGE_TAG:-latest}
     network_mode: host
+    pid: host
+    privileged: true
     env_file:
       - ../.env
     environment:
@@ -19,12 +21,23 @@ services:
       CLOUD_PHONE_USE_HOST_NETWORK: "1"
       CLOUD_PHONE_PREFER_SYSTEM_ADB: "1"
       CLOUD_PHONE_DATA_DIR: /data
+      REDROID_IMAGE_TAG: ${REDROID_IMAGE_TAG:-redroid:13.0.0_arm64_only_extcam_rgba}
+      REDROID_HOST_WORKDIR: ${REDROID_HOST_WORKDIR:-/root/redroid-extcam}
+      REDROID_CAMERA_VIDEO_NR: ${REDROID_CAMERA_VIDEO_NR:-20}
+      REDROID_CAMERA_WIDTH: ${REDROID_CAMERA_WIDTH:-1280}
+      REDROID_CAMERA_HEIGHT: ${REDROID_CAMERA_HEIGHT:-720}
+      REDROID_CAMERA_FPS: ${REDROID_CAMERA_FPS:-30}
     volumes:
       - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - ${REDROID_HOST_WORKDIR:-/root/redroid-extcam}:${REDROID_HOST_WORKDIR:-/root/redroid-extcam}
+    devices:
+      - /dev/video${REDROID_CAMERA_VIDEO_NR:-20}:/dev/video${REDROID_CAMERA_VIDEO_NR:-20}
     restart: unless-stopped
 
   frontend:
-    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-dogfood1}/cloud-phone-frontend:${IMAGE_TAG:-latest}
     network_mode: host
     env_file:
       - ../.env

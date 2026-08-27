@@ -5,10 +5,14 @@ WORKDIR /app
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     android-tools-adb \
+    docker.io \
+    ffmpeg \
     python3 \
     python3-pip \
     openssl \
     libusb-1.0-0 \
+    util-linux \
+    v4l-utils \
   && rm -rf /var/lib/apt/lists/*
 
 COPY backend/node/package*.json ./backend/node/

@@ -29,7 +29,7 @@ read_app_version() {
     "$ROOT/frontend/web/package.json" | head -n 1
 }
 
-NAMESPACE="${DOCKERHUB_NAMESPACE:-yiyifred}"
+NAMESPACE="${DOCKERHUB_NAMESPACE:-dogfood1}"
 TAG="${IMAGE_TAG:-$(read_app_version)}"
 TAG="${TAG:-latest}"
 PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64,linux/arm64}"

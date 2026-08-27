@@ -17,6 +17,7 @@ const { t } = useI18n();
 
 const tabs = computed(() => [
   { id: "devices", label: t("sidebar.devices"), icon: "devices" },
+  { id: "redroid", label: t("sidebar.redroid"), icon: "server" },
   { id: "group-control", label: t("sidebar.groupControl"), icon: "group-control" },
   { id: "logs", label: t("sidebar.logs"), icon: "logs" },
   { id: "settings", label: t("sidebar.settings"), icon: "settings" },

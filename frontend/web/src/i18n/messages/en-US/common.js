@@ -11,6 +11,7 @@ export default {
     brandTitle: "Device console",
     navLabel: "Main navigation",
     devices: "Devices",
+    redroid: "Cloud phones",
     groupControl: "Group control",
     logs: "Logs",
     settings: "Settings",

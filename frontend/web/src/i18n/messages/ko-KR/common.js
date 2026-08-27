@@ -11,6 +11,7 @@ export default {
     brandTitle: "기기 콘솔",
     navLabel: "주 메뉴",
     devices: "기기",
+    redroid: "클라우드 폰",
     groupControl: "군 제어",
     logs: "로그",
     settings: "설정",

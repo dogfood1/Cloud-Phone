@@ -322,6 +322,7 @@ input:focus-visible {
 .main-panel--settings,
 .main-panel--group-control,
 .main-panel--logs,
+.main-panel--redroid,
 .main-panel--devices {
   display: flex;
   flex-direction: column;
@@ -487,6 +488,259 @@ h2 {
   min-height: auto;
   max-height: none;
   overflow: visible;
+}
+
+.redroid-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.redroid-view > .page-header,
+.redroid-view > .panel-alert {
+  flex-shrink: 0;
+}
+
+.redroid-layout {
+  display: grid;
+  grid-template-columns: minmax(20rem, 0.82fr) minmax(28rem, 1.18fr);
+  gap: 1rem;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 1rem;
+}
+
+.redroid-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.redroid-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.redroid-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.redroid-panel__header h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.redroid-panel__header p,
+.redroid-instance p,
+.redroid-note {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.redroid-dropzone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 14rem;
+  overflow: hidden;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-preview);
+  color: var(--muted);
+  text-align: center;
+}
+
+.redroid-dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.redroid-dropzone img {
+  width: 100%;
+  height: 100%;
+  max-height: 18rem;
+  object-fit: contain;
+}
+
+.redroid-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.redroid-form-grid label {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.redroid-form-grid input,
+.redroid-form-grid select,
+.redroid-model-search input {
+  width: 100%;
+  height: 2.35rem;
+  min-width: 0;
+  padding: 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.redroid-model-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+}
+
+.redroid-model-search button,
+.redroid-primary,
+.redroid-instance__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 2.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.redroid-primary {
+  border-color: var(--line-strong);
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 700;
+}
+
+.redroid-primary:disabled,
+.redroid-instance__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.redroid-model-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.redroid-model-option {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-muted);
+  color: var(--text);
+  text-align: left;
+}
+
+.redroid-model-option strong,
+.redroid-instance strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redroid-model-option span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redroid-instance-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.redroid-instance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--bg-muted);
+}
+
+.redroid-instance__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.redroid-instance__actions button {
+  width: 2.2rem;
+  padding: 0;
+}
+
+.redroid-state {
+  min-width: 4.5rem;
+  padding: 0.32rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.redroid-state--on {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+@media (max-width: 900px) {
+  .redroid-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .redroid-form-grid,
+  .redroid-model-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .redroid-panel__header {
+    flex-direction: column;
+  }
+
+  .redroid-model-search {
+    grid-template-columns: 1fr;
+  }
+
+  .redroid-instance {
+    grid-template-columns: 1fr;
+  }
+
+  .redroid-instance__actions {
+    justify-content: flex-start;
+  }
 }
 
 .devices-toolbar {
@@ -2908,4 +3162,3 @@ code {
   }
 
 }
-

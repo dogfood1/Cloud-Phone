@@ -11,8 +11,10 @@ services:
     build:
       context: ..
       dockerfile: docker-cloud-phone/docker/backend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-dogfood1}/cloud-phone-backend:${IMAGE_TAG:-latest}
     network_mode: host
+    pid: host
+    privileged: true
     env_file:
       - ../.env
     environment:
@@ -22,15 +24,26 @@ services:
       CLOUD_PHONE_USE_HOST_NETWORK: "1"
       CLOUD_PHONE_PREFER_SYSTEM_ADB: "1"
       CLOUD_PHONE_DATA_DIR: /data
+      REDROID_IMAGE_TAG: ${REDROID_IMAGE_TAG:-redroid:13.0.0_arm64_only_extcam_rgba}
+      REDROID_HOST_WORKDIR: ${REDROID_HOST_WORKDIR:-/root/redroid-extcam}
+      REDROID_CAMERA_VIDEO_NR: ${REDROID_CAMERA_VIDEO_NR:-20}
+      REDROID_CAMERA_WIDTH: ${REDROID_CAMERA_WIDTH:-1280}
+      REDROID_CAMERA_HEIGHT: ${REDROID_CAMERA_HEIGHT:-720}
+      REDROID_CAMERA_FPS: ${REDROID_CAMERA_FPS:-30}
     volumes:
       - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - ${REDROID_HOST_WORKDIR:-/root/redroid-extcam}:${REDROID_HOST_WORKDIR:-/root/redroid-extcam}
+    devices:
+      - /dev/video${REDROID_CAMERA_VIDEO_NR:-20}:/dev/video${REDROID_CAMERA_VIDEO_NR:-20}
     restart: unless-stopped
 
   frontend:
     build:
       context: ..
       dockerfile: docker-cloud-phone/docker/frontend.Dockerfile
-    image: ${DOCKERHUB_NAMESPACE:-yiyifred}/cloud-phone-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-dogfood1}/cloud-phone-frontend:${IMAGE_TAG:-latest}
     network_mode: host
     env_file:
       - ../.env

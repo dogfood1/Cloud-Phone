@@ -1,0 +1,10 @@
+.git
+.github
+.cursor
+**/node_modules
+**/dist
+**/.env
+**/*.log
+docker-cloud-phone/data
+backend/node/data
+frontend/web/.vite
