@@ -193,6 +193,10 @@ function propToken(value, fallback = "redroid") {
   return normalized || fallback;
 }
 
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\"'\"'")}'`;
+}
+
 function buildMac(prefix) {
   const bytes = Array.from({ length: 5 }, () => Math.floor(Math.random() * 256));
   return [prefix, ...bytes].map((item) => item.toString(16).padStart(2, "0")).join(":");
@@ -633,6 +637,46 @@ async function restartHostCameraService(service) {
   };
 }
 
+async function writeHostCameraServiceConfig({ videoNr, width, height, fps, imagePath }) {
+  const content = [
+    `VIDEO_NR=${videoNr}`,
+    `CAMERA_WIDTH=${width}`,
+    `CAMERA_HEIGHT=${height}`,
+    `CAMERA_FPS=${fps}`,
+    `CAMERA_IMAGE=${imagePath}`,
+    "CAMERA_JPEG_Q=1",
+    "",
+  ].join("\n");
+  const script = [
+    "umask 022",
+    "mkdir -p /etc/default",
+    `printf %s ${shellQuote(content)} > /etc/default/redroid-static-camera`,
+  ].join("; ");
+
+  const attempts = [
+    await commandResult("nsenter", [
+      "--target",
+      "1",
+      "--mount",
+      "--uts",
+      "--ipc",
+      "--net",
+      "--pid",
+      "/bin/sh",
+      "-c",
+      script,
+    ], { timeout: 8_000 }),
+    await commandResult("/bin/sh", ["-c", script], { timeout: 8_000 }),
+  ];
+
+  return {
+    ok: attempts.some((item) => item.ok),
+    path: "/etc/default/redroid-static-camera",
+    content,
+    attempts,
+  };
+}
+
 async function stopManagedCameraWriter(videoNr) {
   const pidPath = path.join(BACKEND_DATA_PATH, `redroid-camera-video${videoNr}.pid`);
   try {
@@ -743,9 +787,17 @@ export async function setRedroidCameraImage(payload = {}) {
 
   let restart = null;
   let managedWriter = null;
+  let serviceConfig = null;
 
   if (Number(videoNr) === Number(cfg.videoNr)) {
     await stopManagedCameraWriter(videoNr);
+    serviceConfig = await writeHostCameraServiceConfig({
+      videoNr,
+      width,
+      height,
+      fps: cfg.cameraFps,
+      imagePath,
+    });
     restart = await restartHostCameraService(cfg.cameraService);
 
     if (!restart.ok) {
@@ -773,6 +825,7 @@ export async function setRedroidCameraImage(payload = {}) {
     camera: await getRedroidCameraStatus({ videoNr }),
     restart,
     managedWriter,
+    serviceConfig,
     transform: {
       fitMode: transform.fitMode,
       mirror: transform.mirror,
