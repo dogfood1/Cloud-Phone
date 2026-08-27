@@ -8,10 +8,12 @@ import { BACKEND_DATA_PATH } from "../config/paths.js";
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix";
+const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg";
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
 const PRODUCT_NAMESPACES = ["", "product", "system", "vendor", "odm"];
 const CAMERA_IMAGE_FIT_MODES = new Set(["cover", "contain", "stretch"]);
+const CAMERA_LENS_FACINGS = new Set(["back", "front", "external"]);
+const CAMERA_SENSOR_ORIENTATIONS = new Set([0, 90, 180, 270]);
 
 function config() {
   const workdir = process.env.REDROID_HOST_WORKDIR || DEFAULT_WORKDIR;
@@ -24,6 +26,10 @@ function config() {
     cameraWidth: Number(process.env.REDROID_CAMERA_WIDTH || 1280),
     cameraHeight: Number(process.env.REDROID_CAMERA_HEIGHT || 720),
     cameraFps: Number(process.env.REDROID_CAMERA_FPS || 30),
+    cameraLensFacing: normalizeCameraLensFacing(process.env.REDROID_CAMERA_LENS_FACING),
+    cameraSensorOrientation: normalizeCameraSensorOrientation(
+      process.env.REDROID_CAMERA_SENSOR_ORIENTATION,
+    ),
     videoNr,
     adbPortBase: Number(process.env.REDROID_ADB_PORT_BASE || 5555),
     containerAdbPort: Number(process.env.REDROID_CONTAINER_ADB_PORT || 5554),
@@ -32,6 +38,16 @@ function config() {
     defaultDpi: Number(process.env.REDROID_DPI || 320),
     defaultFps: Number(process.env.REDROID_FPS || 30),
   };
+}
+
+function normalizeCameraLensFacing(value) {
+  const facing = String(value || "back").trim().toLowerCase();
+  return CAMERA_LENS_FACINGS.has(facing) ? facing : "back";
+}
+
+function normalizeCameraSensorOrientation(value) {
+  const orientation = Number(value ?? 0);
+  return CAMERA_SENSOR_ORIENTATIONS.has(orientation) ? orientation : 0;
 }
 
 function run(command, args, options = {}) {
@@ -287,6 +303,8 @@ export function getRedroidRuntimeConfig() {
     cameraWidth: cfg.cameraWidth,
     cameraHeight: cfg.cameraHeight,
     cameraFps: cfg.cameraFps,
+    cameraLensFacing: cfg.cameraLensFacing,
+    cameraSensorOrientation: cfg.cameraSensorOrientation,
     defaultVideoNr: cfg.videoNr,
     defaultAdbPortBase: cfg.adbPortBase,
     containerAdbPort: cfg.containerAdbPort,
@@ -466,6 +484,8 @@ export async function createRedroidInstance(payload = {}) {
     "persist.sys.usb.config=adb",
     "ro.product.locale=zh-CN",
     "persist.sys.locale=zh-CN",
+    `ro.vendor.camera.external.lensFacing=${propToken(cfg.cameraLensFacing, "back")}`,
+    `ro.vendor.camera.external.sensorOrientation=${cfg.cameraSensorOrientation}`,
     "ro.vendor.camera.external.jpegMirrorCorrection=false",
     "ro.vendor.camera.external.forceHighQualityJpeg=true",
     `ro.build.display.id=AEM.${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.${Math.random().toString(16).slice(2, 10).toUpperCase()}`,
@@ -655,7 +675,7 @@ async function startManagedCameraWriter(imagePath, videoNr, cfg) {
       "-c:v",
       "mjpeg",
       "-q:v",
-      "3",
+      "1",
       "-pix_fmt",
       "yuvj420p",
       "-f",
