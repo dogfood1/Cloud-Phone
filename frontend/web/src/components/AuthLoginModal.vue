@@ -1,9 +1,7 @@
 <script setup>
-import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { NCheckbox, NForm, NFormItem, NInput } from "naive-ui";
+import { NForm, NFormItem, NInput } from "naive-ui";
 
-import HelpHint from "./ui/HelpHint.vue";
 import UiButton from "./ui/UiButton.vue";
 
 const props = defineProps({
@@ -16,30 +14,12 @@ const props = defineProps({
 const emit = defineEmits(["submit"]);
 
 const { t } = useI18n();
-
-const loginHelpContent = computed(() =>
-  props.state.passwordConfigured
-    ? t("auth.loginIntro")
-    : `${t("auth.loginIntro")}\n${t("auth.defaultPasswordHint")}`,
-);
 </script>
 
 <template>
-  <section role="dialog" aria-modal="true" aria-labelledby="auth-login-title">
-    <div class="auth-card__head">
-      <p class="auth-card__eyebrow">{{ t("auth.loginEyebrow") }}</p>
-      <div class="auth-card__title-row">
-        <h2 id="auth-login-title" class="auth-card__title">{{ t("auth.loginTitle") }}</h2>
-        <HelpHint
-          :content="loginHelpContent"
-          :title="t('auth.loginTitle')"
-          size="sm"
-        />
-      </div>
-    </div>
-
+  <section role="dialog" aria-modal="true" :aria-label="t('auth.loginPassword')">
     <NForm class="auth-form" @submit.prevent="emit('submit')">
-      <NFormItem :label="t('auth.loginPassword')" :show-feedback="false">
+      <NFormItem :show-feedback="false">
         <NInput
           v-model:value="state.loginPassword"
           type="password"
@@ -49,11 +29,6 @@ const loginHelpContent = computed(() =>
           @keydown.enter="emit('submit')"
         />
       </NFormItem>
-
-      <label class="auth-form__remember">
-        <NCheckbox v-model:checked="state.rememberPassword" />
-        <span>{{ t("auth.rememberPassword") }}</span>
-      </label>
 
       <UiButton
         variant="primary"
