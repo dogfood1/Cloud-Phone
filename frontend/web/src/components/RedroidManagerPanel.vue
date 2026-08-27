@@ -36,7 +36,7 @@ const modelLoading = ref(false);
 const selectedImage = ref(null);
 const selectedImagePreview = ref("");
 const cameraFitMode = ref("cover");
-const cameraMirror = ref(true);
+const cameraMirror = ref(false);
 
 const CAMERA_IMAGE_FIT_OPTIONS = [
   { label: "填满裁剪", value: "cover" },
@@ -406,7 +406,7 @@ onMounted(async () => {
           </label>
           <label class="redroid-check">
             <input v-model="cameraMirror" type="checkbox" :disabled="actionLoading" />
-            <span>前置镜像校正</span>
+            <span>手动镜像输入</span>
           </label>
         </div>
 

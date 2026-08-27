@@ -446,7 +446,7 @@ defineExpose({ stepPreviewRotationDeg });
         </label>
         <label class="workspace-fixed-camera__check">
           <input v-model="fixedCameraMirror" type="checkbox" :disabled="fixedCameraBusy" />
-          <span>镜像校正</span>
+          <span>手动镜像输入</span>
         </label>
       </div>
 
