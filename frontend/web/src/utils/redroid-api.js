@@ -83,6 +83,13 @@ export function checkRedroidInstanceProxy(name) {
   });
 }
 
+export function updateRedroidInstanceCapture(name, enabled) {
+  return requestJson(`/api/redroid/instances/${encodeURIComponent(name)}/capture`, {
+    method: enabled ? "POST" : "DELETE",
+    body: enabled ? { enabled: true } : undefined,
+  });
+}
+
 export function updateRedroidCameraImage(payload) {
   return requestJson("/api/redroid/camera-image", {
     method: "POST",

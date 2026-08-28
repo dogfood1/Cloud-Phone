@@ -14,6 +14,7 @@ import {
   fetchRedroidStatus,
   startRedroidInstance,
   stopRedroidInstance,
+  updateRedroidInstanceCapture,
   updateRedroidCameraImage,
 } from "../utils/redroid-api.js";
 import { getErrorMessage } from "../utils/api.js";
@@ -76,6 +77,7 @@ const createForm = reactive({
     password: "",
     serverName: "",
     tlsInsecure: true,
+    captureEnabled: true,
   },
 });
 
@@ -139,6 +141,7 @@ function buildProxyPayload() {
     password: createForm.proxy.password,
     serverName: createForm.proxy.serverName,
     tlsInsecure: Boolean(createForm.proxy.tlsInsecure),
+    captureEnabled: Boolean(createForm.proxy.captureEnabled),
   };
 }
 
@@ -389,6 +392,22 @@ async function handleDisableProxy(instance) {
     await loadStatus();
   } catch (requestError) {
     error.value = getErrorMessage(requestError, "关闭代理失败。");
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleToggleCapture(instance) {
+  actionLoading.value = true;
+  error.value = "";
+  feedback.value = "";
+  const enabled = !instance.proxy?.captureEnabled;
+  try {
+    await updateRedroidInstanceCapture(instance.name, enabled);
+    feedback.value = `${instance.name} 抓包已${enabled ? "启用" : "关闭"}。`;
+    await loadStatus();
+  } catch (requestError) {
+    error.value = getErrorMessage(requestError, "更新抓包配置失败。");
   } finally {
     actionLoading.value = false;
   }
@@ -699,6 +718,14 @@ onMounted(async () => {
               />
               <span>允许自签名证书</span>
             </label>
+            <label class="redroid-check">
+              <input
+                v-model="createForm.proxy.captureEnabled"
+                :disabled="actionLoading || !createForm.proxy.enabled"
+                type="checkbox"
+              />
+              <span>启用 GoCapture 抓包</span>
+            </label>
           </div>
         </div>
 
@@ -732,11 +759,23 @@ onMounted(async () => {
               <p>{{ instance.image }} · ADB {{ instance.adbPort || "-" }} · /dev/video{{ instance.videoNr ?? "-" }}</p>
               <p>{{ instance.model.manufacturer || "-" }} {{ instance.model.modelCode || "" }} {{ instance.model.device || "" }}</p>
               <p>{{ proxyStatusLabel(instance.proxy) }}</p>
+              <p v-if="instance.proxy?.enabled">
+                GoCapture {{ instance.proxy.captureEnabled ? "已启用" : "未启用" }}
+              </p>
             </div>
             <div class="redroid-instance__actions">
               <span :class="['redroid-state', { 'redroid-state--on': instance.running }]">
                 {{ instance.state }}
               </span>
+              <button
+                v-if="instance.proxy?.enabled"
+                type="button"
+                :title="instance.proxy.captureEnabled ? '关闭抓包' : '启用抓包'"
+                :disabled="actionLoading || !instance.running"
+                @click="handleToggleCapture(instance)"
+              >
+                <AppIcon name="activity" />
+              </button>
               <button
                 v-if="instance.proxy?.enabled"
                 type="button"

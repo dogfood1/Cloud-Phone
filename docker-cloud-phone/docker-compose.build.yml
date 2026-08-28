@@ -38,6 +38,12 @@ services:
       REDROID_PROXY_IMAGE: ${REDROID_PROXY_IMAGE:-ghcr.io/sagernet/sing-box:v1.10.7}
       REDROID_PROXY_PROBE_IMAGE: ${REDROID_PROXY_PROBE_IMAGE:-curlimages/curl:8.10.1}
       REDROID_PROXY_DIR: ${REDROID_PROXY_DIR:-/root/redroid-extcam/proxy}
+      GOCAPTURE_URL: ${GOCAPTURE_URL:-http://127.0.0.1:9081}
+      GOCAPTURE_WEB_TOKEN: ${GOCAPTURE_WEB_TOKEN:-}
+      GOCAPTURE_PROXY_HOST: ${GOCAPTURE_PROXY_HOST:-172.17.0.1}
+      GOCAPTURE_HTTP_PORT: ${GOCAPTURE_HTTP_PORT:-9080}
+      GOCAPTURE_TCP_PORT: ${GOCAPTURE_TCP_PORT:-9082}
+      REDROID_CAPTURE_SOCKS_PORT: ${REDROID_CAPTURE_SOCKS_PORT:-1080}
     volumes:
       - ./data:/data
       - /var/run/docker.sock:/var/run/docker.sock

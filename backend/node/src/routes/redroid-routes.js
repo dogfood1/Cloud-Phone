@@ -1,5 +1,6 @@
 import {
   checkRedroidInstanceProxy,
+  configureRedroidInstanceCapture,
   configureRedroidInstanceProxy,
   createRedroidInstance,
   deleteRedroidInstance,
@@ -144,6 +145,17 @@ export async function handleRedroidRoute(req, res, method, pathname, requestUrl)
         success: true,
         ...result,
       });
+      return true;
+    }
+
+    const captureMatch = pathname.match(/^\/api\/redroid\/instances\/([^/]+)\/capture$/);
+    if ((method === "POST" || method === "DELETE") && captureMatch) {
+      const body = method === "POST" ? await readProtectedJsonBody(req, res) : { enabled: false };
+      const result = await configureRedroidInstanceCapture(
+        decodeURIComponent(captureMatch[1]),
+        body,
+      );
+      sendProtectedJson(res, 200, { success: true, ...result });
       return true;
     }
 

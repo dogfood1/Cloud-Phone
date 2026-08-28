@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import {
+  Activity,
   Apple,
   ArrowLeft,
   Camera,
@@ -104,6 +105,7 @@ const iconPaths = computed(() => {
 });
 
 const LUCIDE_ICONS = {
+  activity: Activity,
   devices: Grid3X3,
   apple: Apple,
   "arrow-left": ArrowLeft,

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import dns from "node:dns/promises";
+import { randomBytes } from "node:crypto";
 import net from "node:net";
 import path from "node:path";
 import { execFile, spawn } from "node:child_process";
@@ -13,6 +14,7 @@ const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecf
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
 const DEFAULT_PROXY_IMAGE = "ghcr.io/sagernet/sing-box:v1.10.7";
 const DEFAULT_PROXY_PROBE_IMAGE = "curlimages/curl:8.10.1";
+const DEFAULT_GOCAPTURE_URL = "http://127.0.0.1:9081";
 const PRODUCT_NAMESPACES = ["", "product", "system", "vendor", "odm"];
 const CAMERA_IMAGE_FIT_MODES = new Set(["cover", "contain", "stretch"]);
 const CAMERA_LENS_FACINGS = new Set(["back", "front", "external"]);
@@ -50,6 +52,13 @@ function config() {
     proxyProbeImage: process.env.REDROID_PROXY_PROBE_IMAGE || DEFAULT_PROXY_PROBE_IMAGE,
     proxyDir: process.env.REDROID_PROXY_DIR || path.join(workdir, "proxy"),
     proxyTunAddress: process.env.REDROID_PROXY_TUN_ADDRESS || "172.19.0.1/30",
+    captureUrl: process.env.GOCAPTURE_URL || DEFAULT_GOCAPTURE_URL,
+    captureToken: process.env.GOCAPTURE_WEB_TOKEN || "",
+    captureHost: process.env.GOCAPTURE_PROXY_HOST || "172.17.0.1",
+    captureHttpPort: Number(process.env.GOCAPTURE_HTTP_PORT || 9080),
+    captureTcpPort: Number(process.env.GOCAPTURE_TCP_PORT || 9082),
+    captureSocksPort: Number(process.env.REDROID_CAPTURE_SOCKS_PORT || 1080),
+    captureCaPath: process.env.GOCAPTURE_CA_PATH || path.join(workdir, "gocapture-ca.pem"),
   };
 }
 
@@ -220,6 +229,11 @@ function normalizeProxyConfig(value = {}) {
       type === "trojan",
       "Proxy TLS insecure",
     ),
+    captureEnabled: normalizeBoolean(
+      value.captureEnabled ?? value.capture?.enabled,
+      true,
+      "Traffic capture enabled",
+    ),
   };
 }
 
@@ -369,11 +383,33 @@ function ipCidrForSingleHost(host) {
   return null;
 }
 
-function buildSingBoxConfig(proxy, cfg) {
+function buildSingBoxConfig(proxy, cfg, captureCredentials = {}) {
   const directCidrs = [
     ipCidrForSingleHost(proxy.server),
     "127.0.0.0/8",
   ].filter(Boolean);
+  const captureHost = cfg.captureHost;
+  const captureCidr = ipCidrForSingleHost(captureHost);
+  const captureInbounds = proxy.captureEnabled
+    ? [{
+        type: "socks",
+        tag: "capture-egress",
+        listen: "0.0.0.0",
+        listen_port: cfg.captureSocksPort,
+        users: [{
+          username: captureCredentials.username,
+          password: captureCredentials.password,
+        }],
+      }]
+    : [];
+  const captureOutbounds = proxy.captureEnabled
+    ? [{
+        type: "http",
+        tag: "capture-tcp",
+        server: captureHost,
+        server_port: cfg.captureTcpPort,
+      }]
+    : [];
 
   return {
     log: {
@@ -402,9 +438,11 @@ function buildSingBoxConfig(proxy, cfg) {
         sniff: true,
         stack: "system",
       },
+      ...captureInbounds,
     ],
     outbounds: [
       proxyOutbound(proxy),
+      ...captureOutbounds,
       {
         type: "dns",
         tag: "dns-out",
@@ -431,6 +469,24 @@ function buildSingBoxConfig(proxy, cfg) {
               outbound: "direct",
             }]
           : []),
+        ...(proxy.captureEnabled && captureCidr
+          ? [{
+              ip_cidr: [captureCidr],
+              outbound: "direct",
+            }]
+          : []),
+        ...(proxy.captureEnabled
+          ? [
+              {
+                inbound: ["capture-egress"],
+                outbound: "proxy",
+              },
+              {
+                network: "tcp",
+                outbound: "capture-tcp",
+              },
+            ]
+          : []),
       ],
       final: "proxy",
     },
@@ -446,6 +502,7 @@ function publicProxyMeta(meta = {}) {
     usernameSet: Boolean(meta.usernameSet),
     serverName: meta.serverName ?? null,
     tlsInsecure: Boolean(meta.tlsInsecure),
+    captureEnabled: Boolean(meta.captureEnabled),
     sidecarName: meta.sidecarName ?? null,
     image: meta.image ?? null,
     updatedAt: meta.updatedAt ?? null,
@@ -473,6 +530,8 @@ async function writeProxyFiles(name, proxy) {
   const configPath = proxyConfigPathForName(cfg, name);
   const metaPath = proxyMetaPathForName(cfg, name);
   const sidecarName = proxySidecarName(name);
+  const captureSocksUsername = name;
+  const captureSocksPassword = randomBytes(24).toString("base64url");
   const meta = {
     enabled: true,
     type: proxy.type,
@@ -481,6 +540,9 @@ async function writeProxyFiles(name, proxy) {
     usernameSet: Boolean(proxy.username),
     serverName: proxy.serverName,
     tlsInsecure: proxy.tlsInsecure,
+    captureEnabled: proxy.captureEnabled,
+    captureSocksUsername,
+    captureSocksPassword,
     sidecarName,
     image: cfg.proxyImage,
     configPath,
@@ -488,12 +550,213 @@ async function writeProxyFiles(name, proxy) {
   };
 
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(configPath, `${JSON.stringify(buildSingBoxConfig(proxy, cfg), null, 2)}\n`, {
+  await fs.writeFile(configPath, `${JSON.stringify(buildSingBoxConfig(proxy, cfg, {
+    username: captureSocksUsername,
+    password: captureSocksPassword,
+  }), null, 2)}\n`, {
     mode: 0o600,
   });
   await fs.writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, { mode: 0o600 });
 
   return meta;
+}
+
+function captureRule(rule, cfg) {
+  const captureCidr = ipCidrForSingleHost(cfg.captureHost);
+  return (
+    rule?.outbound === "capture-tcp" ||
+    (Array.isArray(rule?.inbound) && rule.inbound.includes("capture-egress")) ||
+    (captureCidr && rule?.outbound === "direct" &&
+      Array.isArray(rule?.ip_cidr) && rule.ip_cidr.length === 1 && rule.ip_cidr[0] === captureCidr)
+  );
+}
+
+function setCaptureInSingBoxConfig(document, enabled, cfg, captureCredentials = {}) {
+  const configDocument = structuredClone(document);
+  configDocument.inbounds = (configDocument.inbounds ?? [])
+    .filter((item) => item?.tag !== "capture-egress");
+  configDocument.outbounds = (configDocument.outbounds ?? [])
+    .filter((item) => item?.tag !== "capture-tcp");
+  configDocument.route ??= {};
+  configDocument.route.rules = (configDocument.route.rules ?? [])
+    .filter((rule) => !captureRule(rule, cfg));
+
+  if (!enabled) {
+    return configDocument;
+  }
+
+  configDocument.inbounds.push({
+    type: "socks",
+    tag: "capture-egress",
+    listen: "0.0.0.0",
+    listen_port: cfg.captureSocksPort,
+    users: [{
+      username: captureCredentials.username,
+      password: captureCredentials.password,
+    }],
+  });
+  configDocument.outbounds.splice(1, 0, {
+    type: "http",
+    tag: "capture-tcp",
+    server: cfg.captureHost,
+    server_port: cfg.captureTcpPort,
+  });
+  const captureCidr = ipCidrForSingleHost(cfg.captureHost);
+  if (captureCidr) {
+    configDocument.route.rules.push({
+      ip_cidr: [captureCidr],
+      outbound: "direct",
+    });
+  }
+  configDocument.route.rules.push(
+    {
+      inbound: ["capture-egress"],
+      outbound: "proxy",
+    },
+    {
+      network: "tcp",
+      outbound: "capture-tcp",
+    },
+  );
+  return configDocument;
+}
+
+async function setCaptureEnabledInProxyFiles(name, enabled) {
+  const cfg = config();
+  const configPath = proxyConfigPathForName(cfg, name);
+  const metaPath = proxyMetaPathForName(cfg, name);
+  let document;
+  let meta;
+  try {
+    [document, meta] = await Promise.all([
+      fs.readFile(configPath, "utf8").then(JSON.parse),
+      fs.readFile(metaPath, "utf8").then(JSON.parse),
+    ]);
+  } catch (error) {
+    const wrapped = new Error(`Proxy configuration for ${name} is unavailable.`);
+    wrapped.statusCode = 409;
+    wrapped.cause = error;
+    throw wrapped;
+  }
+
+  const captureSocksUsername = meta.captureSocksUsername || name;
+  const captureSocksPassword = meta.captureSocksPassword || randomBytes(24).toString("base64url");
+  const updatedDocument = setCaptureInSingBoxConfig(document, enabled, cfg, {
+    username: captureSocksUsername,
+    password: captureSocksPassword,
+  });
+  const updatedMeta = {
+    ...meta,
+    captureEnabled: Boolean(enabled),
+    captureSocksUsername,
+    captureSocksPassword,
+    updatedAt: new Date().toISOString(),
+  };
+  await Promise.all([
+    fs.writeFile(configPath, `${JSON.stringify(updatedDocument, null, 2)}\n`, { mode: 0o600 }),
+    fs.writeFile(metaPath, `${JSON.stringify(updatedMeta, null, 2)}\n`, { mode: 0o600 }),
+  ]);
+  return updatedMeta;
+}
+
+async function goCaptureRequest(pathname, options = {}) {
+  const cfg = config();
+  const headers = { ...(options.headers ?? {}) };
+  if (cfg.captureToken) {
+    headers.Authorization = `Bearer ${cfg.captureToken}`;
+  }
+  if (options.body != null) {
+    headers["Content-Type"] = "application/json";
+  }
+  const response = await fetch(new URL(pathname, cfg.captureUrl), {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body == null ? undefined : JSON.stringify(options.body),
+    signal: AbortSignal.timeout(options.timeout ?? 10_000),
+  });
+  if (!response.ok) {
+    const detail = (await response.text()).trim();
+    throw new Error(`GoCapture ${pathname} returned HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
+  if (options.binary) {
+    return Buffer.from(await response.arrayBuffer());
+  }
+  return response.json();
+}
+
+async function syncGoCaptureEgress() {
+  const instances = await listRedroidInstances();
+  const current = await goCaptureRequest("/api/egress");
+  const managedNodePrefix = "redroid-";
+  const nodes = (current.nodes ?? []).filter((node) => !String(node.id).startsWith(managedNodePrefix));
+  const rules = (current.rules ?? []).filter((rule) =>
+    !String(rule.nodeId).startsWith(managedNodePrefix));
+
+  for (const instance of instances) {
+    if (!instance.running || !instance.ipAddress || !instance.proxy?.enabled ||
+        !instance.proxy?.running || !instance.proxy?.captureEnabled) {
+      continue;
+    }
+    const nodeId = `${managedNodePrefix}${instance.name}`.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 64);
+    const privateMeta = await fs.readFile(
+      proxyMetaPathForName(config(), instance.name),
+      "utf8",
+    ).then(JSON.parse);
+    const socksUser = encodeURIComponent(privateMeta.captureSocksUsername || instance.name);
+    const socksPassword = encodeURIComponent(privateMeta.captureSocksPassword || "");
+    nodes.push({
+      id: nodeId,
+      name: `${instance.name} 独立出口`,
+      url: `socks5://${socksUser}:${socksPassword}@${instance.ipAddress}:${config().captureSocksPort}`,
+    });
+    rules.push({ source: instance.ipAddress, nodeId });
+  }
+
+  const updated = await goCaptureRequest("/api/egress", {
+    method: "PUT",
+    body: {
+      enabled: nodes.length > 0 || Boolean(current.enabled),
+      defaultNodeId: String(current.defaultNodeId ?? "").startsWith(managedNodePrefix)
+        ? ""
+        : current.defaultNodeId ?? "",
+      nodes,
+      rules,
+    },
+  });
+  return {
+    ok: true,
+    managedDevices: rules.filter((rule) => String(rule.nodeId).startsWith(managedNodePrefix)).length,
+    enabled: Boolean(updated.enabled),
+  };
+}
+
+async function installGoCaptureCA(name) {
+  const cfg = config();
+  const certificate = await goCaptureRequest("/api/certificate", { binary: true });
+  await fs.mkdir(path.dirname(cfg.captureCaPath), { recursive: true });
+  await fs.writeFile(cfg.captureCaPath, certificate, { mode: 0o644 });
+  const { stdout } = await run("openssl", ["x509", "-subject_hash_old", "-noout", "-in", cfg.captureCaPath]);
+  const hash = stdout.trim().split(/\s+/)[0];
+  if (!/^[0-9a-fA-F]{8}$/.test(hash)) {
+    throw new Error("GoCapture CA subject hash is invalid.");
+  }
+  const destination = `/system/etc/security/cacerts/${hash}.0`;
+  await runDocker(["cp", cfg.captureCaPath, `${name}:${destination}`], { timeout: 15_000 });
+  await runDocker(["exec", name, "chmod", "0644", destination], { timeout: 10_000 });
+  await commandResult("docker", ["exec", name, "restorecon", destination], { timeout: 10_000 });
+  return { ok: true, destination, hash };
+}
+
+async function configureAndroidCapture(name, enabled) {
+  const cfg = config();
+  if (!enabled) {
+    const result = await commandResult("docker", ["exec", name, "settings", "delete", "global", "http_proxy"], { timeout: 10_000 });
+    return { ok: result.ok, enabled: false, output: result.output };
+  }
+  const ca = await installGoCaptureCA(name);
+  const proxyAddress = `${cfg.captureHost}:${cfg.captureHttpPort}`;
+  const result = await commandResult("docker", ["exec", name, "settings", "put", "global", "http_proxy", proxyAddress], { timeout: 10_000 });
+  return { ok: result.ok, enabled: true, proxyAddress, ca, output: result.output };
 }
 
 async function ensureDockerImage(image) {
@@ -602,11 +865,12 @@ async function waitForTunInterface(name, interfaceName = "tun0") {
   throw error;
 }
 
-async function configureContainerProxyRoutes(name, proxyServer) {
+async function configureContainerProxyRoutes(name, proxyServer, captureEnabled = false) {
   const inspect = await inspectDockerContainer(name);
   const pid = Number(inspect?.State?.Pid ?? 0);
   const gateway = containerGateway(inspect);
   const proxyCidr = ipCidrForSingleHost(proxyServer);
+  const captureCidr = captureEnabled ? ipCidrForSingleHost(config().captureHost) : null;
   if (!pid || !gateway) {
     const error = new Error(`Container ${name} network namespace is not available.`);
     error.statusCode = 409;
@@ -617,8 +881,10 @@ async function configureContainerProxyRoutes(name, proxyServer) {
 
   const commands = [
     proxyCidr ? ["ip", "route", "replace", proxyCidr, "via", gateway, "dev", "eth0"] : null,
+    captureCidr ? ["ip", "route", "replace", captureCidr, "dev", "eth0"] : null,
     ["ip", "route", "replace", "default", "dev", "tun0"],
     proxyCidr ? ["ip", "route", "replace", "table", "1002", proxyCidr, "via", gateway, "dev", "eth0"] : null,
+    captureCidr ? ["ip", "route", "replace", "table", "1002", captureCidr, "dev", "eth0"] : null,
     ["ip", "route", "replace", "table", "1002", "default", "dev", "tun0"],
   ].filter(Boolean);
   const results = [];
@@ -636,6 +902,7 @@ async function configureContainerProxyRoutes(name, proxyServer) {
     pid,
     gateway,
     proxyCidr,
+    captureCidr,
     results,
   };
 }
@@ -748,28 +1015,39 @@ async function startProxySidecarFromMeta(name, meta) {
   args.push(image, "run", "-c", "/etc/sing-box/config.json");
 
   const { stdout } = await runDocker(args, { timeout: 60_000 });
-  const routes = await configureContainerProxyRoutes(name, meta.server);
+  const routes = await configureContainerProxyRoutes(name, meta.server, meta.captureEnabled);
+  const capture = meta.captureEnabled
+    ? {
+        egress: await syncGoCaptureEgress().catch((error) => ({ ok: false, error: error.message })),
+        android: await configureAndroidCapture(name, true).catch((error) => ({ ok: false, error: error.message })),
+      }
+    : null;
   return {
     ok: true,
     sidecarName,
     containerId: stdout.trim(),
     image,
     routes,
+    capture,
   };
 }
 
 async function stopProxySidecar(name) {
   const sidecarName = proxySidecarName(name);
+  const capture = await configureAndroidCapture(name, false).catch((error) => ({ ok: false, error: error.message }));
   const routes = await restoreContainerDefaultRoutes(name);
   const result = await commandResult("docker", ["rm", "-f", sidecarName], {
     timeout: 30_000,
     maxBuffer: 1024 * 1024,
   });
+  const egress = await syncGoCaptureEgress().catch((error) => ({ ok: false, error: error.message }));
   return {
     ok: result.ok || /No such container/i.test(result.output),
     sidecarName,
     output: result.output,
     routes,
+    capture,
+    egress,
   };
 }
 
@@ -813,6 +1091,9 @@ function mapContainer(inspect) {
     state: inspect?.State?.Status ?? "unknown",
     running: Boolean(inspect?.State?.Running),
     createdAt: inspect?.Created ?? null,
+    ipAddress: Object.values(inspect?.NetworkSettings?.Networks ?? {})
+      .find((network) => network?.IPAddress)?.IPAddress ?? null,
+    gateway: containerGateway(inspect) || null,
     adbPort: extractPort(inspect),
     containerAdbPort: Number(labels["cloud-phone.redroid.containerAdbPort"] || 5554),
     videoNr: extractVideoNr(inspect),
@@ -863,6 +1144,9 @@ export function getRedroidRuntimeConfig() {
     containerAdbPort: cfg.containerAdbPort,
     proxyImage: cfg.proxyImage,
     proxyDir: cfg.proxyDir,
+    captureUrl: cfg.captureUrl,
+    captureHttpPort: cfg.captureHttpPort,
+    captureTcpPort: cfg.captureTcpPort,
   };
 }
 
@@ -1235,6 +1519,38 @@ export async function configureRedroidInstanceProxy(name, payload = {}) {
     name: safeName,
     disabled: false,
     proxy: started,
+    instance: updated,
+  };
+}
+
+export async function configureRedroidInstanceCapture(name, payload = {}) {
+  const safeName = assertName(name);
+  const enabled = normalizeBoolean(payload.enabled, true, "Traffic capture enabled");
+  const [instance] = await enrichInstancesWithProxy(await inspectContainers([safeName]));
+  if (!instance) {
+    const error = new Error(`ReDroid container ${safeName} was not found.`);
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!instance.proxy?.enabled) {
+    const error = new Error(`Configure an independent proxy for ${safeName} before enabling capture.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const meta = await setCaptureEnabledInProxyFiles(safeName, enabled);
+  let restarted = null;
+  if (instance.running) {
+    restarted = await startProxySidecarFromMeta(safeName, meta);
+  } else {
+    await configureAndroidCapture(safeName, false).catch(() => null);
+    await syncGoCaptureEgress().catch(() => null);
+  }
+  const [updated] = await enrichInstancesWithProxy(await inspectContainers([safeName]));
+  return {
+    name: safeName,
+    enabled,
+    restarted,
     instance: updated,
   };
 }
