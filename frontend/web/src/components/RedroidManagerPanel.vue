@@ -7,6 +7,8 @@ import PanelAlert from "./ui/PanelAlert.vue";
 import {
   createRedroidInstance,
   deleteRedroidInstance,
+  checkRedroidInstanceProxy,
+  disableRedroidInstanceProxy,
   fetchRedroidModelBrands,
   fetchRedroidModels,
   fetchRedroidStatus,
@@ -43,6 +45,10 @@ const CAMERA_IMAGE_FIT_OPTIONS = [
   { label: "完整显示", value: "contain" },
   { label: "拉伸填满", value: "stretch" },
 ];
+const PROXY_TYPE_OPTIONS = [
+  { label: "SOCKS5", value: "socks5" },
+  { label: "Trojan", value: "trojan" },
+];
 
 const createForm = reactive({
   name: "test02",
@@ -60,6 +66,16 @@ const createForm = reactive({
     marketingName: "Pixel",
     device: "sailfish",
     productName: "sailfish",
+  },
+  proxy: {
+    enabled: false,
+    type: "trojan",
+    server: "",
+    port: 443,
+    username: "",
+    password: "",
+    serverName: "",
+    tlsInsecure: true,
   },
 });
 
@@ -98,6 +114,32 @@ function previewObjectFit(mode) {
     return "fill";
   }
   return "cover";
+}
+
+function proxyStatusLabel(proxy) {
+  if (!proxy?.enabled) {
+    return "代理未配置";
+  }
+
+  const state = proxy.running ? "运行中" : proxy.state || "未运行";
+  return `${String(proxy.type || "").toUpperCase()} ${proxy.server || "-"}:${proxy.port || "-"} · ${state}`;
+}
+
+function buildProxyPayload() {
+  if (!createForm.proxy.enabled) {
+    return { enabled: false };
+  }
+
+  return {
+    enabled: true,
+    type: createForm.proxy.type,
+    server: createForm.proxy.server,
+    port: Number(createForm.proxy.port),
+    username: createForm.proxy.username,
+    password: createForm.proxy.password,
+    serverName: createForm.proxy.serverName,
+    tlsInsecure: Boolean(createForm.proxy.tlsInsecure),
+  };
 }
 
 function applyStatusDefaults(payload) {
@@ -292,6 +334,7 @@ async function handleCreateInstance() {
       dpi: Number(createForm.dpi),
       fps: Number(createForm.fps),
       model: { ...createForm.model },
+      proxy: buildProxyPayload(),
     });
     feedback.value = `已创建 ${createForm.name}。`;
     logInfo("redroid", "redroid.instance.create", `创建云手机：${createForm.name}`, {
@@ -299,12 +342,53 @@ async function handleCreateInstance() {
         adbPort: createForm.adbPort,
         videoNr: createForm.videoNr,
         model: createForm.model,
+        proxy: {
+          enabled: createForm.proxy.enabled,
+          type: createForm.proxy.type,
+          server: createForm.proxy.server,
+          port: createForm.proxy.port,
+          serverName: createForm.proxy.serverName,
+        },
       },
     });
     await loadStatus();
     emit("refresh-devices");
   } catch (requestError) {
     error.value = getErrorMessage(requestError, "创建 ReDroid 容器失败。");
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleCheckProxy(instance) {
+  actionLoading.value = true;
+  error.value = "";
+  feedback.value = "";
+
+  try {
+    const result = await checkRedroidInstanceProxy(instance.name);
+    feedback.value = result.ok
+      ? `${instance.name} 当前出口 IP：${result.exitIp}`
+      : `${instance.name} 代理检测失败。`;
+    await loadStatus();
+  } catch (requestError) {
+    error.value = getErrorMessage(requestError, "代理检测失败。");
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleDisableProxy(instance) {
+  actionLoading.value = true;
+  error.value = "";
+  feedback.value = "";
+
+  try {
+    await disableRedroidInstanceProxy(instance.name);
+    feedback.value = `已关闭 ${instance.name} 的代理。`;
+    await loadStatus();
+  } catch (requestError) {
+    error.value = getErrorMessage(requestError, "关闭代理失败。");
   } finally {
     actionLoading.value = false;
   }
@@ -547,6 +631,77 @@ onMounted(async () => {
           </label>
         </div>
 
+        <div class="redroid-proxy-block">
+          <label class="redroid-check">
+            <input v-model="createForm.proxy.enabled" type="checkbox" :disabled="actionLoading" />
+            <span>启用独立 TUN 代理</span>
+          </label>
+
+          <div class="redroid-form-grid">
+            <label>
+              <span>代理协议</span>
+              <select v-model="createForm.proxy.type" :disabled="actionLoading || !createForm.proxy.enabled">
+                <option
+                  v-for="option in PROXY_TYPE_OPTIONS"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span>服务器</span>
+              <input
+                v-model.trim="createForm.proxy.server"
+                :disabled="actionLoading || !createForm.proxy.enabled"
+                placeholder="IP 或域名"
+              />
+            </label>
+            <label>
+              <span>端口</span>
+              <input
+                v-model.number="createForm.proxy.port"
+                :disabled="actionLoading || !createForm.proxy.enabled"
+                type="number"
+                min="1"
+                max="65535"
+              />
+            </label>
+            <label>
+              <span>用户名</span>
+              <input
+                v-model.trim="createForm.proxy.username"
+                :disabled="actionLoading || !createForm.proxy.enabled || createForm.proxy.type === 'trojan'"
+              />
+            </label>
+            <label>
+              <span>密码</span>
+              <input
+                v-model="createForm.proxy.password"
+                :disabled="actionLoading || !createForm.proxy.enabled"
+                type="password"
+              />
+            </label>
+            <label>
+              <span>TLS SNI</span>
+              <input
+                v-model.trim="createForm.proxy.serverName"
+                :disabled="actionLoading || !createForm.proxy.enabled || createForm.proxy.type !== 'trojan'"
+                placeholder="可留空"
+              />
+            </label>
+            <label class="redroid-check">
+              <input
+                v-model="createForm.proxy.tlsInsecure"
+                :disabled="actionLoading || !createForm.proxy.enabled || createForm.proxy.type !== 'trojan'"
+                type="checkbox"
+              />
+              <span>允许自签名证书</span>
+            </label>
+          </div>
+        </div>
+
         <button
           type="button"
           class="redroid-primary"
@@ -576,11 +731,30 @@ onMounted(async () => {
               <strong>{{ instance.name }}</strong>
               <p>{{ instance.image }} · ADB {{ instance.adbPort || "-" }} · /dev/video{{ instance.videoNr ?? "-" }}</p>
               <p>{{ instance.model.manufacturer || "-" }} {{ instance.model.modelCode || "" }} {{ instance.model.device || "" }}</p>
+              <p>{{ proxyStatusLabel(instance.proxy) }}</p>
             </div>
             <div class="redroid-instance__actions">
               <span :class="['redroid-state', { 'redroid-state--on': instance.running }]">
                 {{ instance.state }}
               </span>
+              <button
+                v-if="instance.proxy?.enabled"
+                type="button"
+                title="检测代理出口"
+                :disabled="actionLoading || !instance.running"
+                @click="handleCheckProxy(instance)"
+              >
+                <AppIcon name="wifi" />
+              </button>
+              <button
+                v-if="instance.proxy?.enabled"
+                type="button"
+                title="关闭代理"
+                :disabled="actionLoading"
+                @click="handleDisableProxy(instance)"
+              >
+                <AppIcon name="shield" />
+              </button>
               <button type="button" title="启动" :disabled="actionLoading || instance.running" @click="runInstanceAction(instance, 'start')">
                 <AppIcon name="play" />
               </button>

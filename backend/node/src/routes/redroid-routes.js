@@ -1,4 +1,6 @@
 import {
+  checkRedroidInstanceProxy,
+  configureRedroidInstanceProxy,
   createRedroidInstance,
   deleteRedroidInstance,
   findNextAdbPort,
@@ -105,6 +107,41 @@ export async function handleRedroidRoute(req, res, method, pathname, requestUrl)
       sendProtectedJson(res, 200, {
         success: true,
         action,
+        ...result,
+      });
+      return true;
+    }
+
+    const proxyMatch = pathname.match(/^\/api\/redroid\/instances\/([^/]+)\/proxy$/);
+    if (method === "POST" && proxyMatch) {
+      const body = await readProtectedJsonBody(req, res);
+      const result = await configureRedroidInstanceProxy(decodeURIComponent(proxyMatch[1]), body);
+
+      sendProtectedJson(res, 200, {
+        success: true,
+        ...result,
+      });
+      return true;
+    }
+
+    if (method === "DELETE" && proxyMatch) {
+      const result = await configureRedroidInstanceProxy(decodeURIComponent(proxyMatch[1]), {
+        enabled: false,
+      });
+
+      sendProtectedJson(res, 200, {
+        success: true,
+        ...result,
+      });
+      return true;
+    }
+
+    const proxyCheckMatch = pathname.match(/^\/api\/redroid\/instances\/([^/]+)\/proxy\/check$/);
+    if (method === "POST" && proxyCheckMatch) {
+      const result = await checkRedroidInstanceProxy(decodeURIComponent(proxyCheckMatch[1]));
+
+      sendProtectedJson(res, 200, {
+        success: true,
         ...result,
       });
       return true;

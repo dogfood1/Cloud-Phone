@@ -7,6 +7,7 @@ RUN apt-get update \
     android-tools-adb \
     docker.io \
     ffmpeg \
+    iproute2 \
     python3 \
     python3-pip \
     openssl \

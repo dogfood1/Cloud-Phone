@@ -87,6 +87,8 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 - 上传一张图片并设置为宿主机 `/dev/video20` 的 v4l2loopback 静态摄像头画面。
 - 创建 ReDroid 容器，默认映射 ADB `5555+` 和 `/dev/video20`，并注入已验证的外部摄像头镜像启动参数。
 - 创建时可设置 `ro.product.*` 机型信息，支持品牌、厂商、型号、device、product name。
+- 创建或运行后可为每个 ReDroid 容器单独启用 TUN 代理 sidecar，支持 SOCKS5 和 Trojan；每台云手机可绑定不同代理出口。
+- Trojan 支持自定义 SNI 与自签名证书兼容选项；代理密码只写入宿主机 `REDROID_PROXY_DIR` 下的 sing-box 配置文件，不写入 Docker label。
 - 机型表通过后端从 [KHwang9883/MobileModels](https://github.com/KHwang9883/MobileModels) 拉取并缓存；该数据源许可证为 `CC BY-NC-SA 4.0`。
 - 后端需要 Docker socket、host pid、`ffmpeg`、`v4l2-ctl` 和 `/root/redroid-extcam` 挂载；`docker-cloud-phone/docker-compose*.yml` 已内置这些配置。
 | **iOS 投屏** | WebDriverAgent MJPEG（9100）+ HTTP 触控；Windows 可将 `wda.ipa` 放到 `backend/bin/wda/` 经向导签名安装，或 Mac 端 `iproxy` + `ios-wda-bridge.mjs` 局域网桥接；浏览器投屏与导航键 |

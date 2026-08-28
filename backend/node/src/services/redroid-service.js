@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import dns from "node:dns/promises";
 import net from "node:net";
 import path from "node:path";
 import { execFile, spawn } from "node:child_process";
@@ -10,10 +11,18 @@ const execFileAsync = promisify(execFile);
 
 const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg";
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
+const DEFAULT_PROXY_IMAGE = "ghcr.io/sagernet/sing-box:v1.10.7";
+const DEFAULT_PROXY_PROBE_IMAGE = "curlimages/curl:8.10.1";
 const PRODUCT_NAMESPACES = ["", "product", "system", "vendor", "odm"];
 const CAMERA_IMAGE_FIT_MODES = new Set(["cover", "contain", "stretch"]);
 const CAMERA_LENS_FACINGS = new Set(["back", "front", "external"]);
 const CAMERA_SENSOR_ORIENTATIONS = new Set([0, 90, 180, 270]);
+const PROXY_TYPES = new Set(["socks5", "trojan"]);
+const PROXY_PROBE_TARGETS = [
+  { host: "api.ipify.org", path: "/" },
+  { host: "icanhazip.com", path: "/" },
+  { host: "ifconfig.me", path: "/ip" },
+];
 
 function config() {
   const workdir = process.env.REDROID_HOST_WORKDIR || DEFAULT_WORKDIR;
@@ -37,6 +46,10 @@ function config() {
     defaultHeight: Number(process.env.REDROID_HEIGHT || 1280),
     defaultDpi: Number(process.env.REDROID_DPI || 320),
     defaultFps: Number(process.env.REDROID_FPS || 30),
+    proxyImage: process.env.REDROID_PROXY_IMAGE || DEFAULT_PROXY_IMAGE,
+    proxyProbeImage: process.env.REDROID_PROXY_PROBE_IMAGE || DEFAULT_PROXY_PROBE_IMAGE,
+    proxyDir: process.env.REDROID_PROXY_DIR || path.join(workdir, "proxy"),
+    proxyTunAddress: process.env.REDROID_PROXY_TUN_ADDRESS || "172.19.0.1/30",
   };
 }
 
@@ -110,6 +123,16 @@ function normalizeInteger(value, fallback, min, max, label) {
   return number;
 }
 
+function normalizeRequiredInteger(value, min, max, label) {
+  if (value == null || value === "") {
+    const error = new Error(`${label} is required.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalizeInteger(value, value, min, max, label);
+}
+
 function normalizeBoolean(value, fallback, label) {
   if (value == null || value === "") {
     return fallback;
@@ -144,6 +167,60 @@ function normalizeCameraImageFitMode(value) {
     throw error;
   }
   return mode;
+}
+
+function normalizeProxyServer(value) {
+  const server = String(value ?? "").trim();
+  if (!server || server.length > 253 || /[\s/'"\\]/.test(server)) {
+    const error = new Error("Proxy server must be a host name or IP address.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return server;
+}
+
+function normalizeProxyConfig(value = {}) {
+  const enabled = normalizeBoolean(value.enabled, false, "Proxy enabled");
+  const type = String(value.type || "socks5").trim().toLowerCase();
+
+  if (!enabled) {
+    return {
+      enabled: false,
+      type: PROXY_TYPES.has(type) ? type : "socks5",
+    };
+  }
+
+  if (!PROXY_TYPES.has(type)) {
+    const error = new Error("Proxy type must be socks5 or trojan.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const server = normalizeProxyServer(value.server || value.host);
+  const port = normalizeRequiredInteger(value.port, 1, 65535, "Proxy port");
+  const username = propValue(value.username, "");
+  const password = String(value.password ?? "");
+  const serverName = propValue(value.serverName || value.sni || value.tlsServerName, "");
+  if (type === "trojan" && !password) {
+    const error = new Error("Trojan proxy password is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    enabled: true,
+    type,
+    server,
+    port,
+    username,
+    password,
+    serverName,
+    tlsInsecure: normalizeBoolean(
+      value.tlsInsecure ?? value.insecure,
+      type === "trojan",
+      "Proxy TLS insecure",
+    ),
+  };
 }
 
 function buildCameraImageFilter(width, height, options = {}) {
@@ -230,6 +307,472 @@ function cameraImagePathForVideo(cfg, videoNr) {
   return path.join(cfg.workdir, "camera-images", `static-video${videoNr}.png`);
 }
 
+function proxySidecarName(name) {
+  return `redroid-proxy-${name}`;
+}
+
+function proxyConfigDirForName(cfg, name) {
+  return path.join(cfg.proxyDir, name);
+}
+
+function proxyConfigPathForName(cfg, name) {
+  return path.join(proxyConfigDirForName(cfg, name), "config.json");
+}
+
+function proxyMetaPathForName(cfg, name) {
+  return path.join(proxyConfigDirForName(cfg, name), "meta.json");
+}
+
+function proxyOutbound(proxy) {
+  if (proxy.type === "trojan") {
+    return {
+      type: "trojan",
+      tag: "proxy",
+      server: proxy.server,
+      server_port: proxy.port,
+      password: proxy.password,
+      bind_interface: "eth0",
+      tls: {
+        enabled: true,
+        insecure: proxy.tlsInsecure,
+        ...(proxy.serverName ? { server_name: proxy.serverName } : {}),
+      },
+    };
+  }
+
+  const outbound = {
+    type: "socks",
+    tag: "proxy",
+    server: proxy.server,
+    server_port: proxy.port,
+    version: "5",
+    bind_interface: "eth0",
+  };
+
+  if (proxy.username) {
+    outbound.username = proxy.username;
+  }
+  if (proxy.password) {
+    outbound.password = proxy.password;
+  }
+
+  return outbound;
+}
+
+function ipCidrForSingleHost(host) {
+  if (net.isIP(host) === 4) {
+    return `${host}/32`;
+  }
+  if (net.isIP(host) === 6) {
+    return `${host}/128`;
+  }
+  return null;
+}
+
+function buildSingBoxConfig(proxy, cfg) {
+  const directCidrs = [
+    ipCidrForSingleHost(proxy.server),
+    "127.0.0.0/8",
+  ].filter(Boolean);
+
+  return {
+    log: {
+      level: "info",
+      timestamp: true,
+    },
+    dns: {
+      servers: [
+        {
+          tag: "proxy-dns",
+          address: "8.8.8.8",
+          detour: "proxy",
+        },
+      ],
+      final: "proxy-dns",
+      strategy: "ipv4_only",
+    },
+    inbounds: [
+      {
+        type: "tun",
+        tag: "tun-in",
+        interface_name: "tun0",
+        inet4_address: cfg.proxyTunAddress,
+        auto_route: false,
+        strict_route: false,
+        sniff: true,
+        stack: "system",
+      },
+    ],
+    outbounds: [
+      proxyOutbound(proxy),
+      {
+        type: "dns",
+        tag: "dns-out",
+      },
+      {
+        type: "direct",
+        tag: "direct",
+      },
+      {
+        type: "block",
+        tag: "block",
+      },
+    ],
+    route: {
+      default_interface: "eth0",
+      rules: [
+        {
+          protocol: "dns",
+          outbound: "dns-out",
+        },
+        ...(directCidrs.length
+          ? [{
+              ip_cidr: directCidrs,
+              outbound: "direct",
+            }]
+          : []),
+      ],
+      final: "proxy",
+    },
+  };
+}
+
+function publicProxyMeta(meta = {}) {
+  return {
+    enabled: Boolean(meta.enabled),
+    type: meta.type ?? null,
+    server: meta.server ?? null,
+    port: meta.port ?? null,
+    usernameSet: Boolean(meta.usernameSet),
+    serverName: meta.serverName ?? null,
+    tlsInsecure: Boolean(meta.tlsInsecure),
+    sidecarName: meta.sidecarName ?? null,
+    image: meta.image ?? null,
+    updatedAt: meta.updatedAt ?? null,
+  };
+}
+
+async function readProxyMeta(name) {
+  const cfg = config();
+  try {
+    const raw = await fs.readFile(proxyMetaPathForName(cfg, name), "utf8");
+    return publicProxyMeta(JSON.parse(raw));
+  } catch {
+    return {
+      enabled: false,
+      sidecarName: proxySidecarName(name),
+      state: "absent",
+      running: false,
+    };
+  }
+}
+
+async function writeProxyFiles(name, proxy) {
+  const cfg = config();
+  const dir = proxyConfigDirForName(cfg, name);
+  const configPath = proxyConfigPathForName(cfg, name);
+  const metaPath = proxyMetaPathForName(cfg, name);
+  const sidecarName = proxySidecarName(name);
+  const meta = {
+    enabled: true,
+    type: proxy.type,
+    server: proxy.server,
+    port: proxy.port,
+    usernameSet: Boolean(proxy.username),
+    serverName: proxy.serverName,
+    tlsInsecure: proxy.tlsInsecure,
+    sidecarName,
+    image: cfg.proxyImage,
+    configPath,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(configPath, `${JSON.stringify(buildSingBoxConfig(proxy, cfg), null, 2)}\n`, {
+    mode: 0o600,
+  });
+  await fs.writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, { mode: 0o600 });
+
+  return meta;
+}
+
+async function ensureDockerImage(image) {
+  const inspect = await commandResult("docker", ["image", "inspect", image], {
+    timeout: 15_000,
+    maxBuffer: 1024 * 1024,
+  });
+  if (inspect.ok) {
+    return {
+      image,
+      pulled: false,
+      inspect,
+    };
+  }
+
+  const pull = await commandResult("docker", ["pull", image], {
+    timeout: 180_000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return {
+    image,
+    pulled: pull.ok,
+    inspect,
+    pull,
+  };
+}
+
+async function inspectDockerContainer(name) {
+  const { stdout } = await runDocker(["inspect", name], {
+    timeout: 15_000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  return JSON.parse(stdout)[0];
+}
+
+function containerGateway(inspect) {
+  const networks = Object.values(inspect?.NetworkSettings?.Networks ?? {});
+  return networks.find((network) => network?.Gateway)?.Gateway ?? "";
+}
+
+async function restoreContainerDefaultRoutes(name) {
+  const inspect = await inspectDockerContainer(name).catch(() => null);
+  const pid = Number(inspect?.State?.Pid ?? 0);
+  const gateway = containerGateway(inspect);
+  if (!pid || !gateway) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "container network namespace is not available",
+    };
+  }
+
+  const commands = [
+    ["ip", "route", "replace", "default", "via", gateway, "dev", "eth0"],
+    ["ip", "route", "replace", "table", "1002", "default", "via", gateway, "dev", "eth0"],
+  ];
+  const results = [];
+  for (const command of commands) {
+    results.push(await commandResult("nsenter", [
+      "-t",
+      String(pid),
+      "-n",
+      ...command,
+    ], { timeout: 5_000 }));
+  }
+
+  return {
+    ok: results.some((result) => result.ok),
+    pid,
+    gateway,
+    results,
+  };
+}
+
+async function waitForTunInterface(name, interfaceName = "tun0") {
+  const inspect = await inspectDockerContainer(name);
+  const pid = Number(inspect?.State?.Pid ?? 0);
+  if (!pid) {
+    const error = new Error(`Container ${name} has no running network namespace.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const result = await commandResult("nsenter", [
+      "-t",
+      String(pid),
+      "-n",
+      "ip",
+      "link",
+      "show",
+      interfaceName,
+    ], { timeout: 1_500 });
+    if (result.ok) {
+      return {
+        ok: true,
+        pid,
+        interfaceName,
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  const error = new Error(`Proxy TUN interface ${interfaceName} did not appear in ${name}.`);
+  error.statusCode = 500;
+  throw error;
+}
+
+async function configureContainerProxyRoutes(name, proxyServer) {
+  const inspect = await inspectDockerContainer(name);
+  const pid = Number(inspect?.State?.Pid ?? 0);
+  const gateway = containerGateway(inspect);
+  const proxyCidr = ipCidrForSingleHost(proxyServer);
+  if (!pid || !gateway) {
+    const error = new Error(`Container ${name} network namespace is not available.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  await waitForTunInterface(name);
+
+  const commands = [
+    proxyCidr ? ["ip", "route", "replace", proxyCidr, "via", gateway, "dev", "eth0"] : null,
+    ["ip", "route", "replace", "default", "dev", "tun0"],
+    proxyCidr ? ["ip", "route", "replace", "table", "1002", proxyCidr, "via", gateway, "dev", "eth0"] : null,
+    ["ip", "route", "replace", "table", "1002", "default", "dev", "tun0"],
+  ].filter(Boolean);
+  const results = [];
+  for (const command of commands) {
+    results.push(await commandResult("nsenter", [
+      "-t",
+      String(pid),
+      "-n",
+      ...command,
+    ], { timeout: 5_000 }));
+  }
+
+  return {
+    ok: results.every((result) => result.ok),
+    pid,
+    gateway,
+    proxyCidr,
+    results,
+  };
+}
+
+async function inspectProxySidecars() {
+  const list = await commandResult("docker", [
+    "ps",
+    "-a",
+    "--filter",
+    "label=cloud-phone.redroid.proxy=1",
+    "--format",
+    "{{.Names}}",
+  ], { maxBuffer: 1024 * 1024 });
+
+  if (!list.ok) {
+    return new Map();
+  }
+
+  const names = list.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!names.length) {
+    return new Map();
+  }
+
+  const { stdout } = await runDocker(["inspect", ...names], {
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const sidecars = JSON.parse(stdout);
+  const byInstance = new Map();
+  for (const sidecar of sidecars) {
+    const labels = sidecar?.Config?.Labels ?? {};
+    const proxyFor = labels["cloud-phone.redroid.proxyFor"];
+    if (!proxyFor) {
+      continue;
+    }
+    byInstance.set(proxyFor, {
+      sidecarName: String(sidecar?.Name ?? "").replace(/^\//, ""),
+      state: sidecar?.State?.Status ?? "unknown",
+      running: Boolean(sidecar?.State?.Running),
+      exitCode: sidecar?.State?.ExitCode ?? null,
+      image: sidecar?.Config?.Image ?? null,
+      createdAt: sidecar?.Created ?? null,
+    });
+  }
+
+  return byInstance;
+}
+
+async function enrichInstancesWithProxy(instances) {
+  const sidecars = await inspectProxySidecars();
+  return Promise.all(instances.map(async (instance) => {
+    const meta = await readProxyMeta(instance.name);
+    const sidecar = sidecars.get(instance.name);
+    return {
+      ...instance,
+      proxy: {
+        ...meta,
+        sidecarName: meta.sidecarName || sidecar?.sidecarName || proxySidecarName(instance.name),
+        state: sidecar?.state ?? "absent",
+        running: Boolean(sidecar?.running),
+        exitCode: sidecar?.exitCode ?? null,
+        image: sidecar?.image ?? meta.image ?? null,
+        createdAt: sidecar?.createdAt ?? null,
+      },
+    };
+  }));
+}
+
+async function startProxySidecarFromMeta(name, meta) {
+  const cfg = config();
+  const sidecarName = meta.sidecarName || proxySidecarName(name);
+  const configPath = meta.configPath || proxyConfigPathForName(cfg, name);
+  const image = meta.image || cfg.proxyImage;
+
+  await inspectDockerContainer(name);
+  await ensureDockerImage(image);
+  await commandResult("docker", ["rm", "-f", sidecarName], { timeout: 30_000 });
+  await restoreContainerDefaultRoutes(name);
+
+  const labels = [
+    "cloud-phone.redroid.proxy=1",
+    `cloud-phone.redroid.proxyFor=${name}`,
+    `cloud-phone.redroid.proxyType=${meta.type || ""}`,
+    `cloud-phone.redroid.proxyServer=${meta.server || ""}`,
+    `cloud-phone.redroid.proxyPort=${meta.port || ""}`,
+  ];
+  const args = [
+    "run",
+    "-d",
+    "--name",
+    sidecarName,
+    "--restart",
+    "unless-stopped",
+    "--network",
+    `container:${name}`,
+    "--cap-add",
+    "NET_ADMIN",
+    "--device",
+    "/dev/net/tun:/dev/net/tun",
+    "-v",
+    `${configPath}:/etc/sing-box/config.json:ro`,
+  ];
+
+  for (const label of labels) {
+    args.push("--label", label);
+  }
+
+  args.push(image, "run", "-c", "/etc/sing-box/config.json");
+
+  const { stdout } = await runDocker(args, { timeout: 60_000 });
+  const routes = await configureContainerProxyRoutes(name, meta.server);
+  return {
+    ok: true,
+    sidecarName,
+    containerId: stdout.trim(),
+    image,
+    routes,
+  };
+}
+
+async function stopProxySidecar(name) {
+  const sidecarName = proxySidecarName(name);
+  const routes = await restoreContainerDefaultRoutes(name);
+  const result = await commandResult("docker", ["rm", "-f", sidecarName], {
+    timeout: 30_000,
+    maxBuffer: 1024 * 1024,
+  });
+  return {
+    ok: result.ok || /No such container/i.test(result.output),
+    sidecarName,
+    output: result.output,
+    routes,
+  };
+}
+
 function extractPort(inspect) {
   const ports = inspect?.NetworkSettings?.Ports ?? {};
   const labels = inspect?.Config?.Labels ?? {};
@@ -283,6 +826,12 @@ function mapContainer(inspect) {
       productName: labels["cloud-phone.redroid.productName"] ?? null,
     },
     managed: labels["cloud-phone.redroid"] === "1",
+    proxy: {
+      enabled: false,
+      sidecarName: proxySidecarName(String(inspect?.Name ?? "").replace(/^\//, "")),
+      state: "absent",
+      running: false,
+    },
   };
 }
 
@@ -312,6 +861,8 @@ export function getRedroidRuntimeConfig() {
     defaultVideoNr: cfg.videoNr,
     defaultAdbPortBase: cfg.adbPortBase,
     containerAdbPort: cfg.containerAdbPort,
+    proxyImage: cfg.proxyImage,
+    proxyDir: cfg.proxyDir,
   };
 }
 
@@ -330,7 +881,7 @@ export async function listRedroidInstances() {
       const name = String(row.Names ?? "");
       const normalizedImage = image.toLowerCase();
       const normalizedName = name.toLowerCase();
-      if (normalizedName.startsWith("cloud-phone")) {
+      if (normalizedName.startsWith("cloud-phone") || normalizedName.startsWith("redroid-proxy-")) {
         return false;
       }
       return (
@@ -342,7 +893,7 @@ export async function listRedroidInstances() {
     })
     .map((row) => String(row.Names));
 
-  return inspectContainers(names);
+  return enrichInstancesWithProxy(await inspectContainers(names));
 }
 
 async function getManagedCameraWriterStatus(videoNr) {
@@ -459,6 +1010,7 @@ export async function createRedroidInstance(payload = {}) {
   const fps = normalizeInteger(payload.fps, cfg.defaultFps, 15, 120, "Display FPS");
   const dataDir = path.join(cfg.workdir, `data-${name}`);
   const model = payload.model ?? {};
+  const proxy = normalizeProxyConfig(payload.proxy ?? {});
 
   await fs.mkdir(dataDir, { recursive: true });
   await runDocker(["image", "inspect", image], { timeout: 15_000 });
@@ -475,6 +1027,14 @@ export async function createRedroidInstance(payload = {}) {
     `cloud-phone.redroid.device=${propToken(model.device || model.codename, "sailfish")}`,
     `cloud-phone.redroid.productName=${propToken(model.productName || model.name, "sailfish")}`,
   ];
+  if (proxy.enabled) {
+    labels.push(
+      "cloud-phone.redroid.proxy.enabled=1",
+      `cloud-phone.redroid.proxy.type=${proxy.type}`,
+      `cloud-phone.redroid.proxy.server=${proxy.server}`,
+      `cloud-phone.redroid.proxy.port=${proxy.port}`,
+    );
+  }
 
   const bootArgs = [
     "androidboot.use_memfd=true",
@@ -521,11 +1081,25 @@ export async function createRedroidInstance(payload = {}) {
   args.push(image, ...bootArgs);
 
   const { stdout } = await runDocker(args, { timeout: 60_000 });
-  const [instance] = await inspectContainers([name]);
+  let proxyStart = null;
+  if (proxy.enabled) {
+    const meta = await writeProxyFiles(name, proxy);
+    try {
+      proxyStart = await startProxySidecarFromMeta(name, meta);
+    } catch (error) {
+      proxyStart = {
+        ok: false,
+        sidecarName: meta.sidecarName,
+        error: error instanceof Error ? error.message : String(error ?? ""),
+      };
+    }
+  }
+  const [instance] = await enrichInstancesWithProxy(await inspectContainers([name]));
 
   return {
     containerId: stdout.trim(),
     instance,
+    proxy: proxyStart,
   };
 }
 
@@ -574,28 +1148,171 @@ export async function connectManagedRedroidAdbTargets(adbPath) {
 export async function startRedroidInstance(name) {
   const safeName = assertName(name);
   const { stdout, stderr } = await runDocker(["start", safeName], { timeout: 30_000 });
-  return { name: safeName, output: `${stdout}\n${stderr}`.trim() };
+  const meta = await readProxyMeta(safeName);
+  let proxy = null;
+  if (meta.enabled) {
+    try {
+      proxy = await startProxySidecarFromMeta(safeName, meta);
+    } catch (error) {
+      proxy = {
+        ok: false,
+        sidecarName: meta.sidecarName,
+        error: error instanceof Error ? error.message : String(error ?? ""),
+      };
+    }
+  }
+  return { name: safeName, output: `${stdout}\n${stderr}`.trim(), proxy };
 }
 
 export async function stopRedroidInstance(name) {
   const safeName = assertName(name);
+  const proxy = await stopProxySidecar(safeName);
   const { stdout, stderr } = await runDocker(["stop", safeName], { timeout: 60_000 });
-  return { name: safeName, output: `${stdout}\n${stderr}`.trim() };
+  return { name: safeName, output: `${stdout}\n${stderr}`.trim(), proxy };
 }
 
 export async function deleteRedroidInstance(name, options = {}) {
   const safeName = assertName(name);
   const [before] = await inspectContainers([safeName]).catch(() => []);
+  const proxy = await stopProxySidecar(safeName);
   const { stdout, stderr } = await runDocker(["rm", "-f", safeName], { timeout: 60_000 });
 
   if (options.removeData && before?.dataDir?.startsWith(`${config().workdir}/data-`)) {
     await fs.rm(before.dataDir, { recursive: true, force: true });
   }
+  await fs.rm(proxyConfigDirForName(config(), safeName), { recursive: true, force: true });
 
   return {
     name: safeName,
     removedData: Boolean(options.removeData && before?.dataDir),
+    proxy,
     output: `${stdout}\n${stderr}`.trim(),
+  };
+}
+
+export async function configureRedroidInstanceProxy(name, payload = {}) {
+  const safeName = assertName(name);
+  const proxy = normalizeProxyConfig(payload);
+
+  if (!proxy.enabled) {
+    const stopped = await stopProxySidecar(safeName);
+    await fs.rm(proxyConfigDirForName(config(), safeName), { recursive: true, force: true });
+    const [instance] = await enrichInstancesWithProxy(await inspectContainers([safeName]));
+    return {
+      name: safeName,
+      disabled: true,
+      proxy: stopped,
+      instance,
+    };
+  }
+
+  const [instance] = await inspectContainers([safeName]);
+  if (!instance) {
+    const error = new Error(`ReDroid container ${safeName} was not found.`);
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!instance.running) {
+    const error = new Error(`ReDroid container ${safeName} must be running before enabling proxy.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const meta = await writeProxyFiles(safeName, proxy);
+  let started;
+  try {
+    started = await startProxySidecarFromMeta(safeName, meta);
+  } catch (error) {
+    started = {
+      ok: false,
+      sidecarName: meta.sidecarName,
+      error: error instanceof Error ? error.message : String(error ?? ""),
+    };
+  }
+
+  const [updated] = await enrichInstancesWithProxy(await inspectContainers([safeName]));
+  return {
+    name: safeName,
+    disabled: false,
+    proxy: started,
+    instance: updated,
+  };
+}
+
+export async function checkRedroidInstanceProxy(name) {
+  const safeName = assertName(name);
+  const cfg = config();
+  const [instance] = await enrichInstancesWithProxy(await inspectContainers([safeName]));
+  if (!instance) {
+    const error = new Error(`ReDroid container ${safeName} was not found.`);
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await ensureDockerImage(cfg.proxyProbeImage);
+  const attempts = [];
+
+  for (const target of PROXY_PROBE_TARGETS) {
+    const probeHost = target.host;
+    const probeIp = await dns.resolve4(probeHost).then((items) => items[0]).catch(() => "");
+    const probeArgs = [
+      "run",
+      "--rm",
+      "--network",
+      `container:${safeName}`,
+      cfg.proxyProbeImage,
+      "-fsS",
+      "--max-time",
+      "20",
+    ];
+    if (probeIp) {
+      probeArgs.push("--resolve", `${probeHost}:443:${probeIp}`);
+    }
+    probeArgs.push(`https://${probeHost}${target.path}`);
+
+    const result = await commandResult("docker", probeArgs, {
+      timeout: 35_000,
+      maxBuffer: 1024 * 1024,
+    });
+    const exitIp = result.ok ? String(result.stdout ?? "").trim().split(/\s+/)[0] : "";
+    const attempt = {
+      ok: Boolean(result.ok && net.isIP(exitIp)),
+      exitIp: net.isIP(exitIp) ? exitIp : "",
+      probeHost,
+      probeIp,
+      output: result.output,
+    };
+    attempts.push(attempt);
+
+    if (attempt.ok) {
+      return {
+        name: safeName,
+        ok: true,
+        exitIp: attempt.exitIp,
+        probeHost: attempt.probeHost,
+        probeIp: attempt.probeIp,
+        attempts,
+        output: attempt.output,
+        proxy: instance.proxy,
+      };
+    }
+  }
+
+  const lastAttempt = attempts.at(-1) ?? {
+    probeHost: "",
+    probeIp: "",
+    output: "",
+  };
+
+  return {
+    name: safeName,
+    ok: false,
+    exitIp: "",
+    probeHost: lastAttempt.probeHost,
+    probeIp: lastAttempt.probeIp,
+    attempts,
+    output: attempts.map((item) => `${item.probeHost}: ${item.output}`).join("\n\n"),
+    proxy: instance.proxy,
   };
 }
 

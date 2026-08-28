@@ -64,6 +64,25 @@ export function deleteRedroidInstance(name, options = {}) {
   });
 }
 
+export function updateRedroidInstanceProxy(name, payload) {
+  return requestJson(`/api/redroid/instances/${encodeURIComponent(name)}/proxy`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function disableRedroidInstanceProxy(name) {
+  return requestJson(`/api/redroid/instances/${encodeURIComponent(name)}/proxy`, {
+    method: "DELETE",
+  });
+}
+
+export function checkRedroidInstanceProxy(name) {
+  return requestJson(`/api/redroid/instances/${encodeURIComponent(name)}/proxy/check`, {
+    method: "POST",
+  });
+}
+
 export function updateRedroidCameraImage(payload) {
   return requestJson("/api/redroid/camera-image", {
     method: "POST",
