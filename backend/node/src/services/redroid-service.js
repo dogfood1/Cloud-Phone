@@ -1262,8 +1262,15 @@ export async function checkRedroidInstanceProxy(name) {
       `container:${safeName}`,
       cfg.proxyProbeImage,
       "-fsS",
+      "--connect-timeout",
+      "8",
       "--max-time",
       "20",
+      "--retry",
+      "1",
+      "--retry-delay",
+      "1",
+      "--retry-all-errors",
     ];
     if (probeIp) {
       probeArgs.push("--resolve", `${probeHost}:443:${probeIp}`);
