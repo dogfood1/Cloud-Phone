@@ -4,6 +4,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import AppIcon from "./AppIcon.vue";
 import DeviceAppManager from "./DeviceAppManager.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
+import DeviceClipboardDialog from "./DeviceClipboardDialog.vue";
 import DeviceFileExplorer from "./DeviceFileExplorer.vue";
 import DeviceTerminal from "./DeviceTerminal.vue";
 import DeviceWorkspaceToolbar from "./DeviceWorkspaceToolbar.vue";
@@ -51,6 +52,7 @@ const filesExplorerOpen = ref(false);
 const filesExplorerPath = ref(null);
 const appsManagerOpen = ref(false);
 const terminalOpen = ref(false);
+const clipboardOpen = ref(false);
 const mobileCastOptionsOpen = ref(false);
 const isMobileLayout = ref(false);
 const mobileCastOptionsInitialized = ref(false);
@@ -119,6 +121,13 @@ const {
   onOpenTerminal: () => {
     terminalOpen.value = true;
     logInfo("ui", "modal.terminal.open", "打开终端", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
+  },
+  onOpenClipboard: () => {
+    clipboardOpen.value = true;
+    logInfo("ui", "modal.clipboard.open", "打开设备剪切板", {
       deviceSerial: props.device.serial,
       deviceName: props.device.displayName ?? props.device.serial,
     });
@@ -607,5 +616,6 @@ async function handleViewportFullscreenChange(isFullscreen) {
       @open-files="handleOpenAppDataInFiles"
     />
     <DeviceTerminal :device="device" :open="terminalOpen" @close="terminalOpen = false" />
+    <DeviceClipboardDialog :device="device" :open="clipboardOpen" @close="clipboardOpen = false" />
   </section>
 </template>

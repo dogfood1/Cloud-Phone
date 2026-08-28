@@ -6,6 +6,7 @@ import { handleDeviceNotificationsRoute } from "./device-notifications-routes.js
 import { handleDeviceQuickSettingsRoute } from "./device-quick-settings-routes.js";
 import { handleDeviceLauncherAppsRoute } from "./device-launcher-apps-routes.js";
 import { handleDeviceIconHelperRoute } from "./device-icon-helper-routes.js";
+import { handleDeviceClipboardRoute } from "./device-clipboard-routes.js";
 import { APP_VERSION } from "../config/version.js";
 import { disconnectWirelessDevice } from "../services/adb-service.js";
 import { getDeviceMirrorOptions } from "../services/device-mirror-options.js";
@@ -14,6 +15,10 @@ import { listDeviceEncoders } from "../services/device-video-encoders.js";
 import { sendProtectedJson } from "../utils/protected-http.js";
 
 export async function handleDeviceRoute(req, res, method, pathname, url) {
+  if (await handleDeviceClipboardRoute(req, res, method, pathname)) {
+    return true;
+  }
+
   if (await handleDeviceAppRunningRoute(req, res, method, pathname)) {
     return true;
   }

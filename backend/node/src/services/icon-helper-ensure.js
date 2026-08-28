@@ -26,13 +26,16 @@ export async function getIconHelperStatus(serial) {
 /**
  * Ensure helper is installed at bundled versionCode (uninstall+reinstall when outdated).
  * @param {string} serial
+ * @param {{ createExternalFilesDir?: boolean }} [options]
  */
-export async function ensureIconHelperInstalled(serial) {
+export async function ensureIconHelperInstalled(serial, options = {}) {
   const { apkPath, bundledVersionCode } = resolveIconHelperBundle();
   const status = await getIconHelperStatus(serial);
 
   if (!status.needsUpdate) {
-    await ensureExternalFilesDir(serial);
+    if (options.createExternalFilesDir !== false) {
+      await ensureExternalFilesDir(serial);
+    }
     return { ...status, action: "noop" };
   }
 
@@ -45,7 +48,9 @@ export async function ensureIconHelperInstalled(serial) {
   }
 
   await installLocalApk(serial, apkPath);
-  await ensureExternalFilesDir(serial);
+  if (options.createExternalFilesDir !== false) {
+    await ensureExternalFilesDir(serial);
+  }
 
   const after = await getIconHelperStatus(serial);
   return {

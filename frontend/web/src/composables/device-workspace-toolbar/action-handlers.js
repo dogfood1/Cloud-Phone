@@ -14,6 +14,7 @@ export function createToolbarActionHandlers({
   onOpenFiles,
   onOpenApps,
   onOpenTerminal,
+  onOpenClipboard,
   screenshotBusy,
   recordBusy,
   isCastViewportRecording,
@@ -198,6 +199,11 @@ export function createToolbarActionHandlers({
 
     if (action.kind === "terminal") {
       onOpenTerminal?.();
+      return;
+    }
+
+    if (action.kind === "clipboard") {
+      onOpenClipboard?.();
       return;
     }
 

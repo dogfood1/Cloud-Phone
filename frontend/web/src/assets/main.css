@@ -3188,6 +3188,123 @@ code {
   color: var(--text-muted);
 }
 
+.device-clipboard-overlay {
+  z-index: 1260;
+}
+
+.device-clipboard {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  max-height: min(82vh, 680px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.22);
+  overflow: hidden;
+}
+
+.device-clipboard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+}
+
+.device-clipboard__input {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.9rem/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.device-clipboard__input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.device-clipboard__meta,
+.device-clipboard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.device-clipboard__meta {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.device-clipboard__size--error,
+.device-clipboard__error {
+  color: #e55353;
+}
+
+.device-clipboard__error {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.device-clipboard__footer {
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.device-clipboard__primary,
+.device-clipboard__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.device-clipboard__primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.device-clipboard__secondary {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.device-clipboard__primary .app-icon,
+.device-clipboard__secondary .app-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.device-clipboard__primary:disabled,
+.device-clipboard__secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .device-clipboard__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .device-clipboard__footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
 @media (max-width: 720px) {
   .device-apps__list-wrap {
     border-right: none;

@@ -63,7 +63,12 @@ export function createToolbarActionPresentation({
       return !device.connected || screenshotBusy.value;
     }
 
-    if (action.kind === "apps" || action.kind === "files" || action.kind === "terminal") {
+    if (
+      action.kind === "apps" ||
+      action.kind === "files" ||
+      action.kind === "terminal" ||
+      action.kind === "clipboard"
+    ) {
       return !device.connected;
     }
 
@@ -123,6 +128,14 @@ export function createToolbarActionPresentation({
       }
 
       return action.title ?? "打开 ADB Shell 终端";
+    }
+
+    if (action.kind === "clipboard") {
+      if (!device.connected) {
+        return "设备未在线";
+      }
+
+      return action.title ?? "发送文本到设备剪切板";
     }
 
     if (action.kind === "record") {

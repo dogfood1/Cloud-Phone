@@ -18,6 +18,7 @@ export function useDeviceWorkspaceToolbar({
   onOpenFiles,
   onOpenApps,
   onOpenTerminal,
+  onOpenClipboard,
 }) {
   const screenshotBusy = ref(false);
   const recordBusy = ref(false);
@@ -79,6 +80,7 @@ export function useDeviceWorkspaceToolbar({
     onOpenFiles,
     onOpenApps,
     onOpenTerminal,
+    onOpenClipboard,
     screenshotBusy,
     recordBusy,
     isCastViewportRecording: presentation.isCastViewportRecording,

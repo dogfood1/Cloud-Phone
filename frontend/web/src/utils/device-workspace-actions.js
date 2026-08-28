@@ -44,6 +44,13 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     kind: "terminal",
     title: "ADB Shell 交互终端（支持 Tab、方向键与彩色输出）",
   },
+  {
+    id: "clipboard",
+    label: "剪切板",
+    icon: "clipboard-paste",
+    kind: "clipboard",
+    title: "发送文本到设备剪切板",
+  },
 ];
 
 export const VOLUME_SUB_ACTIONS = [
