@@ -1201,6 +1201,68 @@ export async function listRedroidInstances() {
   return enrichInstancesWithProxy(await inspectContainers(names));
 }
 
+export async function reconcileRedroidInstanceProxies() {
+  const instances = await listRedroidInstances();
+  const results = [];
+
+  for (const instance of instances) {
+    if (!instance.running || !instance.proxy?.enabled) {
+      continue;
+    }
+
+    const meta = await fs.readFile(
+      proxyMetaPathForName(config(), instance.name),
+      "utf8",
+    ).then(JSON.parse).catch(() => null);
+    if (!meta?.server) {
+      results.push({
+        name: instance.name,
+        ok: false,
+        error: "Proxy metadata is unavailable.",
+      });
+      continue;
+    }
+
+    try {
+      let proxy;
+      if (instance.proxy.running) {
+        proxy = {
+          restarted: false,
+          routes: await configureContainerProxyRoutes(
+            instance.name,
+            meta.server,
+            Boolean(meta.captureEnabled),
+          ),
+        };
+      } else {
+        proxy = {
+          restarted: true,
+          ...(await startProxySidecarFromMeta(instance.name, meta)),
+        };
+      }
+      const ok = proxy.ok !== false && proxy.routes?.ok !== false;
+      results.push({
+        name: instance.name,
+        ok,
+        proxy,
+        ...(ok ? {} : { error: "One or more proxy route commands failed." }),
+      });
+    } catch (error) {
+      results.push({
+        name: instance.name,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error ?? ""),
+      });
+    }
+  }
+
+  if (results.some((result) => result.ok)) {
+    await syncGoCaptureEgress().catch(() => null);
+  }
+
+  return results;
+}
+
 async function getManagedCameraWriterStatus(videoNr) {
   const pidPath = path.join(BACKEND_DATA_PATH, `redroid-camera-video${videoNr}.pid`);
 
