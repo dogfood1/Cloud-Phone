@@ -22,7 +22,7 @@ services:
       CLOUD_PHONE_PREFER_SYSTEM_ADB: "1"
       ADB_SERVER_SOCKET: ${ADB_SERVER_SOCKET:-tcp:127.0.0.1:5037}
       CLOUD_PHONE_DATA_DIR: /data
-      REDROID_IMAGE_TAG: ${REDROID_IMAGE_TAG:-redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg}
+      REDROID_IMAGE_TAG: ${REDROID_IMAGE_TAG:-redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg_webview109}
       REDROID_HOST_WORKDIR: ${REDROID_HOST_WORKDIR:-/root/redroid-extcam}
       REDROID_CAMERA_VIDEO_NR: ${REDROID_CAMERA_VIDEO_NR:-20}
       REDROID_CAMERA_WIDTH: ${REDROID_CAMERA_WIDTH:-1280}

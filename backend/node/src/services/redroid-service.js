@@ -10,7 +10,7 @@ import { BACKEND_DATA_PATH } from "../config/paths.js";
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg";
+const DEFAULT_IMAGE = "redroid:13.0.0_arm64_only_extcam_rgba_blob_jpegfix_facecfg_webview109";
 const DEFAULT_WORKDIR = "/root/redroid-extcam";
 const DEFAULT_PROXY_IMAGE = "ghcr.io/sagernet/sing-box:v1.10.7";
 const DEFAULT_PROXY_PROBE_IMAGE = "curlimages/curl:8.10.1";
