@@ -83,10 +83,13 @@ export function checkRedroidInstanceProxy(name) {
   });
 }
 
-export function updateRedroidInstanceCapture(name, enabled) {
+export function updateRedroidInstanceCapture(name, options = {}) {
+  const enabled = Boolean(options.enabled);
   return requestJson(`/api/redroid/instances/${encodeURIComponent(name)}/capture`, {
     method: enabled ? "POST" : "DELETE",
-    body: enabled ? { enabled: true } : undefined,
+    body: enabled
+      ? { enabled: true, mitmEnabled: Boolean(options.mitmEnabled) }
+      : undefined,
   });
 }
 

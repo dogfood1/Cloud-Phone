@@ -234,6 +234,11 @@ function normalizeProxyConfig(value = {}) {
       true,
       "Traffic capture enabled",
     ),
+    captureMitmEnabled: normalizeBoolean(
+      value.captureMitmEnabled ?? value.capture?.mitmEnabled,
+      true,
+      "HTTPS capture enabled",
+    ),
   };
 }
 
@@ -503,6 +508,7 @@ function publicProxyMeta(meta = {}) {
     serverName: meta.serverName ?? null,
     tlsInsecure: Boolean(meta.tlsInsecure),
     captureEnabled: Boolean(meta.captureEnabled),
+    captureMitmEnabled: Boolean(meta.captureMitmEnabled),
     sidecarName: meta.sidecarName ?? null,
     image: meta.image ?? null,
     updatedAt: meta.updatedAt ?? null,
@@ -541,6 +547,7 @@ async function writeProxyFiles(name, proxy) {
     serverName: proxy.serverName,
     tlsInsecure: proxy.tlsInsecure,
     captureEnabled: proxy.captureEnabled,
+    captureMitmEnabled: proxy.captureMitmEnabled,
     captureSocksUsername,
     captureSocksPassword,
     sidecarName,
@@ -621,7 +628,7 @@ function setCaptureInSingBoxConfig(document, enabled, cfg, captureCredentials = 
   return configDocument;
 }
 
-async function setCaptureEnabledInProxyFiles(name, enabled) {
+async function setCaptureEnabledInProxyFiles(name, enabled, mitmEnabled) {
   const cfg = config();
   const configPath = proxyConfigPathForName(cfg, name);
   const metaPath = proxyMetaPathForName(cfg, name);
@@ -648,6 +655,7 @@ async function setCaptureEnabledInProxyFiles(name, enabled) {
   const updatedMeta = {
     ...meta,
     captureEnabled: Boolean(enabled),
+    captureMitmEnabled: Boolean(enabled && mitmEnabled),
     captureSocksUsername,
     captureSocksPassword,
     updatedAt: new Date().toISOString(),
@@ -751,7 +759,19 @@ async function configureAndroidCapture(name, enabled) {
   const cfg = config();
   if (!enabled) {
     const result = await commandResult("docker", ["exec", name, "settings", "delete", "global", "http_proxy"], { timeout: 10_000 });
-    return { ok: result.ok, enabled: false, output: result.output };
+    let caRemoval = { ok: true, skipped: true };
+    if (await fs.stat(cfg.captureCaPath).then(() => true).catch(() => false)) {
+      const hashResult = await commandResult("openssl", [
+        "x509", "-subject_hash_old", "-noout", "-in", cfg.captureCaPath,
+      ]);
+      const hash = hashResult.stdout.trim().split(/\s+/)[0];
+      if (/^[0-9a-fA-F]{8}$/.test(hash)) {
+        caRemoval = await commandResult("docker", [
+          "exec", name, "rm", "-f", `/system/etc/security/cacerts/${hash}.0`,
+        ], { timeout: 10_000 });
+      }
+    }
+    return { ok: result.ok && caRemoval.ok, enabled: false, output: result.output, caRemoval };
   }
   const ca = await installGoCaptureCA(name);
   const proxyAddress = `${cfg.captureHost}:${cfg.captureHttpPort}`;
@@ -1019,7 +1039,8 @@ async function startProxySidecarFromMeta(name, meta) {
   const capture = meta.captureEnabled
     ? {
         egress: await syncGoCaptureEgress().catch((error) => ({ ok: false, error: error.message })),
-        android: await configureAndroidCapture(name, true).catch((error) => ({ ok: false, error: error.message })),
+        android: await configureAndroidCapture(name, Boolean(meta.captureMitmEnabled))
+          .catch((error) => ({ ok: false, error: error.message })),
       }
     : null;
   return {
@@ -1538,7 +1559,16 @@ export async function configureRedroidInstanceCapture(name, payload = {}) {
     throw error;
   }
 
-  const meta = await setCaptureEnabledInProxyFiles(safeName, enabled);
+  const privateMeta = await fs.readFile(
+    proxyMetaPathForName(config(), safeName),
+    "utf8",
+  ).then(JSON.parse);
+  const mitmEnabled = enabled && normalizeBoolean(
+    payload.mitmEnabled,
+    privateMeta.captureMitmEnabled ?? true,
+    "HTTPS capture enabled",
+  );
+  const meta = await setCaptureEnabledInProxyFiles(safeName, enabled, mitmEnabled);
   let restarted = null;
   if (instance.running) {
     restarted = await startProxySidecarFromMeta(safeName, meta);
@@ -1550,6 +1580,7 @@ export async function configureRedroidInstanceCapture(name, payload = {}) {
   return {
     name: safeName,
     enabled,
+    mitmEnabled,
     restarted,
     instance: updated,
   };

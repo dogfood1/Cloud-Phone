@@ -78,6 +78,7 @@ const createForm = reactive({
     serverName: "",
     tlsInsecure: true,
     captureEnabled: true,
+    captureMitmEnabled: true,
   },
 });
 
@@ -142,6 +143,7 @@ function buildProxyPayload() {
     serverName: createForm.proxy.serverName,
     tlsInsecure: Boolean(createForm.proxy.tlsInsecure),
     captureEnabled: Boolean(createForm.proxy.captureEnabled),
+    captureMitmEnabled: Boolean(createForm.proxy.captureMitmEnabled),
   };
 }
 
@@ -403,11 +405,30 @@ async function handleToggleCapture(instance) {
   feedback.value = "";
   const enabled = !instance.proxy?.captureEnabled;
   try {
-    await updateRedroidInstanceCapture(instance.name, enabled);
+    await updateRedroidInstanceCapture(instance.name, {
+      enabled,
+      mitmEnabled: enabled ? Boolean(instance.proxy?.captureMitmEnabled ?? true) : false,
+    });
     feedback.value = `${instance.name} 抓包已${enabled ? "启用" : "关闭"}。`;
     await loadStatus();
   } catch (requestError) {
     error.value = getErrorMessage(requestError, "更新抓包配置失败。");
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleToggleMitm(instance) {
+  actionLoading.value = true;
+  error.value = "";
+  feedback.value = "";
+  const mitmEnabled = !instance.proxy?.captureMitmEnabled;
+  try {
+    await updateRedroidInstanceCapture(instance.name, { enabled: true, mitmEnabled });
+    feedback.value = `${instance.name} HTTPS 解密已${mitmEnabled ? "启用" : "关闭"}。`;
+    await loadStatus();
+  } catch (requestError) {
+    error.value = getErrorMessage(requestError, "更新 HTTPS 解密配置失败。");
   } finally {
     actionLoading.value = false;
   }
@@ -726,6 +747,14 @@ onMounted(async () => {
               />
               <span>启用 GoCapture 抓包</span>
             </label>
+            <label class="redroid-check">
+              <input
+                v-model="createForm.proxy.captureMitmEnabled"
+                :disabled="actionLoading || !createForm.proxy.enabled || !createForm.proxy.captureEnabled"
+                type="checkbox"
+              />
+              <span>HTTPS 解密（安装系统 CA）</span>
+            </label>
           </div>
         </div>
 
@@ -760,13 +789,22 @@ onMounted(async () => {
               <p>{{ instance.model.manufacturer || "-" }} {{ instance.model.modelCode || "" }} {{ instance.model.device || "" }}</p>
               <p>{{ proxyStatusLabel(instance.proxy) }}</p>
               <p v-if="instance.proxy?.enabled">
-                GoCapture {{ instance.proxy.captureEnabled ? "已启用" : "未启用" }}
+                GoCapture {{ instance.proxy.captureEnabled ? "已启用" : "未启用" }} · HTTPS 解密 {{ instance.proxy.captureMitmEnabled ? "开启" : "关闭" }}
               </p>
             </div>
             <div class="redroid-instance__actions">
               <span :class="['redroid-state', { 'redroid-state--on': instance.running }]">
                 {{ instance.state }}
               </span>
+              <button
+                v-if="instance.proxy?.captureEnabled"
+                type="button"
+                :title="instance.proxy.captureMitmEnabled ? '关闭 HTTPS 解密' : '启用 HTTPS 解密'"
+                :disabled="actionLoading || !instance.running"
+                @click="handleToggleMitm(instance)"
+              >
+                <AppIcon name="lock" />
+              </button>
               <button
                 v-if="instance.proxy?.enabled"
                 type="button"
