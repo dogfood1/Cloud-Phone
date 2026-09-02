@@ -961,14 +961,19 @@ async function inspectProxySidecars() {
     if (!proxyFor) {
       continue;
     }
-    byInstance.set(proxyFor, {
+    const candidate = {
       sidecarName: String(sidecar?.Name ?? "").replace(/^\//, ""),
       state: sidecar?.State?.Status ?? "unknown",
       running: Boolean(sidecar?.State?.Running),
       exitCode: sidecar?.State?.ExitCode ?? null,
       image: sidecar?.Config?.Image ?? null,
       createdAt: sidecar?.Created ?? null,
-    });
+    };
+    const current = byInstance.get(proxyFor);
+    if (!current || (candidate.running && !current.running) ||
+        (candidate.running === current.running && candidate.createdAt > current.createdAt)) {
+      byInstance.set(proxyFor, candidate);
+    }
   }
 
   return byInstance;
