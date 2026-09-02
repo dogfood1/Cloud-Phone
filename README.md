@@ -85,7 +85,7 @@ Cloud Phone 就是把这件事做成一个本地 Web 控制台：后端用内置
 本 fork 增加了面向 `redroid:13.0.0_arm64_only_extcam_rgba` 的云手机管理页：
 
 - 上传一张图片并设置为宿主机 `/dev/video20` 的 v4l2loopback 静态摄像头画面。
-- 创建 ReDroid 容器，默认映射 ADB `5555+` 和 `/dev/video20`，并注入已验证的外部摄像头镜像启动参数。
+- 创建 ReDroid 容器，默认仅在 `127.0.0.1` 映射 ADB `5555+` 和 `/dev/video20`，并注入已验证的外部摄像头镜像启动参数。
 - 创建时可设置 `ro.product.*` 机型信息，支持品牌、厂商、型号、device、product name。
 - 创建或运行后可为每个 ReDroid 容器单独启用 TUN 代理 sidecar，支持 SOCKS5 和 Trojan；每台云手机可绑定不同代理出口。
 - Trojan 支持自定义 SNI 与自签名证书兼容选项；代理密码只写入宿主机 `REDROID_PROXY_DIR` 下的 sing-box 配置文件，不写入 Docker label。

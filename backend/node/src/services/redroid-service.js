@@ -43,6 +43,7 @@ function config() {
     ),
     videoNr,
     adbPortBase: Number(process.env.REDROID_ADB_PORT_BASE || 5555),
+    adbBindHost: process.env.REDROID_ADB_BIND_HOST || "127.0.0.1",
     containerAdbPort: Number(process.env.REDROID_CONTAINER_ADB_PORT || 5554),
     defaultWidth: Number(process.env.REDROID_WIDTH || 720),
     defaultHeight: Number(process.env.REDROID_HEIGHT || 1280),
@@ -1338,6 +1339,7 @@ export async function getRedroidCameraStatus(options = {}) {
 }
 
 export async function findNextAdbPort(startPort = config().adbPortBase) {
+  const cfg = config();
   const instances = await listRedroidInstances().catch(() => []);
   const usedPorts = new Set(instances.map((item) => item.adbPort).filter(Boolean));
 
@@ -1346,7 +1348,7 @@ export async function findNextAdbPort(startPort = config().adbPortBase) {
       continue;
     }
 
-    if (await isLocalPortAvailable(port)) {
+    if (await isLocalPortAvailable(port, cfg.adbBindHost)) {
       return port;
     }
   }
@@ -1354,14 +1356,14 @@ export async function findNextAdbPort(startPort = config().adbPortBase) {
   return Number(startPort);
 }
 
-function isLocalPortAvailable(port) {
+function isLocalPortAvailable(port, host = "127.0.0.1") {
   return new Promise((resolve) => {
     const server = net.createServer();
     server.once("error", () => resolve(false));
     server.once("listening", () => {
       server.close(() => resolve(true));
     });
-    server.listen(port, "0.0.0.0");
+    server.listen(port, host);
   });
 }
 
@@ -1436,7 +1438,7 @@ export async function createRedroidInstance(payload = {}) {
     "-v",
     `${dataDir}:/data`,
     "-p",
-    `${adbPort}:${cfg.containerAdbPort}`,
+    `${cfg.adbBindHost}:${adbPort}:${cfg.containerAdbPort}`,
     "--device",
     `/dev/video${videoNr}:/dev/video${videoNr}`,
   ];
