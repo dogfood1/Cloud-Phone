@@ -63,8 +63,8 @@ function config() {
 }
 
 function normalizeCameraLensFacing(value) {
-  const facing = String(value || "back").trim().toLowerCase();
-  return CAMERA_LENS_FACINGS.has(facing) ? facing : "back";
+  const facing = String(value || "front").trim().toLowerCase();
+  return CAMERA_LENS_FACINGS.has(facing) ? facing : "front";
 }
 
 function normalizeCameraSensorOrientation(value) {
@@ -1415,7 +1415,7 @@ export async function createRedroidInstance(payload = {}) {
     "persist.sys.usb.config=adb",
     "ro.product.locale=zh-CN",
     "persist.sys.locale=zh-CN",
-    `ro.vendor.camera.external.lensFacing=${propToken(cfg.cameraLensFacing, "back")}`,
+    `ro.vendor.camera.external.lensFacing=${propToken(cfg.cameraLensFacing, "front")}`,
     `ro.vendor.camera.external.sensorOrientation=${cfg.cameraSensorOrientation}`,
     "ro.vendor.camera.external.jpegMirrorCorrection=false",
     "ro.vendor.camera.external.forceHighQualityJpeg=true",
