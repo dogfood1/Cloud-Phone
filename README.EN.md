@@ -516,7 +516,7 @@ Root `.env` (see `.env.example`):
 | `CLOUD_PHONE_PREFER_SYSTEM_ADB` | Prefer apt-installed adb on Docker/Linux | `1` (Docker default) |
 | `ADB_SERVER_SOCKET` | Reuse the host adb server on Linux host networking so an older container adb does not start its own server | `tcp:127.0.0.1:5037` |
 | `CLOUD_PHONE_LAN_IP` | Primary LAN IPv4 for mDNS/display (optional) | auto |
-| `REDROID_CONTAINER_ADB_PORT` | adbd port inside each ReDroid container; the host ADB port is mapped to this port | `5554` |
+| `REDROID_CONTAINER_ADB_PORT` | adbd port inside each ReDroid container; the host ADB port is mapped to this port | `5555` |
 | `REDROID_ADB_AUTO_CONNECT` | Start and connect managed ReDroid ADB before refreshing the device list | `1` |
 | `BACKEND_ORIGIN` | Frontend `/api` proxy target (host network uses `127.0.0.1`) | `http://127.0.0.1:3000` |
 | `FRONTEND_HTTPS` | Enable HTTPS for production frontend (`server.mjs`; on by default in Docker) | `1` (set `0` to disable) |

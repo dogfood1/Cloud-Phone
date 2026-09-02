@@ -44,7 +44,7 @@ function config() {
     videoNr,
     adbPortBase: Number(process.env.REDROID_ADB_PORT_BASE || 5555),
     adbBindHost: process.env.REDROID_ADB_BIND_HOST || "127.0.0.1",
-    containerAdbPort: Number(process.env.REDROID_CONTAINER_ADB_PORT || 5554),
+    containerAdbPort: Number(process.env.REDROID_CONTAINER_ADB_PORT || 5555),
     defaultWidth: Number(process.env.REDROID_WIDTH || 720),
     defaultHeight: Number(process.env.REDROID_HEIGHT || 1280),
     defaultDpi: Number(process.env.REDROID_DPI || 320),
@@ -1076,8 +1076,8 @@ async function stopProxySidecar(name) {
 function extractPort(inspect) {
   const ports = inspect?.NetworkSettings?.Ports ?? {};
   const labels = inspect?.Config?.Labels ?? {};
-  const containerAdbPort = labels["cloud-phone.redroid.containerAdbPort"] || "5554";
-  const candidates = [`${containerAdbPort}/tcp`, "5554/tcp", "5555/tcp"];
+  const containerAdbPort = labels["cloud-phone.redroid.containerAdbPort"] || "5555";
+  const candidates = [`${containerAdbPort}/tcp`, "5555/tcp", "5554/tcp"];
 
   for (const candidate of candidates) {
     const bindings = ports[candidate];
@@ -1117,7 +1117,7 @@ function mapContainer(inspect) {
       .find((network) => network?.IPAddress)?.IPAddress ?? null,
     gateway: containerGateway(inspect) || null,
     adbPort: extractPort(inspect),
-    containerAdbPort: Number(labels["cloud-phone.redroid.containerAdbPort"] || 5554),
+    containerAdbPort: Number(labels["cloud-phone.redroid.containerAdbPort"] || 5555),
     videoNr: extractVideoNr(inspect),
     dataDir: inspect?.Mounts?.find((item) => item.Destination === "/data")?.Source ?? null,
     model: {
