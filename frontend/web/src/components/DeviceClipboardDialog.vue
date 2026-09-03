@@ -6,6 +6,7 @@ import { useAppFeedback } from "../composables/useAppFeedback.js";
 import { getErrorMessage } from "../utils/api.js";
 import {
   MAX_DEVICE_CLIPBOARD_BYTES,
+  readDeviceClipboard as fetchDeviceClipboard,
   writeDeviceClipboard,
 } from "../utils/device-clipboard-api.js";
 
@@ -42,6 +43,35 @@ async function readLocalClipboard() {
     text.value = await navigator.clipboard.readText();
   } catch (error) {
     errorMessage.value = getErrorMessage(error, "无法读取本机剪切板");
+  }
+}
+
+async function readFromDevice() {
+  if (busy.value || !props.device?.connected) return;
+  busy.value = true;
+  errorMessage.value = "";
+  try {
+    const result = await fetchDeviceClipboard(props.device.serial);
+    text.value = result.text ?? "";
+    if (result.empty) {
+      feedback.success("设备剪切板为空");
+    } else {
+      feedback.success(`已读取设备剪切板，共 ${result.bytes.toLocaleString()} 字节`);
+    }
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error, "读取设备剪切板失败");
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function copyToLocalClipboard() {
+  errorMessage.value = "";
+  try {
+    await navigator.clipboard.writeText(text.value);
+    feedback.success("已复制到本机剪切板");
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error, "无法写入本机剪切板");
   }
 }
 
@@ -121,28 +151,50 @@ function handleBackdropClick(event) {
           />
           <div class="device-clipboard__meta">
             <span :class="{ 'device-clipboard__size--error': tooLarge }">{{ sizeLabel }}</span>
-            <button
-              type="button"
-              class="device-clipboard__secondary"
-              :disabled="busy"
-              @click="readLocalClipboard"
-            >
-              <AppIcon name="clipboard-copy" />
-              <span>读取本机剪切板</span>
-            </button>
+            <div class="device-clipboard__meta-actions">
+              <button
+                type="button"
+                class="device-clipboard__secondary"
+                :disabled="busy"
+                @click="readLocalClipboard"
+              >
+                <AppIcon name="clipboard-copy" />
+                <span>读取本机</span>
+              </button>
+              <button
+                type="button"
+                class="device-clipboard__secondary"
+                :disabled="busy || !device.connected"
+                @click="readFromDevice"
+              >
+                <AppIcon name="clipboard-paste" />
+                <span>{{ busy ? "读取中" : "读取设备" }}</span>
+              </button>
+            </div>
           </div>
           <p v-if="errorMessage" class="device-clipboard__error">{{ errorMessage }}</p>
         </div>
 
         <footer class="device-clipboard__footer">
-          <button
-            type="button"
-            class="device-clipboard__secondary"
-            :disabled="busy || !device.connected"
-            @click="sendToDevice('')"
-          >
-            清空设备剪切板
-          </button>
+          <div class="device-clipboard__footer-group">
+            <button
+              type="button"
+              class="device-clipboard__secondary"
+              :disabled="busy || !device.connected"
+              @click="sendToDevice('')"
+            >
+              清空设备
+            </button>
+            <button
+              type="button"
+              class="device-clipboard__secondary"
+              :disabled="busy"
+              @click="copyToLocalClipboard"
+            >
+              <AppIcon name="clipboard-copy" />
+              <span>复制到本机</span>
+            </button>
+          </div>
           <button
             type="button"
             class="device-clipboard__primary"
@@ -150,7 +202,7 @@ function handleBackdropClick(event) {
             @click="sendToDevice()"
           >
             <AppIcon name="clipboard-paste" />
-            <span>{{ busy ? "正在发送" : "发送到设备" }}</span>
+            <span>{{ busy ? "处理中" : "发送到设备" }}</span>
           </button>
         </footer>
       </section>

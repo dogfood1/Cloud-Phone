@@ -8,6 +8,8 @@ export const ICON_HELPER_SERVICE =
   "com.cloudphone.iconhelper/.IconExtractService";
 export const ICON_HELPER_CLIPBOARD_RECEIVER =
   "com.cloudphone.iconhelper/.ClipboardReceiver";
+export const ICON_HELPER_CLIPBOARD_SHELL =
+  "com.cloudphone.iconhelper.ClipboardShell";
 
 export const ICON_HELPER_REMOTE_FILES =
   "/sdcard/Android/data/com.cloudphone.iconhelper/files";

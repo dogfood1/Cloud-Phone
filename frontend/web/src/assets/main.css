@@ -3170,6 +3170,13 @@ code {
   font-size: 0.78rem;
 }
 
+.device-clipboard__meta-actions,
+.device-clipboard__footer-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .device-clipboard__size--error,
 .device-clipboard__error {
   color: #e55353;
@@ -3183,6 +3190,7 @@ code {
 .device-clipboard__footer {
   padding: 0.8rem 1rem;
   border-top: 1px solid var(--line);
+  flex-wrap: wrap;
 }
 
 .device-clipboard__primary,

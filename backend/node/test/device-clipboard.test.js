@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   MAX_DEVICE_CLIPBOARD_BYTES,
+  parseDeviceClipboardOutput,
   prepareDeviceClipboardPayload,
   verifyClipboardBroadcast,
 } from "../src/services/device-clipboard.js";
@@ -13,6 +14,40 @@ test("encodes Unicode clipboard text as UTF-8 Base64", () => {
   assert.equal(payload.bytes.toString("utf8"), "中文\nclipboard");
   assert.deepEqual(payload.clipboardExtra.slice(0, 2), ["--es", "text_base64"]);
   assert.equal(Buffer.from(payload.clipboardExtra[2], "base64").toString("utf8"), "中文\nclipboard");
+});
+
+test("decodes and verifies device clipboard output", () => {
+  const text = "设备剪切板读取\nline-2";
+  const payload = prepareDeviceClipboardPayload(text);
+  const encoded = payload.bytes.toString("base64");
+  const result = parseDeviceClipboardOutput(
+    `clipboard:${payload.bytes.length}:${payload.sha256}:${encoded}\r\n`,
+  );
+
+  assert.equal(result.text, text);
+  assert.equal(result.bytes, payload.bytes.length);
+  assert.equal(result.sha256, payload.sha256);
+  assert.equal(result.empty, false);
+});
+
+test("distinguishes an empty clipboard", () => {
+  const payload = prepareDeviceClipboardPayload("");
+  const result = parseDeviceClipboardOutput(`clipboard:0:${payload.sha256}:`);
+
+  assert.deepEqual(result, {
+    text: "",
+    bytes: 0,
+    sha256: payload.sha256,
+    empty: true,
+  });
+});
+
+test("rejects tampered device clipboard output", () => {
+  const payload = prepareDeviceClipboardPayload("trusted");
+  assert.throws(
+    () => parseDeviceClipboardOutput(`clipboard:7:${payload.sha256}:dGFtcGVyZWQ=`),
+    (error) => error?.code === "clipboard_read_failed",
+  );
 });
 
 test("uses a boolean extra when clearing the clipboard", () => {
