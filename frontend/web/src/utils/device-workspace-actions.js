@@ -36,6 +36,13 @@ export const DEVICE_WORKSPACE_ACTIONS = [
     kind: "files",
     title: "浏览设备文件系统（根为 /，默认打开 /storage/emulated/0）",
   },
+  {
+    id: "photo-upload",
+    label: "上传照片",
+    icon: "image-up",
+    kind: "photo-upload",
+    title: "上传照片到设备相册并刷新媒体索引",
+  },
   { id: "apps", label: "应用管理", icon: "apps", kind: "apps", title: "列出已安装应用、安装/卸载、冻结与导出 APK" },
   {
     id: "terminal",

@@ -192,6 +192,7 @@ images/readme/
 - 剪切板：读取本机剪切板并发送到设备，支持 Unicode、多行文本及清空；无需正在投屏
 - 截屏：下载 PNG（可不投屏）；投屏时画布四边白光闪烁反馈
 - 录屏：有画面存 **MP4**，仅音频存 **MP3**；结束投屏自动保存
+- 上传照片：批量写入 `Pictures` 或 `DCIM/Camera`，上传后自动刷新 Android MediaStore
 - **文件管理**、**应用管理**、**终端**：见下文（无需正在投屏）
 
 ### 设备工作区 · 摄像头投屏（Android 12+）
@@ -201,6 +202,7 @@ images/readme/
 - 左侧「摄像头」：朝向、摄像头 ID、采集尺寸、宽高比、帧率、高速模式、手电筒、变焦、编码与音频
 - `GET /api/devices/:serial/cameras` 列出设备摄像头
 - 投屏中可开关手电、变焦；**摄像头模式不注入画布触摸**（避免误触）
+- 匹配到托管 ReDroid 实例时，左侧显示紧凑的固定摄像头入口；图片预览、适配方式和手动镜像在弹窗中设置
 
 ### 文件管理
 
@@ -210,6 +212,7 @@ images/readme/
 - 后退 / 前进 / 向上 / 刷新；无权限时提示「权限不足」
 - **上传**：将本地文件推到当前目录（`PUT .../files/upload?path=`）
 - **下载**：将设备上的文件保存到电脑（`GET .../files/download?path=`）
+- **上传照片**：可多选上传到共享相册并逐张广播 `MEDIA_SCANNER_SCAN_FILE`（`PUT .../photos/upload`）
 - `GET /api/devices/:serial/files?path=...` 列出目录
 
 ### 应用管理

@@ -6,6 +6,7 @@ import DeviceAppManager from "./DeviceAppManager.vue";
 import DeviceCastViewport from "./DeviceCastViewport.vue";
 import DeviceClipboardDialog from "./DeviceClipboardDialog.vue";
 import DeviceFileExplorer from "./DeviceFileExplorer.vue";
+import DevicePhotoUploadDialog from "./DevicePhotoUploadDialog.vue";
 import DeviceTerminal from "./DeviceTerminal.vue";
 import DeviceWorkspaceToolbar from "./DeviceWorkspaceToolbar.vue";
 import DeviceWorkspaceLeftPanel from "./DeviceWorkspaceLeftPanel.vue";
@@ -50,6 +51,7 @@ const castViewportRef = ref(null);
 const leftPanelRef = ref(null);
 const filesExplorerOpen = ref(false);
 const filesExplorerPath = ref(null);
+const photoUploadOpen = ref(false);
 const appsManagerOpen = ref(false);
 const terminalOpen = ref(false);
 const clipboardOpen = ref(false);
@@ -107,6 +109,13 @@ const {
     filesExplorerPath.value = null;
     filesExplorerOpen.value = true;
     logInfo("ui", "modal.files.open", "打开文件管理器", {
+      deviceSerial: props.device.serial,
+      deviceName: props.device.displayName ?? props.device.serial,
+    });
+  },
+  onOpenPhotoUpload: () => {
+    photoUploadOpen.value = true;
+    logInfo("ui", "modal.photos.open", "打开照片上传", {
       deviceSerial: props.device.serial,
       deviceName: props.device.displayName ?? props.device.serial,
     });
@@ -609,6 +618,7 @@ async function handleViewportFullscreenChange(isFullscreen) {
       :open-path="filesExplorerPath"
       @close="handleFilesExplorerClose"
     />
+    <DevicePhotoUploadDialog :device="device" :open="photoUploadOpen" @close="photoUploadOpen = false" />
     <DeviceAppManager
       :device="device"
       :open="appsManagerOpen"

@@ -12,6 +12,7 @@ export function createToolbarActionHandlers({
   mirrorSettingsRef,
   onHint,
   onOpenFiles,
+  onOpenPhotoUpload,
   onOpenApps,
   onOpenTerminal,
   onOpenClipboard,
@@ -189,6 +190,11 @@ export function createToolbarActionHandlers({
 
     if (action.kind === "files") {
       onOpenFiles?.();
+      return;
+    }
+
+    if (action.kind === "photo-upload") {
+      onOpenPhotoUpload?.();
       return;
     }
 

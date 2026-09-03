@@ -66,6 +66,7 @@ export function createToolbarActionPresentation({
     if (
       action.kind === "apps" ||
       action.kind === "files" ||
+      action.kind === "photo-upload" ||
       action.kind === "terminal" ||
       action.kind === "clipboard"
     ) {
@@ -120,6 +121,14 @@ export function createToolbarActionPresentation({
       }
 
       return action.title ?? "浏览设备文件";
+    }
+
+    if (action.kind === "photo-upload") {
+      if (!device.connected) {
+        return "设备未在线";
+      }
+
+      return action.title ?? "上传照片到设备相册";
     }
 
     if (action.kind === "terminal") {

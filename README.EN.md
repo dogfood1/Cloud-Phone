@@ -183,6 +183,7 @@ Images are embedded in the corresponding feature sections below.
 - Clipboard: paste host clipboard into device / copy device clipboard to host; also supports sending typed text
 - Screenshot: downloads PNG even without an active cast; when casting, the viewport flashes white around the edges
 - Record: MP4 when video is on, MP3 when audio-only; saved automatically when the cast ends
+- Upload photos: batch upload to `Pictures` or `DCIM/Camera` and refresh Android MediaStore automatically
 - **Files**, **Apps**, **Terminal** buttons open the tools below (no cast required)
 
 ### Device workspace · Camera cast (Android 12+)
@@ -193,6 +194,7 @@ Images are embedded in the corresponding feature sections below.
 - `GET /api/devices/:serial/cameras` lists available cameras
 - In-cast torch and zoom controls
 - Canvas touch injection is disabled in camera mode to avoid accidental taps
+- For managed ReDroid instances, the compact fixed-camera control opens image preview, fit, and manual mirror settings in a dialog
 
 ### Files
 
@@ -204,6 +206,7 @@ Images are embedded in the corresponding feature sections below.
 - “Permission denied” errors are surfaced clearly
 - **Upload** local files to the current directory (`PUT .../files/upload?path=`)
 - **Download** device files to the host (`GET .../files/download?path=`)
+- **Upload photos** in batches to shared albums and broadcast `MEDIA_SCANNER_SCAN_FILE` for each file (`PUT .../photos/upload`)
 - `GET /api/devices/:serial/files?path=...` lists a directory
 
 ### Apps

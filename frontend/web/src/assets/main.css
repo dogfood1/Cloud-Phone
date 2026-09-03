@@ -1824,6 +1824,8 @@ h2 {
 .workspace-fixed-camera {
   flex-shrink: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 0.55rem;
   padding: 0.7rem;
   border: 1px solid var(--line);
@@ -1851,81 +1853,8 @@ h2 {
   white-space: nowrap;
 }
 
-.workspace-fixed-camera__dropzone {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 5.8rem;
-  overflow: hidden;
-  border: 1px dashed var(--line);
-  border-radius: 0.65rem;
-  background: var(--bg-preview);
-  color: var(--muted);
-  font-size: 0.82rem;
-  text-align: center;
-}
-
-.workspace-fixed-camera__dropzone input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.workspace-fixed-camera__dropzone img {
-  width: 100%;
-  height: 100%;
-  max-height: 8rem;
-  object-fit: contain;
-}
-
-.workspace-fixed-camera__preview--mirror {
-  transform: scaleX(-1);
-}
-
-.workspace-fixed-camera__options {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.45rem;
-  align-items: end;
-}
-
-.workspace-fixed-camera__options label {
-  display: grid;
-  gap: 0.28rem;
-  min-width: 0;
-  color: var(--muted);
-  font-size: 0.76rem;
-}
-
-.workspace-fixed-camera__options select {
-  width: 100%;
-  height: 2rem;
-  min-width: 0;
-  padding: 0 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
-  background: var(--bg-input);
-  color: var(--text);
-}
-
-.workspace-fixed-camera__check {
-  display: flex !important;
-  flex-direction: row;
-  align-items: center;
-  min-height: 2rem;
-  padding: 0 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
-  background: var(--bg-input);
-  white-space: nowrap;
-}
-
-.workspace-fixed-camera__check input {
-  width: 0.95rem;
-  height: 0.95rem;
-  margin: 0;
-  accent-color: var(--success);
+.workspace-fixed-camera > .workspace-left__hint {
+  grid-column: 1 / -1;
 }
 
 .workspace-left__placeholder {
@@ -3293,6 +3222,234 @@ code {
   cursor: not-allowed;
 }
 
+.device-camera-overlay,
+.device-photo-overlay {
+  z-index: 1280;
+}
+
+.device-camera-dialog,
+.device-photo-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 100%);
+  max-height: min(88vh, 780px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.22);
+}
+
+.device-camera-dialog__body,
+.device-photo-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.device-camera-dialog__dropzone,
+.device-photo-dialog__dropzone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--bg-preview);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.device-camera-dialog__dropzone {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.device-camera-dialog__dropzone input,
+.device-photo-dialog__dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.device-camera-dialog__dropzone img {
+  width: 100%;
+  height: 100%;
+}
+
+.device-camera-dialog__dropzone > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.device-camera-dialog__dropzone .app-icon,
+.device-photo-dialog__dropzone .app-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.device-camera-dialog__preview--mirror {
+  transform: scaleX(-1);
+}
+
+.device-camera-dialog__options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.device-camera-dialog__options > label,
+.device-photo-dialog__album {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.device-camera-dialog__options select,
+.device-photo-dialog__album select {
+  width: 100%;
+  height: 2.35rem;
+  min-width: 0;
+  padding: 0 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.device-camera-dialog__check {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  min-height: 2.35rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.device-camera-dialog__check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.device-photo-dialog {
+  width: min(760px, 100%);
+}
+
+.device-photo-dialog__dropzone {
+  min-height: 112px;
+  align-content: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.device-photo-dialog__dropzone strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.device-photo-dialog__dropzone span {
+  font-size: 0.75rem;
+}
+
+.device-photo-dialog__list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.device-photo-dialog__item {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 64px;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.device-photo-dialog__item img {
+  width: 54px;
+  height: 54px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--bg-preview);
+}
+
+.device-photo-dialog__item > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.device-photo-dialog__item strong,
+.device-photo-dialog__item span,
+.device-photo-dialog__item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-photo-dialog__item strong {
+  font-size: 0.82rem;
+}
+
+.device-photo-dialog__item span,
+.device-photo-dialog__item small,
+.device-photo-dialog__summary {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.device-photo-dialog__item > button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.device-photo-dialog__item > button:hover {
+  background: var(--bg-muted);
+  color: #e55353;
+}
+
+.device-photo-dialog__item > button .app-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.device-photo-dialog__status--done {
+  color: var(--success) !important;
+}
+
+.device-photo-dialog__status--error {
+  color: #e55353 !important;
+}
+
+.device-photo-dialog__actions {
+  display: flex;
+  gap: 0.55rem;
+}
+
 @media (max-width: 560px) {
   .device-clipboard__meta {
     align-items: flex-start;
@@ -3302,6 +3459,19 @@ code {
   .device-clipboard__footer {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .device-camera-dialog__options {
+    grid-template-columns: 1fr;
+  }
+
+  .device-photo-dialog__summary {
+    text-align: right;
+  }
+
+  .device-photo-dialog__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
