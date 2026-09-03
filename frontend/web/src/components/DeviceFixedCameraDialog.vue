@@ -23,7 +23,7 @@ const file = ref(null);
 const previewUrl = ref("");
 const errorMessage = ref("");
 const fitMode = ref("cover");
-const mirror = ref(false);
+const mirror = ref(true);
 
 const fitOptions = [
   { label: "填满裁剪", value: "cover" },
@@ -47,7 +47,7 @@ function resetForm() {
   file.value = null;
   errorMessage.value = "";
   fitMode.value = "cover";
-  mirror.value = false;
+  mirror.value = true;
 }
 
 watch(
@@ -165,7 +165,7 @@ function handleBackdropClick(event) {
             </label>
             <label class="device-camera-dialog__check">
               <input v-model="mirror" type="checkbox" :disabled="busy" />
-              <span>手动镜像输入</span>
+              <span>校正前置相机左右镜像</span>
             </label>
           </div>
           <p v-if="errorMessage" class="device-clipboard__error">{{ errorMessage }}</p>

@@ -1890,7 +1890,7 @@ export async function setRedroidCameraImage(payload = {}) {
   const height = normalizeInteger(payload.height, cfg.cameraHeight, 240, 4096, "Camera height");
   const transform = buildCameraImageFilter(width, height, {
     fitMode: payload.fitMode,
-    mirror: payload.mirror,
+    mirror: payload.mirror ?? cfg.cameraLensFacing === "front",
   });
   const buffer = decodeImagePayload(payload);
   const uploadDir = path.join(cfg.workdir, "camera-images");
